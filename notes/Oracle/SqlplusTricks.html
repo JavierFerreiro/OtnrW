@@ -1,0 +1,50 @@
+<p>Some notes to remember about sqlplus.</p>
+<h2>Notes</h2>
+<ul>
+<li><h4>How to connect?</h4>
+<p>The best form is:
+<ul>
+<li>for normal users: 
+   <ol>
+   <li><code>[user@lab1 ~]sqlplus /nolog</code></li>
+   <li><code>SQL>connect hr</code></li>
+   </ol>
+</li>
+<li>for users with sysadmin:
+   <ol>
+   <li><code>[user@lab1 ~]sqlplus /nolog</code></li>
+   <li><code>SQL>connect hr as sysadmin</code></li>
+   </ol>
+</li>
+<li>for users s.o. trusted
+   <ol>
+   <li><code>[user@lab1 ~]sqlplus / as sysdba</code></li>
+   </ol>
+</li>
+</ul>
+</p>
+</li>
+
+<!-- -------------- Question  ------------------- -->
+
+<li><h4>How to execute file scripts?</h4>
+<p>The sign <code>@<name></code> execute the file <name>.</p>
+<p>Atention with this:
+<ul>
+<li>If name hasn't a extension, sqlplus search <name>.sql</li>
+<li>If name has a relative path, sqlplus search in the directory where sqlplus was invoked and if not there where indicate the system variable SQLPATH</li>
+</ul>
+<p>e.g.:<code>SQL>@foo</code>
+<p>e.g.:<code>SQL>@/home/oracle/sqlScripts/foo</code>
+<p>e.g.:<code>SQL>@foo.pkg</code>
+</p>
+<p>Sometimes in the scripts, when need to execute other scripts you should use
+</li>
+
+<!-- -------------- Question  ------------------- -->
+
+<li><h4>How to execute file scripts?</h4>
+</li>
+
+<!-- -------------- End Questions -------------- -->
+</ul>

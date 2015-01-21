@@ -1,0 +1,48 @@
+<h1>Domains</h1>
+<p>In the next section, we introduce the service of DNS (Domain name system).</p>
+<h2>What is a Domain?</h2>
+<p> 
+For describe what is a domain, I think that the best approach is explain the the reason for what someone invented it. 
+</p>
+<p>
+In a nutshell, the cause of the dns is comfort :) (Yeah! lazy power!). The computers insist on use the numbers for everything and it's no exception the directions of the computers in the Internet. This directions are writed in numbers,i.e on ipv4 192.168.0.10. Yes, it was more easy for humans some directions like: the computer in United States, Los Angeles California,Syscamorre Avenue number whatever. But this, it's not really funtional for computers.
+</p>
+<p>Then what you need for contact the computer that host the web page of google for do a search, you can tell to your browser: http://173.194.78.100 and your browser can search this direction and present the web page or... you can use dns.
+</p>
+<p>The idea behind dns is that the directions of computers are no easy to memorize for persons, who are get acostumated to remember names. Then, Paul V.Mockapetris design a translator, computer->human, human->computer, the dns service.
+</p>
+<p>when you write some direction in your browser, i.e. http://google.com, the first thing that the computer do is translate google.com (a domain) to numbers 173.194.78.10 (or whatever). Thanks to this service you don't need to remember a lot of large numbers, you just remember the name of the pages.
+</p>
+<h2>How it works (overview)</h2>
+<p>
+This is the chronology of a dns request:
+<ol>
+<li>The client makes a request:</li>
+<p>You write in your favourite browser: www.google.com, but your computer does not understand this direction and need to translate to numbers, therefore the O.S. makes a request to the dns server</p>
+<li>The dns server check if he knows the translation</li>
+	<ol>
+	<li>The server knows the translation</li>
+	<p>You're lucky!The server knows that the translation of www.google.com is 173.194.78.100, he returns this number like answer and your computer, now, knows where could find the google computer with the web page.</p>
+	<li>The server doesn't know the translation
+	<p>Keep calm and trust in Internet. </p>
+	<ol>
+	<li>The server search for you a solution!! 
+	<p>The dns server doesn't know the translation, but it assume the responsability to check other servers for the answer and when has it, send to you.</p>
+	</li>
+	<li>The server advise you other servers to check.
+	<p>Ok, the server consulted does not know the answer and don't search for you, but can advise some other servers to check.
+	</li>
+	<li>The server not know the answer and don't search for you and don't give an advise about other posible dns server with the answer... Fail! the domain can't be translated and you can't connect. :(
+	</li>
+	</ol>
+	</li>
+	</ol>
+</ol>
+</p>
+<h2>How is organized the domains</h2>
+<p>The domains are organized in an inverted tree form, aka as domain namespace. In this tree the root node is represented by ".". In the level under the root we find the top level domain (TLD): com (for commercial),edu (educational),it (italy)... (look familiar,isn't?)
+</p>
+<p>Inside of this last leaf, we can obtain a name, for example, google buy his name and has google.com. After it google can construct another sub-domains like drive.google.com (host drive in the domain google). Of this form it's constructed the inverted tree.</p>
+<p>
+	
+	

@@ -1,0 +1,27 @@
+
+.logo{color:red;}
+.logo:first-letter{
+  font-size:125%;
+}
+.thumbnail .stick{
+height:100px;
+}
+
+header{
+height:10%;
+}
+
+section{
+position:relative;
+overflow:auto;
+margin:10px;
+height:85%;
+width:95%;
+top:0%;
+left:3%;
+}
+
+footer{
+background-color:black;
+height:4%;
+}

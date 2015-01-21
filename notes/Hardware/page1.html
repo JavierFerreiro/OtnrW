@@ -1,0 +1,135 @@
+<h1>Virtualization</h1>
+
+<p>For virtualization we understand the capacity of simulate a complete 
+hardware environment with the purpose of running in this fake machine 
+a complete OS.
+</p>
+
+<p>
+How to achieve it?In the following sections we consider the three main 
+strategies followed for execute code of the guest OS (the virtualized)
+on the host.
+</p>
+
+<h2>Actors of the Virtualization</h2>
+<p>
+First, we present the actors of the virtualization performance. This will be a
+brief presentation, when we present de diferents kinds of virtualization we can
+dive deeper in all of this.
+</p>
+<dl>
+<dt>the virtual machine monitor(vmm)</dt>
+	<dd>
+		<div class="row">
+			<div class="col-md-6">
+				<p>The vmm is a piece of software that runs between the real hardware and the 
+				virtual machines. It's function is abstract the hardware and present a set of 
+				services to the guest os. This kind of services could be considerated an 
+				abstract machine.
+				</p>
+				<p>In the figure you can see the differents privileged rings of a cpu and
+				what kind of software/hardware are inside of each one of them. The arrows
+				in the picture will be explained in the next sections.
+				</p>
+			</div>	
+			<div class="col-md-6">
+				<img src="../../img/RingsAppsBasic.png" />
+			</div>
+		</div>
+	</dd>
+</dl>
+<h2>Techniques virtualization</h2>
+
+<h3>Direct execution</h3>
+	<div class="row">
+		<div class="col-md-6">
+			<p>Transparent virtualization refers to the strategy of do nothing :). Some 
+			pieces of code of the virtual machine don't represent a threat for the host,
+			then, why we need to do something? Imagine that the guest os need to add 2 + 2.
+			If the architecture is the same of the virtual guest you can transfer the code
+			safely to the host's cpu and solve the problem.
+			</p>
+			<p>
+			Sounds strange mention this, but the main part of the code is like this.
+			The question is: what kind of operations are potentially dangerous?Imagine
+			a kernel operation of the guest where try to access to a part of the memory
+			that is taken for another process of the host. The guest could
+			arrive at privileged information. The same thing can succes whith the acces
+			of a hard disk, network interface...
+			</p>
+		</div>
+		<div class="col-md-6">
+			<img src="../../img/RingsAppsdirectExecution.png"/>
+		</div>
+	</div>
+
+<h3>Binary Translation</h3>
+<div class="row">
+	<div class="col-md-6">
+		<p>
+		What we can do when the operations are not directly executed in the processor?
+		The first of the techniques, the most easy of implement and the most 
+		inefficient is the binary translation.
+		</p>
+		<p>
+		The binary translations lies in present to the virtual machine a full 
+		representation of the hardware. All the virtual machines has a virtual bios,
+		virtual memory, virtual devices,etc.
+		</p>
+		<p>
+		When the virtual machine mades a privilegied call, it's made to one of the
+		virtual devices presented (memory,i/o...), then is catched for the vmm and 
+		translated (dynamically) for be executed for the hardware. The translation
+		isn't a simple change of language (in fact, that's no simply), the vmm check
+		other important things like security facts: the virtual machine has granted
+		acces to the device? 
+		</p>
+		<p>
+		In the figure you can see the binary translation in the left side (black 
+		arrow). First, the user app of the virtual guest makes a request. That 
+		request cause the intervention of the guest kernel, because, for example,
+		wants acces to the secondary storage (hard disk). The guest kernel will
+		try to execute operations that could be dangerous, but before this could be
+		happend the vmm take the control, translate the instructions (with all of the
+		security checks and more) and execute the code. The result is returned to the
+		kernel of the guest os like the instruccion was executed.
+		</p>
+	</div>
+	<div class="col-md-6">
+		<img src="../../img/RingsAppsBynaryTranslation.png"/>
+	</div>
+</div>
+
+<h3>Paravirtualization</h3>
+<div class="row">
+	<div class="col-md-6">
+		<p>
+		Paravirtualization is a technique based on the modification of the OS guest.
+		In the bynary translation the guest OS, in some cases, need to be translated,
+		this jobs is hard and produce delay. The base for paravirtualization is to 
+		change the dangerous calls of the guest OS for calls to an api of the vmm.
+		This calls are know as hypercalls. Some manafucaturers are trying to make a 
+		standar in linux for the hypercalls api. Because you call direclty and api,
+ 		the improve of the performance is considerable respect a binary translation.
+		</p>
+		<p>
+		In the figure 
+		</p>
+	</div>
+	<div class="col-md-6">
+		<img src="../../img/RingsAppsParavirtualization.png"/>
+	</div>
+</div>
+
+<h3>Hardware Support for virtualization</h3>
+<p></p>
+<h2>Kinds of Virtualization</h2>
+<h3>Full Virtualization</h3>
+<p>
+The full virtualization is the addition of the direct execution plus binary 
+translation. With this kind of virtualization you don't need a special Hardware
+(Virtualization extensions of the cpu), or modify the guest OS. It's the most
+easy kind of virtualition for migrate the virtual machine, don't depend of the 
+hardware of the target machine, only that the software installed. On the other 
+hand it's the slowest kind of virtualization.
+</p>

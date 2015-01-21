@@ -1,0 +1,165 @@
+<h1>Partitions<h1>
+<p>In this note I try to explain how is logical organizate a hard disk (for physical description go <a href="#">here</a>)
+. We see the traditional partitioning system and the new one(EFI system partition ESP )</p>
+<h2>Motivations for partitioning</h2>
+<p>The basic motivation for partition is divide a contiguos space of information, the hard disk. This division is logical, then if you take a hammer and hit the disk not one partition helps you. 
+So, in what cases a partition is useful? For example if you divided your disk in 2 logical divisions (the partitions) and installed 2 differents O.S. in the partitions, you can mistake and delete the hard disk, but the other partition remains save ( this is a simplification, don't mistake never...).
+</p>
+<p>Recently the traditional partition system was changed and introduce a new format, the ESP. First we view the Traditional partitioning and then we comment the new.
+</p>
+<h2>Traditional Partitioning</h2>
+<h3>Structure</h3>
+<p>From Wikipedia (Master Boot Record):<p>
+<img src="../../img/MBR.png" alt="MBR"/>
+<p>
+<table>
+<caption>Structure of a modern standard MBR</caption>
+<tbody><tr>
+<th colspan="2">Address</th>
+<th rowspan="2" colspan="2">Description</th>
+<th rowspan="2" >Size<br>
+(<a href="/wiki/Byte" title="Byte">bytes</a>)</th>
+</tr>
+<tr>
+<th ><a href="/wiki/Hexadecimal" title="Hexadecimal">Hex</a></th>
+<th ><a href="/wiki/Decimal" title="Decimal">Dec</a></th>
+</tr>
+<tr>
+<td ><span id="MBRNEW_OFS_000h"></span><tt>+000h</tt></td>
+<td >+0</td>
+<td colspan="2">Bootstrap code area (part 1)</td>
+<td >218</td>
+</tr>
+<tr>
+<td ><span id="MBRNEW_OFS_0DAh"></span><span id="DISK_TS"></span><tt>+0DAh</tt></td>
+<td >+218</td>
+<td ><tt>0000h</tt></td>
+<td rowspan="5"><i>Disk timestamp</i><sup id="cite_ref-Sedory_2004_Timestamp_4-1" class="reference"><a href="#cite_note-Sedory_2004_Timestamp-4"><span>[</span>4<span>]</span></a></sup><sup id="cite_ref-NB_Timestamp_14-0" class="reference"><a href="#cite_note-NB_Timestamp-14"><span>[</span>b<span>]</span></a></sup> (optional, MS-DOS 7.1-8.0 (Windows 95B/98/98SE/ME), alternatively can serve as <a href="#NEWLDR_OFS_018h">OEM loader signature</a> with NEWLDR)</td>
+<td >2</td>
+</tr>
+<tr>
+<td ><span id="MBRNEW_OFS_0DCh"></span><tt>+0DCh</tt></td>
+<td >+220</td>
+<td>original physical drive (<tt>80h</tt>-<tt>FFh</tt>)</td>
+<td>1</td>
+</tr>
+<tr>
+<td ><span id="MBRNEW_OFS_0DDh"></span><tt>+0DDh</tt></td>
+<td >+221</td>
+<td >seconds (0-59)</td>
+<td >1</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_0DEh"></span><tt>+0DEh</tt></td>
+<td>+222</td>
+<td>minutes (0-59)</td>
+<td>1</td>
+</tr>
+<tr>
+<td></span><tt>+0DFh</tt></td>
+<td>+223</td>
+<td>hours (0-23)</td>
+<td>1</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_0E0h"></span><tt>+0E0h</tt></td>
+<td>+224</td>
+<td colspan="2">Bootstrap code area (part 2, code entry at <tt>+000h</tt>)</td>
+<td>216<br>
+(or 222)</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_1B8h"></span><span id="DISK_ID"></span><tt>+1B8h</tt></td>
+<td>+440</td>
+<td>32-bit disk signature</td>
+<td><i>Disk signature</i> (optional, <a href="/wiki/Unified_Extensible_Firmware_Interface" title="Unified Extensible Firmware Interface">UEFI</a>, Windows NT/2000/Vista/7 and other OSes)</td>
+<td>4</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_1BCh"></span><tt>+1BCh</tt></td>
+<td>+444</td>
+<td><tt>0000h</tt><br>
+(<tt>5A5Ah</tt> if copy-protected)</td>
+<td>2</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_1BEh"></span><tt>+1BEh</tt></td>
+<td>+446</td>
+<td style="text-align:center"><a href="#PTE">Partition entry</a> #1</td>
+<td rowspan="4" style="vertical-align:middle; text-align:center"><i>Partition table</i><br>
+(for primary partitions)</td>
+<td>16</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_1CEh"></span><tt>+1CEh</tt></td>
+<td>+462</td>
+<td><a href="#PTE">Partition entry</a> #2</td>
+<td>16</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_1DEh"></span><tt>+1DEh</tt></td>
+<td>+478</td>
+<td><a href="#PTE">Partition entry</a> #3</td>
+<td>16</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_1EEh"></span><tt>+1EEh</tt></td>
+<td>+494</td>
+<td><a href="#PTE">Partition entry</a> #4</td>
+<td>16</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_1FEh"></span><tt>+1FEh</tt></td>
+<td>+510</td>
+<td><tt>55h</tt></td>
+<td rowspan="2"><i>Boot signature</i><sup id="cite_ref-NB_Magic_AA55_13-1" class="reference"><a href="#cite_note-NB_Magic_AA55-13"><span>[</span>a<span>]</span></a></sup></td>
+<td rowspan="2" style="text-align:center">2</td>
+</tr>
+<tr>
+<td><span id="MBRNEW_OFS_1FFh"></span><tt>+1FFh</tt></td>
+<td>+511</td>
+<td><tt>AAh</tt></td>
+</tr>
+<tr>
+<th colspan="4">Total size: 218 + 6 + 216 + 6 + 4×16 + 2</th>
+<th>512</th>
+</tr>
+</tbody></table>
+</p>
+<p>When we divide the hard disk in the traditional partitioning system, we can create up to four differents partitions. This is the maximum. The partitions are called <i>Primary partitions</i>. Soon, this number was insufficient and was added a new kind of partition: the extended partition for solve the problem. The maximum number of partitions now are...four!! The trick is that now we can do 3 primary partitions and one extended partition and inside this extended partition we can do a lot of partitions (logical partitions) :)
+</p>
+<p>All of this information is saved in the <i>partition table</i> situated in the initial part of the hard disk that was called Master Boot Record (<abbr title="Master Boot Record">MBR</abbr>)
+</p>
+<p>Now we see with more detail the differents parts</p>
+<h4>MBR</h4>
+<p>The <abbr title="Master Boot Record">MBR</abbr> is the initial part of the disk, specifically the first 512 bytes or more localted in the first sector of the drive, where is registred two things, the partition table and the executable code that load the operating system. In linux, normally this executable code do the minimal work, and pass the control on a second stage of the loader. This change is motivated because the size of the code is really little.
+It could have too optional 32bits disk timestamp ? and 32bits disk signature
+</p>
+<h5>Partition Table</h5>
+The partition table describe the differents partitions and how are organized in the hard disk.  The partitions are described in entries of 16 bytes. The first byte is used to identified the kind of partition:
+<table>
+<tr><th>Code</th><th>Means</th></tr>
+<tr><td>0x05</td><td>Extended Partition?</td>
+<tr><td>0x0F</td><td>Extended Partition?</td>
+<tr><td>0x83</td><td>Linux native file system: ext[2,3,4],ReiserFS...</td>
+</table>
+
+The code could be used for the O.S. to know what can be offer at her users.
+<h4>Partitions</h4>
+<p>VBR Volume Boot Record likr MBR but in the partitions</p>
+<h5>Extended Partition</h5>
+<p>EBR extended boot record</p>
+<p>One hard disk can contain only one extended partition that can be subdivided into multiple logical partitions.
+</p>
+
+<h2>EFI system Partition ESP, the "new" arrived</h2>
+<h3>Why a new system partition?</h3>
+<ul>
+<li>The MBR can work with maximun disk size of 2TB: Using 512 byte sectors.
+</ul>
+<h2>Working with partitions</h2>
+
+<p>Biography:</br>
+Wikipedia: <a href="http://en.wikipedia.org/wiki/Disk_partitioning">Disk Partitioning</a>
+Wikipedia: <a href="http://en.wikipedia.org/wiki/Master_boot_record">Master Boot Record</a>
+</p>
