@@ -6,7 +6,7 @@
 <ul>
 <li>for normal users: 
    <ol>
-   <li><code>[user@lab1 ~]sqlplus /nolog</code></li>
+   <li><code>[user@lab1 ~]$ sqlplus /nolog</code></li>
    <li><code>SQL>connect hr</code></li>
    </ol>
 </li>
@@ -38,13 +38,104 @@
 <p>e.g.:<code>SQL>@/home/oracle/sqlScripts/foo</code>
 <p>e.g.:<code>SQL>@foo.pkg</code>
 </p>
-<p>Sometimes in the scripts, when need to execute other scripts you should use
+<p>Sometimes in the scripts, when need to execute other scripts you should use the command <code>@@<name></code> instead of <code>@<name></code>. when use <code>@</code> you are saying to the sqlplus that the script that are trying to load is in the same directory where is the script previously loaded, .i.e:
+<ol>
+<li><code>[user@lab1 opt]$sqlplus /nolog</code></li>
+<li><code>SQL>connect hr</code></li>
+<li><code>SQL>@/home/oracle/sqlScripts/foo</code></li>
+<li>in the foo script:</br>.</br>.</br><code>@@bar</code></br>.</br>.</br></li>
+<li>Then the script bar is searched in /home/oracle/sqlScripts/foo not in opt (where the user was when log in).</li>
+</ol>
 </li>
 
 <!-- -------------- Question  ------------------- -->
 
-<li><h4>How to execute file scripts?</h4>
+<li><h4>How to view all the set of sqlplus?</h4>
+<p><code>SQL>show all</code></p>
+</li>
+
+
+<!-- -------------- Question  ------------------- -->
+
+<li><h4>set variables and their meaning</h4>
+<p>Here are the built-in variables of sqlplus (different from define variables):</p>
+<table class="table table-striped table-hover table-condensed">
+<thead><td>Name of the sqlplus built-in variable (set variable)</td><td>Values</td><td>Meaning</td>
+</thead>
+<tbody>
+<tr><td>serveroutput</td><td>on/off</td><td>Enable the output of the pl/sql scripts</td></tr>
+<tr><td>suffix</td><td>string</td><td>change the default suffix of the files e.g.: when load a script-> @script, default .sql</td></tr>
+<tr><td>linesize</td><td>[1-System Dependent], default 80</td><td>maximun number of characters in each displayed lie before wrapping</td></tr>
+</tbody>
+</table>
+</li>
+
+<!-- -------------- Question  ------------------- -->
+
+<li><h4>Variables in sqlplus</h4>
+<p>There are 2 types of variables in sqlplus: define and bind variables</p>
+<ul>
+<li><p>Define variables</p>
+<p>
+For assign: <code>SQL>define x="Ciao computer!"</code></br>
+For refer: <code> select '&x' from dual;</code></br>
+Note the use of quotes(') around &x because sqlplus just change &x for the value in this case Ciao computer, the result is select ciao computer from dual; that hasn't sense.
+</p>
+</li>
+<li><p>Bind Variables</p>
+<p>
+For declare: <code>SQL>variable x varchar2(10)</code></br>
+For assign: <code>SQL>begin</br>:x := 'Ciao!'</code></br>
+For refer: <code>SQL>print :x</code></br>
+</p>
+</li>
+</ul>
+<p>The define variables are always strings that are substitute by sqlplus meanwhile a bind variable is a "true" variable.Another thing to keep in mind is it's possible, like in the previous example, to have 2 x "variables", one a define variable and other a bind variable,i.e: <code>SQL>select :x,'&x' from dual;</br>SQL>Ciao!&nbsp&nbsp&nbspCiaoComputer</code>
 </li>
 
 <!-- -------------- End Questions -------------- -->
+
+<!-- -------------- Question  ------------------- -->
+
+<li><h4>How to save sqlplus output to a file?</h4>
+<p><code>SQL>spool <namefile></br> SQL>spool off</code>
+</li>
+
+<!-- -------------- End Questions -------------- -->
+
+<li><h4>How to edit files inside sqlplus?</h4>
+<p><code>SQL>edit [<namefile>]</code></p>
+<p>If you don't put the name file then sqlplus edit the buffer, that is, the last command you write</p>
+<p>for change the default editor: <code>define _EDITOR=/bin/vi</code></p>
+</li>
+
+<!-- -------------- End Questions -------------- -->
+
+<!-- -------------- Question  ------------------- -->
+
+<li><h4>How to costumize the environment?</h4>
+<p>sqlplus search for a file to load your costumization in this order:
+<ol>
+<li>$ORACLE_HOME/sqlplus/admin/glogin.sql</li>
+<li>login.sql in the current directory</li>
+<li>If the previous login.sql doesn't exist, but SQLPATH S.O. environment variable exist, then search in the directories listed in the variable, one at time, finishing if found one ( if exist others after this path, never be readed).
+</ol>
+In case of conflict, the last one overrides the previous value.
+ </p>
+</li>
+
+<!-- -------------- End Questions -------------- -->
+
+<!-- -------------- Question  ------------------- -->
+<li><h4>How to finis if an error occur?</h4>
+<p>This is useful specially in automated executed scripts:<code>SQL>WHENEVE sqlerror exit sql.sqlcode [rollback]</p>
+</li>
+<!-- -------------- End Questions -------------- -->
+
+<!-- -------------- Question  ------------------- -->
+<li><h4>How to ...?</h4>
+<p></p>
+</li>
+<!-- -------------- End Questions -------------- -->
+
 </ul>

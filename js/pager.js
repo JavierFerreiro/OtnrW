@@ -18,23 +18,27 @@ function changePage(){
 }
 
 function goPage(page){
-	var boolPage=false;
 	var newURL="";
 	var parameter="";
 	var URL=window.location.href.split('?');
 	
 	if (URL[1]){
+		newURL=URL[0]+"?"
+		URL=URL[1].split('&');
 		for(var i = 0;i<URL.length;i++){
-			var parameter=URL[1].split('=');
-			if (parameter[0]=="page") parameter[1]="page="+page;
-			boolPage=true;
+			var parameter=URL[i].split('=');
+			if (parameter[0]=="page") {
+				newURL=newURL+"page="+page;
+			}else{
+				newURL=newURL+URL[i];
+			}
+		
 		}
-	}
-	if (boolPage){
-		newURL=URL[0]+parameter;		
-	}else{
+	}else
+	{
 		newURL=URL[0]+"?page="+page;
 	}
+
 	window.history.pushState("","",newURL);
 	changePage();
 }
