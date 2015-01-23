@@ -1,8 +1,137 @@
 <h2>The basis of PL/SQL</h2>
+<ul>
+<!-- ----------------- Point -------------- -->
+
+<li><h4>Create and drop plsql programs</h4>
 <p>For create plsql programs we use the create statements,i.e.:<code>create function....</code></p>
-<p>Syntax: create [or replace] (function|procedure) name [(<In variables>)]</br>
+<code>
+Syntax: create [or replace] (function|procedure) name [(&ltIn variables)&gt]</br>
 as</br>
-[<declaration internal variables>]</br>
+[&ltdeclaration internal variables&gt]</br>
 begin</br>
 end;</br>
+
+</code>
+<p>With the use of replace we don't need to recreate all the objects,grant permissions, etc. that depends of the function,procedure...</p>
+<p>To drop a a plsql: <code>drop function|package|body <name>;</code></p>
+</li>
+<!-- ----------------- Point -------------- -->
+<li><h4>Block structures</h4>
+<p>The smallest meaningful grouping of code is know as a block.Provides execution and scoping boundaries for variables and exception handling</p>
+<p>Exist two types of blocks: anonymous and named (wich may be packages, procedures, functions, triggers, or object types).</p>
+<p>A block has four different sections: Header, Declaration, Execution and exception. Only execution is mandatory.</p>
+<p>Header is used only for named block and determine how is called</p>
+<p>Declaration identifies variables, cursors and subblocks referenced in the execution and exception sections.</p>
+<p>Execution contains statements that do the work ;).</p>
+<p>Exception handles the errors of the execution part</p>
+<p><code>HEADER</br>IS</br>Declaration Section</br>BEGIN</br>Execution Section</br>EXCEPTION</br>Exception Section</br>END;</code></p>
+</li>
+ 
+<!-- ----------------- Point -------------- -->
+<li><h4>Anonymous block</h4>
+<p>To make a anonymous block simply remove the header part, then start with declaration or execution and could finish with exception</p>
+<p><code>begin</br>&nbsp&nbsp&nbspdbms_output.put_line('Ciao computer');</br>end;</code></p>
+<p>Or:</br><code>declare</br>&nbsp&nbsp&nbspa varchar2(15);</br>begin</br>&nbsp&nbsp&nbspa:='Ciao Computer'</br>&nbsp&nbsp&nbspdbms_output.put_line('Ciao computer');</br>end;</code></p>
+</li>
+
+<!-- ----------------- Point -------------- -->
+<li><h4>Named blocks</h4>
+<p>Like anonymous, but with one header, that could identify a procedure or function.</p>
+<code>
+PROCEDURE [schema.]name [ (parameter [,parameter...] ) ] </br>
+[AUTHID {DEFINER | CURRENT_USER]</br>
+</code>
+<p>and the rest declaration, execute and exception parts.</p>
+<code>function [schema].name [ (parameter [,paramenter...]) ]</br>
+return &ltreturn_datatype&gt</br>
+[AUTHID {DEFINER | CURRENT_USER]</br>
+[DETERMINISTIC]</br>
+[PARALLEL ENABLE ...]</br>
+[PIPELINED [USING...] | AGGREGATE USING...]</br>
+</code>
+<p>and the rest declaration, execute and exception parts.</p>
+</li>
+
+<!-- ----------------- Point -------------- -->
+<li><h4>Nested Blocks and scope</h4>
+<p>Example of blocks nested with three leves deep
+<code>DECLARE</br>
+ ...</br>
+BEGIN</br>
+&nbspDECLARE</br>
+&nbsp&nbsp...</br>
+&nbspBEGIN</br>
+&nbsp&nbspDECLARE</br>
+&nbsp&nbsp&nbsp...</br>
+&nbsp&nbspBEGIN</br>
+&nbsp&nbsp&nbsp...</br>
+&nbsp&nbspEND;</br>
+&nbspEND;</br>
+END;</br>
+</code>
+<p>Above we have three blocks nested, the variables declareted in the first block are available for all the inner blocks (scope). The variables declarated in the second block aren't available for the outermost block, but available for the second (where is declareted and the most internal block. Finally the mos inner block declare if declare variables are only available for himself.</p>
+<p>It's possible to nested a program inside a program</p>
+<p>In the loops the scope variable is inside the loop, outside it's not achievable.</p>
+<p>You can qualify the variables to clarify the scope or to call the correct variable without error. You could qualify a variable in a anonymous block, too. Before start the anonymous block put &lt&ltnameToRefer&gt&gt. This code demostrate all: </p>
+<code>
+PACKAGE scope_demo</br>
+IS</br>
+&nbspg_global number;</br>
+&nbspPROCEDURE set_global(number_in IN NUMBER);</br>
+END scope_demo;</br>
+PACKAGE BODY scope_demo</br>
+IS</br>
+&nbspl_salary NUMBER:=10000;</br>
+&nbspl_count PLS_INTEGER;</br>
+BEGIN</br>
+&nbsp&lt&ltlocal_block&gt&gt</br>
+&nbspDECLARE</br>
+&nbsp&nbspl_inner PLS_INTEGER;</br>
+&nbspBEGIN</br>
+&nbsp&nbspSELECT count(*) INTO set_global.l_count FROM employees e where e.department_id=local_block.l_inner and e.salary>set_global.lsalary;</br>
+&nbsp&nbspEND local_block;</br>
+&nbsp&nbspscope_demo.g_global:=set_global.number_in;</br>
+&nbspEND set_global;</br>
+END scope_demo;</br>
+</code>
+<p>You can qualify with the name of procedure,function, name of anonymous block, user or objects in database.</p>
+</li>
+
+<!-- ----------------- Point -------------- -->
+<li><h4>Atomics</h4>
+<p>Pl/SQL is a case-insensitive language</p>
+<ul>
+<li>Identifier: name for a pl/sql object.
+<ul><li>Up to 30 characters</li><li>Must start with letter</li>Can include $,_,#</li><li>no whitespaces</li>
+</ul>
+<p>You could break these rules embracing the name with double quotes("). Best don't do it!!</p>
+</li>
+<li>Literal: a value, string,time interval or a boolean
+<p>For change delimiter in strings: q'&ltdelimitercharacter&gt&ltstring&gt&ltdelimitercharacter&gt',i.e.: q'#'Ciao Computer' say the boss#'</p>
+<p>For scape single quote (') use two single quotes ('')</p>
+</li>
+<li>Delimiter: the delimiter between statements are the semicolon (;)</li>
+<li>Comment:<ul><li>single-line:--</li><li>Multiline:/* */</li></ul></li>
+</ul>
+</li>
+
+<!-- ----------------- Point -------------- -->
+<li><h4>Pragma Keyword</h4>
+<p>The instruction pragma is used to give instructions to the compiler</p>
+<p>Syntax: <code>PRAGMA instruction_to_compiler</code></p>
+<p>Pragmas<ul>
+<li>AUTONOMOUS_TRANSACTION:Commit or rollback any change in db inside current block without affecting the main or outer transaction.</li>
+<li>EXCEPTION_INIT:Associate error number with identifier you have declared as an exception</li>
+<li>RESTRICT_REFERENCES:purity leve (freedom from side effects) of a packaged program</li>
+<li>SERIALLY_REUSABLE:package-leve data should not persist between references to that data.</li>
+</ul></p>
+</li>
+
+<!-- ----------------- Point -------------- ->
+<li><h4>XXX</h4>
+<p></p>
+</li>
+
+
+</ul>
 
