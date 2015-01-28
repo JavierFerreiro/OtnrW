@@ -1,14 +1,83 @@
-2-Program structures
- 2.1-Conditionals
-        2.1.1-IF
-        2.1.2-Case
-        2.1.3-Goto
-        2.1.4-Null
- 2.2-Loops
-        2.2.1-Simple loop
-        2.2.2-While loop
-        2.2.3-Numeric for loop
-        2.2.4-Cursor for loop
-        2.2.5-Loop labels
-        2.2.6-Continue statement
-
+<h2>Program structures</h2>
+<ol>
+  <li>Conditionals
+    <ol>
+      <li>IF
+	<p>Syntax for the three flavors:
+	  <ul>
+	    <li>IF &ltcondition&gt THEN &ltACTION&gt END IF;
+	    </li>
+	    <li>IF &ltcondition&gt THEN &ltACTION&gt ELSE &ltSECOND_ACTION&gt END IF;
+	    </li>
+	    <li>IF &ltcondition&gt THEN &ltACTION&gt ELSIF &ltSECOND_CONDITION&gt THEN &ltACTION2&gt ... [ELSE &ltLAST_ACTION&gt] END IF;</br>
+	Try to use CASE and not this IF form in oracle 9 release 1 onward.
+	  </ul>
+	</p>
+	<p>If &ltcondition&gt is true then execute the action if it's false or null then those statements are not executed. Null is the result of a boolean expression when you don't know the value of one of the variables, then 2&ltnull=null 
+	</p>
+	<p>PL/SQL uses short-circuit evaluation: IF condition1 AND condition2 THEN ... ELSE .. END IF;</br>
+	In this case if condition1 is false, PL/SQL don't evaluate condition2, jump directly to the ELSE statements.</br>
+	In the case of OR if CONDITION1 is true the executes immediatly the THEN statements.
+	</p>
+      </li>
+      <li>Case
+	<ul>
+	<li>Simple CASE statement: CASE &ltexpression&gt WHEN &ltresult1&gt THEN &ltstatements1&gt WHEN &ltresult2&gt THEN &ltstatements2&gt ... [ELSE &ltstatements_else&gt] END CASE;
+	<p>If you don't write the optional ELSE, then the compiler of PL/SQL add for you the default ELSE: ELSE raise CASE_NOT_FOUND;
+	</li>
+	<li>Searched CASE statements: CASE WHEN &ltexpression1&gt THEN &ltstatements1&gt WHEN &ltexpression2&gt THEN &ltstatements2&gt ... ELSE &ltstatements_else&gt END CASE;
+	</li>
+	<li>CASE expressions: a:=CASE &ltexpression&gt WHEN &ltresult1&gt THEN &ltValueReturnedForVariable&gt WHEN &ltresult2&gt THEN &lt &ltValueReturnedForVariable2&gt ... ELSE &ltValueReturnedForVariableElse&gt END;
+	</li>
+	</ul>
+	<p>If you don't write the optional ELSE, then the compiler of PL/SQL add for you the default ELSE: ELSE raise CASE_NOT_FOUND;
+	<p>The evaluation of expressions are in write order.</p>
+      </li>
+      <li>Goto
+	<p>Syntax:GOTO &ltlabel_name&gt</p>
+	<p>Restrictions:<ul><li>At least one executable statement must follow a label.</li><li>The target must be in the same scope as the GOTO</li><li>The target must be in the same part of the pl/sql block.</li></ul>
+	</p>
+      </li>
+      <li>Null
+	<p>a statement that do nothing.</p>
+	<p>Used for: <ul><li>Using after a label:... GOTO final_label;...<<final_label>>null;end;</li><li>improve readability IF ... THEN ... ELSE null/*For develop in the future or document that the other cases don't do nothing*/; end if;</li></ul>
+      </li>
+    </ol>
+  </li>
+  <li>Loops
+    <p>In all loops, inside the loop body is similar at procedure or function in terms of scope.</p>
+    <ol>
+      <li>Simple loop
+	<p>Syntax: LOOP &ltcode&gt END LOOP; if the &ltcode&gt doesn't include a exit (maybe in an if or in the form "EXIT WHEN &ltcondition&gt ;") the loop run infinite.</p>
+	<p>Advice for infinite loops: to avoid consume all the cpu add sleep time between iterations: DBMS_LOCK.sleep(10); --do nothing for 10 seconds</p> 
+	<p>The best solution to comunicate with a a process that are running a infinite loop (to say: hey, stop! or whatever) is use the database pipe: 
+	<code>DECLARE pipename CONST VARCHAR2(12):='signaler';</br>pipebuf VARCHAR2(64);</br>result INTEGER;</br>BEGIN<</BR>result:=DBMS_PIPE.create_pipe(pipename); LOOP ... DBMS_LOCK.sleep(10);</br>/*Check Messages*/</br>IF DBMS_PIPE.receive_message(pipename,0)=0 THEN </br> /*Interpret the message*/</br> DBMS_PIPE.unpack_message(pipebuf);</br>EXIT WHEN pipebuf='stop';</br>END IF;</br>END LOOP;</br>END;</code>
+	</p>
+      </li>
+      <li>While loop
+	<p>WHILE (&ltcondition&gt) LOOP &ltCODE&gt END LOOP;
+      </li>
+      <li>Numeric for loop
+	<p>Syntax: FOR &ltvariable&gt IN [REVERSE] &ltinitial_number_or_expression_that_return_a_number&gt .. &ltfinal_number_or_expression_that_return_a_number&gt LOOP &ltcode&gt END LOOP;</p>
+	<p>Do not declare the loop index variable, pl/sql automatically and implicitly do it as local variable with datatype integer. The scope of this index is the loop itself; You cannnot reference the loop index outside the loop. If you declare a variable with the same identifier, pl/sql process like two different variables.</p>
+	<p>Don't change the value of the index variable inside the loop. This can cause compile errors or simply pl/sql ignore the instruction</p>
+	<p>With reverse you must not reverse the counter, then you DON'T do this: ... REVERSE 10..1 , the correct form is : ... REVERSE 1..10</p>
+	<p>It's not possible to increment the index more than one.Use a trick: another variable, multiplicate the index variable * 2 obtaining only the even (if you want only the even) </p>
+      </li>
+      <li>Cursor for loop
+	<p>Syntax: FOR &lrecord&gt IN ( &ltcursor_name&gt|&ltSELECT...&gt ) LOOP &ltcode&gt END LOOP;</p>
+	<p>Record is a record declared implicitly by PL/SQL with the %ROWTYPE attribute, don't declare it manually.</p>
+	<p>Use it when you want to fetch all the rows from a cursor inconditionally, not recommended use exit inside.</p>
+      </li>
+      <li>Loop labels
+	<p>Syntax:</br>&lt&ltlabel_name&gt&gt</br>&ltloop construction<&gt></p>
+	<p>Useful when have nested loops: can use the label to stop the execution of a specific named outer loop adding the name to the exit command: <code> EXIT loop_label</code> or <code>EXIT loop_label WHEN condition</code></p>
+      </li>
+      <li>Continue statement
+ 	<p>Use the continue statement to exit the current iteration of a loop and immediatly continue on the next iteration of that loop.</p>
+	<p> Could use <code>CONTINUE</code> or <code> CONTINUE WHEN</code>
+	<p>Could use <code>CONTINUE name_of_label</code> to continue a outer iteration</p>
+      </li>
+    </ol>
+  </li>
+</ol>
