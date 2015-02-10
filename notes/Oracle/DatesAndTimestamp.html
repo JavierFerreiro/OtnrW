@@ -1,0 +1,52 @@
+<h2>Dates And Timestamp</h2>
+<ul>
+<li>Datetime Datatypes
+	<p>Date was the initial and for long time (up to 9i) the unique form of store date/time information.</p>
+	<p>The datatypes are:</ul><li>DATE: Stores a date and time, precision up to the second. Does not include time zone</li><li>TIMESTAMP: Stores a date and time without respect to time zone. Precision to the billionth of a second. Like Date but more precise</li><li>TIMESTAMP WITH TIME ZONE: Stores time zone and date/time value allowing nine decimal places of precision (respect to second) like TIMESTAMP</li><li>TIMESTAMP WITH LOCAL TIME ZONE: stores date and time with up to nine decimal places of precision. This datatype is sensitive to time zone differences: when a user store a date/time, this is converted from local time of the user to local time of the database; when a user retrieve a date/time of this datatype this is converted from database local time zone to the local time zone of the user.</li></ul></p>
+	<p>Syntax: var_name [CONSTANT] datetime_type [{:= |default} initial_value];</br>Where datetime_type is: DATE or TIMESTAMP [(precision)] or TIMESTAMP [(precision)] WITH TIME ZONE or TIMESTAMP [(precision)] WITH LOCAL TIME ZONE.</br>The default precision is 6 (number of digits after second), the range is 0-9</p>
+</li>
+<li>Getting the Current Date and Time
+	<table class="table table-striped table-hover table-condensed"><thead><td>Function</td><td>Time Zone</td><td>Datatype returned</td></thead><tbody><tr><td>CURRENT_DATE</td><td>Session</td><td>Date</td></tr><tr><td>CURRENT_TIMESTAMP</td><td>Session</td><td>TIMESTAMP WITH TIME ZONE</td></tr><tr><td>LOCALTIMESTAMP</td<td>Session</td><td>TIMESTAMP</td></tr><tr><td>SYSDATE</td><td>Database server</td><td>DATE</td></tr><tr><td>SYSTIMESTAMP</td><td>Database server</td><td>TIMESTAMP WITH TIME ZONE</td></tr></tbody></table>
+	<p>SESSIONTIMEZONE function return the time zone of the session and DBtimeZONE the same for the db.</p>
+</li>
+<li>Interval Datatypes
+	<p>Datetime record specific points in time. Interval datatypes (>=9i) record and computing quantities of time. Oracle support (sql iso) two interval datatypes: INTERVAL YEAR TO MONTH (allows you to define an interval of time in terms of years and months) and INTERVAL DAY TO SECOND (allows to define n interval in terms of days, hours, minutes and seconds (including fractional seconds).</p>
+	<p>Syntax: var_name INTERVAL YEAR [(year_precision)] TO MONTH or var_name INTERVAL DAY [(day_precision)] TO SECOND [(frac_sec_prec)].<br>Where: year_precision: number of digits (from 0  to 4) that you want to allow for a year value. Default 2. day_precision: number of digits (from 0 to 9) that you want to allow for a day value.Default 2.fra_sec_prec: number of digits (from 0 to 9) that you want to allow for fractional seconds</p>
+	<p>Note: we use to interval datatypes because all the months are not equal.</p>
+	<p>The rage of months are from 0 to 11</p>
+</li>
+<li>Datetime Conversions
+	<p>PL/SQL validates and stores dates from January 1,4712 B.C.E through December 31,9999 A.D.. If you enter a date without time, the default time is 12:00:00 am, that is, 00:00:00).</p>
+	<p>TO_DATE( (string|number) [,format_mask[,nls_language]])</br>TO_TIMESTAMP(string[,format_mask[,nls_language]])</br>TO_TIMESTAMP_TZ(string[,format_mask[,nls_language]])</p>
+	<p>To past from a date datatype to a char: TO_CHAR. Specification: FUNCTION TO_CHAR (date_in IN DATE, [,format_mask IN VARCHAR2 [,nls_language IN VARCHAR2]]) RETURN VARCHAR2; </br>If format mask is not specified, the default are 'DD-MON-RR'</p>
+	<p>The functions TO_* are flexible, if you introduce a string that represent a date but has one digit and not two like the format mask for example especifiying the day 01 you write 1, the function interpret it good. But sometimes you want that the interpretation be strict, for example when the input is from a script (avoiding interpret errors), for this add to the start of the format mask "FX". Then no extra spaces are permitted, the digits must be exact, etc. (case continues to be irrelevant)</p>
+	<p>The RR date format: If the current year is in the first half of the century (0-49)-->If you enter a date in the first half of the century, RR returns the current century. If you enter a date in the latter half of the century (50-99) RR return the previous century</br>If the current year is in the latter half of the century(50-99): If you enter a date in the first half of the century. RR returns the next century.If you enter a date in the latter half of the century, RR returns the current century</br>If the current year is in the latter half of the century(50-99): If you enter a date in the first half of the century. RR returns the next century.If you enter a date in the latter half of the century, RR returns the current century...</p>
+</li>
+<li>Date and Timestamp Literals
+	<p>A date literal consist of the keyword DATE followed by a date value (only date): DATE 'YYYY-MM-DD'. A timestamp literal consists of the keyword TIMESTAMP followed by a datetime value in a very specific format: TIMESTAMP 'YYYY-MM-DD HH:MI:SS[.FFFFFFFFF] [{+|-]HH:MI]' </p>
+</li>
+<li>Interval conversions
+	<p>NUMTOYMINTERVAL and NUMTODSINTERVAL functions allow you to convert a single numeric value to one of the interval datatypes.E.g.: DBMS_OUTPUT.PUT_LINE( NUMTOYMINTERVAL (10.5,'Year') ); ---> +10-06 (that is 10 years, 6 months (rounded) ) E.G.: DBMS_OUTPUT.PUT_LINE( NUMTODSINTERVAL(1440,'Minute') ); ---> +01 00:00:00.000000 (1 day)</p>
+	<p>TO_YMINTERVAL and TO_DSINTERVAL converts strings to interval datatypes: TO_YMINTERVAL('Y-M') where Y represent some number of years and M some number of months. You must supply the two values. TO_DSINTERVAL('D HH:MI:SS.FF')</p>
+	<p>The database format the intervals for displaying. You could pass the interval to TO_CHAR but this will ignore any format mask.</p>
+</li>
+<li>Interval literals
+	<p>INTERVAL 'character_representation' start_element TO end_element; </br> Examples: y2ma:= INTERVAL '40-3' YEAR TO MONTH; y2mb:=INTERVAL '40' YEAR; d2s:= INTERVAL '72:15' HOUR TO MINUTE;</p>
+	<p>Cast function: convert string<->datetime and datetime<->datetime (i.e.: DATE<->TIMESTAMP. CAST respect the NLS parametters: NLS_DATE_FORMAT when casting to or from DATE and NLS_TIMESTAMP_FORMAT when casting to or from TIMESTAMP [WITH LOCAL TIME ZONE] and NLS_TIMESTAMP_TZ_FORMAT when casting to or from TIMESTAMP WITH TIME ZONE. e.g.: CAT('24-Feb-2009 09.00.00.00 PM' as TIMESTAMP WITH LOCAL TIME ZONE);</p>
+	<p>Extract funtion is used to extract date components from datetime values.Syntax: EXTRACT (component_name, FROM {datetime|interval}). Where component name coud be (return datatype): YEAR(NUMBER),MONTH(NUMBER),DAY(NUMBER),HOUR(NUMBER),MINUTE(NUMBER),SECOND(NUMBER),TIMEZONE_HOUR(NUMBER),TIMEZONE_MINUTE(NUMBER),TIMEZONE_REGION(VARCHAR2),TIMEZONE_ABBR(VARCHAR2).</br>Examples: IF EXTRACT (MONTH FROM SYSDATE)=11 THEN...</p>
+</li>
+<li>Datetime Arithmetic
+	<p>Arithmetic with Oracle can be reduced to: </ul><li>+ or - an interval to or from a datetime</li><li>- one datetime value from another to determine the interval.</li><li>+ or - one interval to or from another interval</li><li>* or / an interval by a numeric value</li></ul></p>
+	<p>Add a TIMESTAMP-family to a intervals day-to-second is easy, just do it: SYSTIMESTAMP + INTERVAL '1500 4:30:3' DAY TO SECOND</p>
+	<p>Date arithmetic with year and month values is not quite as strightforward: not all months have the same number of days(28,29,30 or 31 days).Then oracle support two ways in arithmetic datetime:<ul><li>Function ADD_MONTHS that be careful with the long of the month.i.e.: 31 May+1 month=30 June.</li><li>Or use the interval datatype: 31May2008+INTERVAL '1' MONTH will result in 31Jun2008 then cause an error: ORA-01839:date not valid for month specified error.</li></ul></p>
+	<p>Arithmetic with DATE you can use INTERVAL or numeric values: SYSDATE +1 (today + 1 day); SYSDATE +(4/24) (today + 4 hours)</p>
+	<p>Substract two TIMESTAMP=INTERVAL DAY TO SECOND. Results in negative indicate a initial date more recent that the final date.</p>
+	<p>MONTHS_BETWEEN(date1 IN DATE,date2 IN DATE) RETURN NUMBER. Returns fractionals if one of the dates is not in the last day of their month.</p>
+	<p>Substract two DATE's return a numeric value. Then if you want an interval, you need to CAST.</p>
+	<p>To add and substract intervals, the two operators must be of the same type</p>
+	<p>Multiply and dividing dates has no sense (no applications), but you can multiply and divide and interval by a number.</p>
+</li>
+<li>Using Unconstrained INTERVAL types
+	<p>If you declare an INTERVAL with a determinated precission, and past it (for example) to a function with a INTERVAL type (with unprecissed precission :P ) then you can lost precision because the INTERVAL datatype considered 2 digits precision by default an maybe your INTERVAL is more precise. To work with this pl/sql has unconstrained INTERVAL datatype: YMINTERVAL_UNCONSTRAINED (accepts any INTERVAL YEAR TO MONTH value with no loss of precision) and DSINTERVAL_UNCONSTRAINED (accepts any INTERVAL DAY TO SECOND value with no loss of precision).</p>
+</li>
+</ul> 
