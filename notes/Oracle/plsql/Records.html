@@ -1,0 +1,33 @@
+<h2>Records</h2>
+<p>A record is a composed structure of one or more elements, each one with its own value, very similar an a row of the DB. The record has not a value itself, each component has it's own value</p>
+<ul>
+<li>Benefits
+	<p>Data abstraction: abstract all the different attributes or fields of the subject of that record.</br>Aggregate operation: Once stored information in records, you can perform operations on a whole blocks of data at a time.</br>Leaner, cleaner code: with records produce less code and is more cleaner and stable in front of changes</p>
+</li>
+<li>Declaring Records
+	<p>Four ways to declare a record:<ul>
+		<li>Table-based record: Using the %ROWTYPE attribute with a table name -> DECLARE </br> one_book books%ROWTYPE; Each field correspont (and has the name of the column in the referenced table.</li>
+		<li>Cursor-based record: Use the %ROWTYPE attribute with an explicit cursor or cursor variable in wich field corresponds to a column or aliased expression in the SELECT of the cursor -> DECLARE </br> CURSOR my_book_cur IS SELECT * FROM books WHERE author LIKE '%FEU%';</br>one_SF_book my_books_cur%ROWTYPE;</li>
+		<li>Programmer-defined record: Using TYPE...RECORD statement you can define a record in wich each field is defined explicitly (with its name and datatype) and this field coud be another RECORD --> DECLARE</br>TYPE book_info_rt IS RECORD (author books.autho%TYPE, category VARCHAR2(100), total_page_count POSITIVE);</br> steven_as_author book_info_rt; </li>
+		<li>In a FOOR LOOP: BEGIN</br>FOR book IN (SELECT * FROM books)...</li>
+		</ul></p>
+</li>
+<li>Programmer-Defined Records
+	<p>Syntax: TYPE &lt;type_name&gt; RECORD</br>&nbsp;&nbsp;&nbsp;(&lt;field_name1 datatype1 [[NOT NULL[:=|DEFAULT &lt;default_value&gt;],...);</br>&lt;record_name&gt; &lt;type_name&gt;;</p>
+	<p>All the name fields of a record must be different.</p>
+</li>
+<li>Working with Records
+	<p>When you work with a record you can work in a record-level or with individual fields. In a record field you avoid any references to individual fields, then you can: copy contents of one record to another 8based on the same user-defined record type or compatible), assign NULL to the record, pass the record as an argument, RETURN a record.</br>The forgiven operation to be alert: cannot use IS NULL to see if all fields in the record have NULL, you must use IS NULL on each field, you cannot compare two records, prior 9i you couldn't insert directly the record in the database.</p>
+	<p>To operate at field level inside a record you must use the dot notation: [[schema_name].package_name.]record_name.field_name</p>
+	<p>Note: in 9i and follows you can insert a record in a table directly like: INSERT INTO rain_forest_history VALUES rain_forest_rec;</p>
+</li>
+<li>Comparing Records
+	<p>You can't do record1=record2, because pl/sql does not support it. You must compare manualy all the field one by one</p>
+</li>
+<li>Trigger Pseudorecords
+	<p>A special records created by DB are OLD and NEW. This pseudo-records are create when you are inside a trigger, they have the same format as table-based recods. OLD has the calues of each column in the table before the current transaction started, NEW reveals the new values of each column about to be placed in the table when the current transaction completes.</p>
+</li>
+<li>%ROWTYPE and invisible columns
+	<p>With 12c oracle added the concept of invisible columns. The problem is that when you use the %ROWTYPE in a table with a invisible column, the invisible column is added, but when you do SELECT * is not considerated. If all of this is a cursor or in a select * into, oracle returns a error.</p>
+</li>
+</ul>
