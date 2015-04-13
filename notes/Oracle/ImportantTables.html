@@ -40,7 +40,14 @@
 <tr><td>select component, current_size, min_size , max_size from v$sga_dynamic_components;</td><td></td></tr>
 <tr><td>SELECT name,value FROM v$pgastat WHERE name in ('maximum PGA allocated','total PGA allocated')</td><td></td></tr>
 <tr><td>SELECT name,description from v$bgprocess where paddr&lt;&gt;'00' order by name;<> </td><td></td></tr>
-<tr><td></td><td></td></tr>
+<tr><td>select instance_number,instance_name,host_name,version,status,parallel,archiver from v$instance;<br>
+				select name,platform_name from v$database;<br>
+				select * from v$tablespace;<br>
+				select file#,name,status from v$datafile;<br>
+				select status,name,block_size from v$controlfile;<br>
+				select * from v$logfile;<br>
+				select * from v$tempfile;<br>
+</td><td>Document a system</td></tr>
 <tr><td></td><td></td></tr>
 <tr><td></td><td></td></tr>
 <tr><td></td><td></td></tr>
