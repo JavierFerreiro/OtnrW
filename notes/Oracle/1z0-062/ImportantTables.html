@@ -48,7 +48,13 @@
 				select * from v$logfile;<br>
 				select * from v$tempfile;<br>
 </td><td>Document a system</td></tr>
-<tr><td></td><td></td></tr>
+<tr>select dbms_xdb.gethttpport from dual;<td></td><td>Obtain the port of express database.</td></tr>
+<tr><td>select dbms_xdb.sethttpport(5500);</td><td>Set the port of express database.</td></tr>
+<tr><td>select name,value from v$parameter order by name;</td><td>Check the current values of the parameters of the instance.</td></tr>
+<tr><td>select name,value from v$spparameter order by name;</td><td>Check the values of the parameters in the spfile.</td></tr>
+<tr><td>select name,value from v$parameter where isbasic='TRUE' order by name;</td><td>show the parameters and values</td></tr>
+<tr><td>alter system set &lt;parameter&gt;=&lt;value&gt; [scope={memory|spfile|both}]</td><td>Change the value of the parameter for the instance,spfile or both</td></tr>
+<tr><td>alter system reset &lt;parameter&gt;</td><td>Delete the parameter from spfile.</td></tr>
 <tr><td></td><td></td></tr>
 <tr><td></td><td></td></tr>
 <tr><td></td><td></td></tr>

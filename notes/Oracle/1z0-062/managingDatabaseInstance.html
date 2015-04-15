@@ -1,8 +1,283 @@
 <h1>Managing Database Instance</h1>
 <p>
-	dd
+	Note: before a user can connect to EMDBE (enterprise manager database 
+	express) the listener must be running.<br>
+	To connect to the db two techniques: normal user, with the hash of the 
+	password stored in the data dictionary, a privileged user that has the 
+	password stored in the external password file or by presenting an O.S. 
+	identity that Oracle accepts.
 </p>
 <ul>
-	<li>
+	<li>User database management tools<br>
+	The tools discussed: SQL*Plus, DB express graphical utility and the SQL 
+	developer.<br>
+	<ul>
+		<li>SQL*Plus:<br>
+			Executable in ORACLE_HOME/bin<br>
+			Useful switch: /nolog ->Launch sqlplus without user and password.<br>
+			You need to configure ORACLE_HOME for use sqlplus (obviously PATH too
+			 if you want to launch it without all the path).<br>
+			 The technique of log on a privileged user with a password file consist in 
+			 a external password file created with orapwd. If the password write in 
+			 sqlplus and the password in the password file match, then access granted.
+			 It's useful when you want to connect remotely like sysdba in a remote
+			 db no open.<br>
+			 The other technique used to enter in a instance not open is using O.S. 
+			 authentication. At install time, an OS group was nominated as the SYSDBA 
+			 group, if your user is member of that group, then the access is granted 
+			 without password<br>
+			 A normal connection can user in sqlplus <code>connect username/password 
+			 [@connect_string] [as sysdba].</code> a privileged O.S. user can connect 
+			 like <code>connect / as sysdba</code>
+		</li>
+		<li>Express Database<br>
+			Database express is a java servlet. Users communicate with it from a browser 
+			over an http connection stablished by the database listener.<br>
+			The default URL for connect with DB express is : http:/&lt;database-host-name&gt;
+			:5500/em . If the port is changed, you can use <code> 
+				select dbms_xdb.gethttport() from dual;</code><br>
+			To operate with listener: <code>lsnrctl start</code> to start the listener, 
+			<code>lsnrctl status</code> to check the status of the listener.<br>
+			Express DB does require the Adobe Flash plugin. Without this is not 
+			possible to log on.<br>
+			To set the port of Express DB: <code>select dbms_xdb.sethttpport(5500);</code>
+			All the acces of Express DB is with shared servers mechanism. This require the 
+			existence of the DISPATCHER process.<br>
+			Note: What are the prerequisites for using Database Express? The listener must be 
+			running, a dispatcher must be running, and the XDB must have been used to 
+			enable a listening port.
+		</li>
+		<li>SQL Developer<br>
+			More suited to application development than to database administration, but it 
+			may still be useful to a DBA on occasion. A version is shipped with the database: 
+			ORACLE_HOME/sqldeveloper/sqldeveloper.sh
+		</li>
+	</ul>
+	</li>
+	<li>Understanding Initialization Parameter Files<br>
+		An instance is defined by the parameters used to build it in memory. Some 
+		of this parameters can be changed in whithout shutdown the instance and 
+		other need to restart the instance.
+		<ul>
+			<li>Static and dynamic parameter files<br>
+				Parameter files come into two flavors: the static parameter file ( aka
+				 pfile or init file) and the dynamic server parameter file (aka spfile). 
+				 The two versions stores values for the parameters used to build the 
+				 instance and to start background processes.<br>
+				 There are three default filenames: ORACLE_HOME/dbs/spfile&lt;SID
+				 &gt;.ora , ORACLE_HOME/dbs/spfile.ora or ORACLE_HOME/dbs/init&gt;
+				 SID&lt;.ora . The preceding order is important unless a pfile is specified 
+				 in the startup command, using the first file and ignoring the rest. If no 
+				 one exist (and non default pfile is specified) the instance will not start.<br>
+				 The spfile is the server-side binary file and it cannot be renamed,
+				 relocated not edited manually. It's readed by the SMON background 
+				 process when the instance is started.<br>
+				 The pfile is a client-side file that exist by default in the ORACLE_HOME 
+				 directory, but it's in fact read by the user process that issues the command 
+				 to start the instance. This file could be moved, edited, etc. but if move, then 
+				 you must specify where is when use startup. The pfile is an ASCII file.<br>
+				 To change the values of the spfile you must use the ALTER SYSTEM SET... 
+				 command from sqlplus or Express DB.<br>
+				 To create a pfile use a text editor. To create a spfile use sqlplus command 
+				 <code>CREATE SPFILE [ =filename ] FROM PFILE [ =filename ];</code>
+				 to convert spfile in text 
+				 <code>CREATE PFILE [ =filename ] FROM SPFILE [ =filename ];</code><br>
+				 Note: the file spfile&lt;SID&gt;.ora is the most convenient file. Only if you 
+				 use RAC the you will only use spfile.ora.
+			</li>
+			<li>Static and dynamic parameters and the inizialization parameter file<br>
+				to view the parameters and their current values: <code>select name,value 
+				from v$parameter order by name;</code> to check the values of the 
+				spfile then <code>select name,value from v$spparameter order by name</code>
+				. The differences between this two views are that some parameters could be 
+				changed while the instance are running and not writte on the spfile (when 
+				the instance are restarted the new value is lost), you could change the parameter 
+				on the instance and in the file or only in the file (normally parameters that can't 
+				be change meanwhile the instance is working, needing a restart).<br>
+				If the instance is started with the pfile rather than spfile then v$spparameter 
+				view will show a null as a value for the parameters.
+			</li>
+			<li>The basic parameter<br>
+				The basic parameters are those that should be considered for every database. To 
+				find it: <code> select name,value from v$parameter where isbasic='TRUE' order 
+				by name</code>
+			</li>
+			<li>Changing Parameters<br>
+				To change parameters with SQLPlus use alter system command: <code>ALTER 
+				SYSTEM SET &lt;name&gt;=&lt;value&gt; SCOPE=[memory|spfile|both] </code> 
+				The default scope is BOTH. <br>
+				<code>ALTER SYSTEM RESET &lt;name&gt; ;</code> remove the value from 
+				spfile, it will remain in effect within the instance as it current value until the instance
+				is restarted.<br>
+				An example of parameter that can be adjusted at instance level or session level 
+				 is optimizer_mode: <code>alter system set optimizer_mode=all_rows;</code>
+				  or <code>alter session set optimizer_mode=first_rows;</code>
+				  note:Logon triggers can be used to adjust session parameters to values suitable 
+				  for different users, depending on the username with wich they log on.
+			</li>
+			<li>Startup and Shutdown an Oracle Database Instance<br>
+				The recommended order to start the database is first listener and then database.<br>
+				A listener is a process that monitors a port for database connection request. These 
+				request and all subsequent traffic use oracle Net (Oracle propietary communications
+				 protocol). Oracle Net is a layered protocol running over whatever underlaying 
+				 network protocols is in use (probably TCP/IP)<br>
+				 The listener utility is in ORACLE_HOME/bin<br>
+				To start the listener: <code> lsnrctl start [&lt;listener&gt;]</code>
+				To check the status of the listener: <code> lsnrctl status [&lt;listener&gt;]</code><br>
+				The default name of the listener is LISTENER.<br>
+				To precision, start and stop is the instance, the database is mounted and 
+				opened and then dismounted and closed. This can be done with sqlplus using
+				the startup and shutdown commands. Ordinary users cannot do this operations, 
+				you must be authenticated either by the O.S. (member of group that owns 
+				oracle software) or by giving a username/password that exist in external 
+				password file. To authenticate with sqlplus you can use connect command .
+				 With the connection string oracle distinct between the differents authentication 
+				 methods 
+				 <code>
+					<ol>
+						<li>connect user/pass[@connect_alias]</li>
+						<li>connect user/pass[@connect_alias] as sysdba</li>
+						<li>connect user/pass[@connect_alias] as sysoper</li>
+						<li>connect / as sysdba</li>
+						<li>connect / as sysdba</li>
+					</ol>
+				 </code>
+				 By Xavi: The first method authenticate using data dictionary, 
+				 the second and third use external password file and the forth and 
+				 five O.S. authentication<br>
+				 If you log without user with "as sysdba" the user is SYS. If you log 
+				 without user with "as sysoper", the user is PUBLIC.<br>
+				 The startup stage is staged:
+				 <ol>
+					<li>You build the instance in memory.</li>
+					<li>You enable a connection to the database by mounting the controlfile.</li>
+					<li>You open the database for use.</li>
+				 </ol>
+				At any moment the database will be in one of four states:
+					<ol>
+						<li>SHUTDOWN<br>
+							All the files are closed and the instance does not exist.
+						</li>
+						<li>NOMOUNT<br>
+							The instance has been built in memory (the SGA has been 
+							created and the background processes started) according with 
+							the parameter file, but no connection has made to the database 
+							(maybe not exist, will be created). The only file used in this 
+							stage is the parameter file. The log for example is on 
+							DIAGNOSTIC_DEST parameter, the default value for this parameter 
+							is the ORACLE_BASE. Within DIAGNOSTIC_DEST is a standard 
+							directory structure. The alert log will be on: &lt;DIAGNOSTIC_DEST&gt;/
+							diag/rdbms/&lt;DBNAME&gt;/&lt;INSTANCE_NAME&gt;/trace/alert_&lt;instance_name&gt;.log
+						</li>
+						<li>MOUNT<br>
+							The instance locates and reads the control file. The instance knows 
+							where is the control file because in te previous step read the 
+							parameter file, where is specified in the CONTROL_FILES paramenter. If 
+							the control file (or any multiplexed copy of it) is damaged or missing the 
+							database will not mount. In this step the instance read the location of all 
+							of the datafiles and online redo logs, but don't try to check the existence 
+							or read them. 
+						</li>
+						<li>OPEN<br>
+							All the database files are located and opened and the database 
+							is made available for use by end users. If the database was shutdown 
+							disorderly, then the  in this moment oracle must repair the DB, with 
+							a mechanism known as instance recovery.<br>
+							The process that mounts and open the database is SMON process.<br>
+							When the database is succesfully opened, then oracle permit the login 
+							of users with normal data dictionary authentication.
+						</li>
+					</ol>
+					To save time you can use <code>STARTUP FORCE</code> that executes 
+					two commands in one: first shutdown abort followed by a startup normal.<br>
+					For shutdown you can use the command: <code>SHUTDOWN [normal | 
+					transactional | immediate | abort ] </code><br>
+					<ul>
+						<li>Normal: default. No new user connections will be permitted, but all 
+						current connections are allowed to continue. Only once all users have 
+						voluntarily logged off will the database actually shut down.
+						</li>
+						<li>Transactional: No now users are permitted. Existing sessions that 
+						are not in a transaction will be terminated. Sessions currently in a 
+						transaction are allowed to complete the transaction and then will be 
+						terminated. once all the session finish the database will shut 
+						down.
+						</li>
+						<li>Immediate: No new sessions are permitted, and all currently 
+						connected sessions are terminated. Any active transaction are rolled 
+						back and then the database will be shutdown.
+						</li>
+						<li>Abort: Equivalent of a power cut. The instance terminate 
+						immediatly, nothing is written to disk and there is no attempt 
+						to terminate transactions in progress in any orderly fashion.
+						</li>
+					</ul>
+					Note:The normal shutdown is useless because is always someone 
+					connected like the cloud control agent.<br>
+					Normal, transactional and immediate are considered "clean" or 
+					"consistent" shutdowns because after all sessions are disconnected 
+					the PMON process will roll back any incomplete transaction. Then a 
+					checkpoint is issued that forces the DBWn process to write all 
+					updated data from the database buffer cache down to the datafiles.
+					LGWR also flushes any change vector to the log files. Then the file 
+					headers are updated and the files handles closed.<br>
+					To control the stage of the database use the command: 
+					<code>alter database &lt;stage&gt;;</code>
+			</li>
+			<li>View the alert log and Access Dynamic Performance Views<br>
+				The alert log is a vital source of information regarding important 
+				events of the db.It's a continuos historical record of events.<br>
+				The dynamic performance views gives real time information.<br>
+				In addition to the alert log there is an optionally enabled DDL log 
+				and a debug log generated automatically in the event of certain errors.<br>
+				<ul>
+					<li>The alert log<br>
+						Continuos record of critical operations applied to instances 
+						and database. It's location it's derived from the instance 
+						parameter DIAGNOSTIC_DEST and the name is 
+						alert_&lt;sid&gt;.log . The alert log will be beneath 
+						DIAGNOSTIC_DEST/diag/rdbms/&lt;dbname&gt;/&lt;instancename&gt;/trace
+						 a copy in xml format is maintained in 
+						 DIAGNOSTIC_DEST/diag/rdbms/&lt;dbname&gt;/&lt;instancename&gt;/alert<br>
+						 The critical operations recorded in the alert log include:
+						 <ul>
+							<li>startup and shutdown and intermediate states did it with alter database...</li>
+							<li>Internal errors of the instance (ORA-600), the DBA can't do nothing.</li>
+							<li>Any detected datafile block corruptions.</li>
+							<li>Any row-locking deadlocks that may have occurred.</li>
+							<li>All operations that affect the physical structure  of the database: create,
+								rename... datafiles,online redo logs....
+							</li>
+							<li>All alter system that adjust the values of initialization parameters.</li>
+							<li>All log switches and log archives.</li>
+						 </ul>
+						 The alert log start show all the initialization parameters, 
+						 if you add this to the previous explained fact that all changed 
+						 of structures or parameters are writed, then you can backtrack 
+						 all the changes.
+					</li>
+					<li>The DDL log<br>
+						Should the DBA enable if want to record DDL commands in a log file.
+						The statement used is loged without any supporting information like 
+						who run the statement is recorded in a text file named: 
+						ddl_&lt;instancename&gt; in the directory: 
+						DIAGNOSTIC_DEST/diag/rdbms/&lt;dbname&gt;/&lt;instancename&gt;/log
+						 with the same information in the file log.xml in xml format.<br>
+						 To enable DDL logging, the instance parameter ENABLE_DDL_LOGGIN 
+						 must be set to TRUE (default FALSE).
+					</li>
+					<li>The Dynamic Performance Views<br>
+						There are more than 600 dynamic performance views . Not all the 
+						"Vee dollar" views (pronunciation of V$) are views, some are synonyms 
+						to views but the know as "The vee dollar" views.<br>
+						Some views are available in all stages, some only in specific stages (like open).<br>
+						V$ views are populated from the instance or the controlfile. The DBA_,ALL_,USER_ 
+						views are populated from the data dictionary. This determines what views can 
+						be queried at the various startup stages.<br>
+						Rule: in general V$ views are singular, data dictionary views are plural.
+					</li>
+				</ul>
+			</li>
+		</ul>
 	</li>
 </ul>
