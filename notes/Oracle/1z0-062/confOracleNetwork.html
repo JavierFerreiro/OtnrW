@@ -1,0 +1,360 @@
+<h1>Configuring The Oracle Network Environment</h1>
+<p>
+Oracle net is the enabling technology for Oracle's client-server architecture. 
+Whatever tool is used to configure the oracle net the result is the same, a 
+set of files that control the database listener, that launch the server processes 
+in response to connections requests
+</p>
+<ul>
+	<li>Configure Oracle Net Service<br>
+		Oracle client-server architecture uses the oracle net protocol to establish 
+		and mantain the session between the client and the server. It's possible 
+		to use without configuration, but in practice all sites configure it.<br>
+		<ul>Concepts:<br>
+			<li>Oracle Net and the Client-Server Paradigm<br>
+				In Oracle no user has direct acces to database, all acces to 
+				database is controlled by the server.<br>
+				A user interact with a user process (software that the user 
+				run locally: Acces with ODBC driver, C program linked with OCI
+				, sqlplus...) . The purpose of the client process is launch the 
+				sql of the user<br>
+				The server process is a process running on the database server 
+				machine that execute the SQL received from the user process.<br>
+				This is the client-server split: user process generate sql and the 
+				server process execute it.<br>
+				Oracle net provides the mechanism for launching a server process 
+				to execute code on behalf of a user process and return the results, 
+				this is called establishing a session.<br>	
+				<img src="img/session.png" alt="session"/>
+				The protocols under Oracle Net and supported by it are: tcp/ip (
+				 version 4 and 6 with and without SSL), Windows named pipes, 
+				 and the sockets direct protocol (SDP) designed for infiniband 
+				 and IPC internal of the O.S.<br>
+			</li>
+			<li>Establishing a Session<br>
+				A user stablish a session with: <code> CONNECT scott/tiger@ORCL12C</code> 
+				,composed by: database username (SCOTT),password (TIGER) separeted by the 
+				delimiter (/). Then the symbol @ followed by the connect string. @ say to the 
+				user process that a network connections is required. If @ and the connection 
+				string is omited then the user process will assume that the instance where the user 
+				wants to connect is on the local machine. If use @ the user process use a network 
+				connection include if the remote machine is the local machine (the connection travel
+				for the nic and return).
+			</li>
+			<li>Connectiong to a Local Instance<br>
+				Even if the db server is local, you still use Oracle Net. All sessions use network 
+				protocol to implement the separation of user code from server code, but for a 
+				local connection the protocol is IPC. This is the only type of connection do not 
+				require any configuration at all. The only information needed is to tell your 
+				user process wich instance you want to connect to. This information is passed 
+				through an environment variable ORACLE_SID.
+			</li>
+			<li>Name resolution<br>
+				When connecting over a network the first stage is to work out exactly what is 
+				you want to connect to. This process is known as name resolution. If your connect 
+				statement includes the connect string (@orcl12c) Oracle Net needs to resolve 
+				to protocol,ip address, port and the name of the instance (which noot need to 
+				be the same as the connect string).
+			</li>
+			<li>Launching a Server Process<br>
+				The database listener, running on the server machine monitors one or more ports 
+				on one or more network interfaces cards for incoming connections request. 
+				The listener first validate if the instance is available, if pass this control, the listener 
+				will launch a new server process to service this user process.<br>
+				In TCP each dedicated server process will acquire a unique tcp port. The port 
+				number is passed back to the user process by the listener (on some O.S. the 
+				socket already opened to the listeneris transferred to the new port number). 
+				Now the user process can communicate directly with it's server process. The 
+				listener has finisehed and waits for the next connect.
+			</li>
+			<li>Creating a Database Listener
+				The definition file of the oracle listener is : ORACLE_HOME/network/admin/listener.ora 
+				As minimum listener.ora must include a section for one listener that states its name, 
+				the protocol and the listening address it will use. It's possible to include  
+				several listeners in the one file, but with different name and address.<br>
+				Note: If the listener is not running  no new server processes can be launched 
+				but this not affect any existing session.<br>
+				If not exist the listener.ora file, the listener will be created with the defaults: 
+				port 1521, name LISTENER and address the hostname. Tip: always configure 
+				the listener.ora (self-documenting).
+			</li>
+			<li>Dynamic Service Registration<br>
+				The listener needs to know what instances are currently running on the server. 
+				It's possible to hardcode a list of instances in the listener.ora file but this is not 
+				considered best practice. The best it's to rely on dynamic service registration.<br>
+				Every database offers one or more services. A service is a logical name to which 
+				sessions can attach, thorugh the instance. Different services within the 
+				database can have different characteristics (for instance, for fault tolerance...).
+				 There will always be a default service named after the database which is 
+				 often the same name as the instance, wich is often the same name as the 
+				 Net service alias defined in tnsnames.ora file and used in connect strings.<br>
+				 When an instance starts by default look for a listener on the address to which 
+				 the machine's hostname resolves using port 1521. If exist there a listener, 
+				 the database will registers it's service names, when the database is 
+				 shutdown, it will deregister itself from the listener.<br>
+				 Note:It is the LREG background process that registers services with the 
+				 the listener. during the lifetime of the instance, the LREG process repeat 
+				 the registration process avoiding problems if the listener is stoppped and 
+				 started.
+			</li>
+			<li>Shared Server<br>
+				The network architecture that we saw is know as dedicated server. One 
+				user process, one server process. An alternative is the shared server 
+				architecture, where a relatively small pool of server processes services 
+				a much larger number of user sessions.
+			</li>
+			<li>Limitations of Dedicated Server Architecture.<br>
+				As more users log on to your instance, more server processes get launched 
+				and this could produce problems with the speed of create it, make the context 
+				switch (that are very expensive in cpu terms).<br>
+				Mainframe systems could make context switches of tens of thousands of 
+				processes without problems, but Uniz or Windows can have problems. 
+				Problems with the memory can occurs too as more sessions are established.
+				The actual server processes themselves are not an issue, because all 
+				modern O.S. use shared memory when the same process is loaded more 
+				than once, so launch thousands of processes no take more memory than 
+				launch one. The problem comes with the PGA that is a block of memory 
+				associated with each server process to mantain the state of the session ans 
+				is a work area for operations such as sorting rows, then can't be shared memory 
+				the data is unique to each session. To overcome this problems Oracle offer the 
+				shared server architecture.<br>
+				Note: In unix oracle server process are real processes, in windows are threads.
+			</li>
+			<li>The shared Server Architecture<br>
+				Shared server is implemented purely on the server side, the user server have 
+				no way of telling that anything has changed. The connection protocol is the same
+				(listener,etc...) and the rest of the process.<br>
+				Note: All is the same but the client can demand either a shared or dedicated 
+				server specifying either SERVER=DEDICATED or SERVER=SARED in the TNS 
+				connect string.<br>
+				The implementation of shared server is did it with additional processes that are 
+				part of the instance. They are launched at instance startup time. That are 2 
+				processes types: dispatchers and shared servers. There are also some extra 
+				queue memory structures within the SGA, and the listener modifies it's 
+				behavior for shared server.<br>
+				When an instance configured for shared servers start, it start one or more 
+				dispatchers. The dispatchers run on a unique tcp port. They contact with the 
+				listener and register with it. One or more shared server processes also start. 
+				This shared servers receive SQL statements, parse and execute it. The SQL are 
+				received from a queue that will be populated with statements from any 
+				number of user process. Similarly, the results from shared server are send 
+				to a response queue not directly to the user session. The process that are 
+				in charge to put the sql from users process to SQL queue and in charge 
+				to take the results from result queue and send to user process are dispatchers. 
+				When a user process contacts a listener, this passes back the address of 
+				a dispatcher (if exist multiple dispatchers, the listener will load-balance). 
+				Each user processes is connected to one dispatcher (the user process thinks 
+				that is a server process) that is shared with other user process.<br>
+				Note:a sessions's connection to a dispatcher persists for the duration of the 
+				session, unlike the connection to the listener, wich is transient.<br>
+				When the user process issues a SQL statement, it sent to the dispatcher. 
+				The dispatcher puts all the statements it receives onto a queue called 
+				common queue (common because all dispatchers share it). All the shared 
+				server processes monitor the common queue, when a statement arrives on 
+				the common queue the first available shared server picks it up, in this moment 
+				the execution is normal (parse, bind, execute), but when it comes to the fetch 
+				phase the shared server puts the result set onto a response queue (the shared 
+				server doesn't know nothing of the user process including the ip or port) that is 
+				specific to the dispatcher that received the job in the first place. Each 
+				dispatcher monitors its own response queue and whenever any results are put 
+				on it, the dispatcher will pick them up and fetch them back to the user process 
+				that originally issued the statement.<br>
+				Note: There is a common input queue shared by all dispatchers, but each 
+				dispatcher has its own response queue.<br>
+				Then...How is possible to mantain the state of a session, for example, for 
+				make a select for update, after a delete, after a update and finally the commit?
+				In a dedicated server the state it's mantained in it's own PGA (that store: session 
+				data, its cursor state, its sort space and its stack space). To store all of this 
+				information in the shared server model, the shared servers does not retain 
+				the session information, this information is in the SGA. Then whenever a 
+				shared server picks a job off the common queue, it will go to the SGA and 
+				connect to the appropriate block of memory to find out the state of the session.
+				The area of memory used inside of the SGA is knowed as UGA (User Global Area) 
+				that are allocated in the large pool and include all of the PGA except 
+				the session's stack space. The list of session memory structures that is 
+				stored in the SGA when shared server is implemented are: 
+				<ul>
+					<li>Sort area</li>
+					<li>Hash area</li>
+					<li>Bitmap creation area</li>
+					<li>Bitmap merge area</li>
+					<li>Cursor state</li>
+					<li>User session data</li>
+				</ul>
+				Not implemented in the sga:
+				<ul>
+					<li>Stack space</li>
+					<li>Local variables</li>
+				</ul>
+				It's impossible to use a shared server session to start up or shut down 
+				the instance because the processes needed to support shared server 
+				are themselves part of the instance.
+			</li>
+			<li>Configuring the Shared Server<br>
+				In the client side it's not necessary a configuration. On the server side, 
+				shared server is configured though instance initialization parameters (nothing 
+				to do with the database because it's a thing controlled by the instance). The 
+				listener receive the information through the dynamic registration. In the set of 
+				parameters to configure the Shared server two are the usually necessary: 
+				dispatchers and shared_servers. Shared_servers controls the number of 
+				shared servers that will be launched at instance startup. The number for 
+				shared_server should be set to the maximum number of concurrent request 
+				you expect avoiding the use of the queue (that's means that the sql is 
+				processed immediately). But if exist a sudden burst of activity, Oracle 
+				will launch addiontional shared servers up to the value of max_shared_servers. 
+				By default shared_servers is one if dispatchers are set, the default of 
+				max_shared_servers is 1/8 of the processes parameter or 2 if processes 
+				parameter is less than 24. The dispatchers parameter controls how 
+				many dispatcher processes to launch at instance startup and how they 
+				will behave. This is the only required parameter to enable the shared 
+				servers. There are many options for dispatchers parameter but usually 
+				two will suffice how many to start and what protocol should listen on: 
+				<code>SQL&gt;alter system set dispatchers='(dispatchers=2)(protocol=tcp)';
+				<br>SQL&gt;alter system shared_servers=20;</code>
+				With other parameters you could modify the listener where is register 
+				the dispatchers (default use local_listener parameter), the ports used,etc.
+				The max_dispatchers parameter sets an upper limit to the number of 
+				dispatchers you can start but unlike shared servers Oracle not start 
+				extra dispatchers on demand.<br>
+				Tunning the shared server is vital
+			</li>
+			<li>When to use the Shared Server<br>
+				Using shared server increases scalability but perhaps at the cost of reducing 
+				performance (if the statement are the last of the queue).  It also take 
+				more CPU resources for the enqueuing and dequeuing activity. In practice: 
+				Less tan 100 connections then dedicated servers,100-1000 connections think 
+				about shared servers, more than 1000 maybe it's time to shared servers.
+			</li>
+			<li>The Default Shared Server Configuration<br>
+				A 12c database instance will run shared server by default, but only for 
+				connections through the XDB
+			</li>
+		</ul>
+		<ul>Use Tools for Configuring and Managing the Oracle Network<br>
+			For change the configuration of Oracle Network only exist three files to 
+			change: 
+			<ul>
+				<li>listener.ora: server-side and define the operation of the database listener.
+				</li>
+				<li>tnsnames.ora: client-side used for name resolution. In the server exist 
+					to facilitate running clients on the server machine.
+				</li>
+				<li>sqlnet.ora: optional file in the (client/server)-side with various defaults 
+				that will affect all clients and listeners.
+				</li>
+			</ul>
+			For configurate all the Oracle Net exist two graphical tools:
+			<li>The Net Manager</br>
+				To launch the Net Manager run netmgr.<br>
+				The Net Manager has three branches. the Profile branch creates or edits 
+				sqlnet.ora file (used for tracing of Oracle Net , enable certain name-resolution 
+				methods). The service Naming branch is used to configure client-side name 
+				resolution in the tnsnames.ora. The listener branch is used to configure 
+				the database listeners in listener.ora file.
+			</li>
+			<li>The Net Configuration Assistant<br>
+				To launch the Net Configuration Assistant run netca. More simple than Net
+				Manager
+			</li>
+			<li>The listener Control Utility<br>
+				ORACLE_HOME/bin/lsnrctl. Could run in cli or in his own shell. For all commands 
+				you must specify the name of the listener, If it is not the default name of 
+				LISTENER. <br>
+				<code>lsnrctl status<br>lsnrctl start<br>lsnrctl stop</code>
+			</li>
+			<li>The TNS_ADMIN environment variable<br>
+				If the files of the net configuration (tnsnames.ora,sqlnet.ora,listener.ora) not are 
+				in the default path: ORACLE_HOME/network/admin because for example you have 
+				differents database everyone with a different ORACLE_HOME, you need to change 
+				the path for the net configuration files. If are so many installations or you are a client 
+				and have hundreds of different database in different machines,etc. you need to change 
+				the location. For this purposse use then environment variable TNS_ADMIN that specify 
+				where are the Oracle Net configuration files: <code> export TNS_ADMIN=/whatever/...
+				</code>
+			</li>
+		</ul>
+		<ul>Configure Client-Side Network<br>
+			<li>
+				The client side of oracle Net is sqlnet.ora (optional) and tnsnames.ora file. Oracle 
+				provides four methods of name resolution: easy connect, local naming (more extended), 
+				directory naming (best for large and complex installation) and external naming, 
+				<ul>
+					<li>Easy Connect Name Resolution <br>
+						Requires no configuration but is limited to one protocol: TCP (the others methods 
+						of resolution can use any of the other supported protocols: TCP with secure sockets, 
+						Named Pipes...) neither advanced capabilities such as load balancing or connect-time 
+						failover across different network routes. It's enabled by default and it's invoked with 
+						the syntax: <code>SQL&gt; connect scott/tiger@jwvaio:1221/orclz</code> where 
+						jwvaio is the hostname, 1521 the port (where a listener will response).
+					</li>
+					<li>Local Naming Name Resolution<br>
+						The user supplies an alias known as an Oracle Net service alias in the connect 
+						string that is resolved by a local file: the tnsnames.ora.<br>
+						<code>orclz=(DESCRIPTION= (ADDRESS_LIST= (ADDRESS = (PROTOCOL
+						=TCP) (HOST=jwvaio) (PORT =1522)) CONNECT_DATA= (service_name=orclz) ))<br>
+						test=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP) (PROTOCOL=TCP)
+						(HOST=serv2.example.com)(PORT=1521)) (CONNECT_DATA=(sid=testdb)) ))</code><br>
+						In this snippet we have 2 Oracle Net service aliases defined: orclz and test.<br>
+						Note: There need be no relationship between the alias, the service name and the 
+						instance name (normally the people use the same)
+					</li>
+					<li>Directory Naming and External Naming<br>
+						Directory naming points the user toward an LDAP directory server to resolve aliases.
+						Oracle provides an LDAP server (Oracle Internet Directory) as part of the Oracle 
+						Application Server, but you can use others like Active Directory, IBM and Novell 
+						. The fact that use a central server simplifies the mantain efforts (versus a local 
+						file that you need to change in every host).<br>
+						External naming is conceptually similar to directory naming but with third-party 
+						naming service such NIS+, CDS...
+					</li>
+				</ul>
+				<li>Testing Oracle Net Connectivity<br>
+					tnsping accepts a connect string and then test it. It will show the name resolution 
+					method used, the Oracle Net configuration files being read and the details for 
+					resolve the string. This not test if the database is actually running only if a listener 
+					is active.
+				</li>	
+				<li>How to register a service:<br>
+					<code>
+						<ol>
+							<li>#sqlplus / as sysdba</li>
+							<li>alter system set service_names=serv1 scope=memory;</li>
+							<li>alter system set local_listener=new scope=memory;</li>
+							<li>alter system register</li>
+						</ol>
+					</codel>
+				</li>
+		</ul>
+		</li>
+			
+	</li>
+	<li>Understant Database Resident Connection Pooling<br>
+		Many applicationcs have a large number od sessions that may be very short lived 
+		and may not log on/off in an orderly fashion like the web application. Web application 
+		use connection pooling to manage this situation: the application server stablish a relatively 
+		small number of persistent sessions and passes temporary use of them to users on 
+		demand. Using the Database Resident Connection Pool (DRCP) is a technique for 
+		implementing similar functionality for middle-tier for middle-tier software that cannot 
+		do a connection pooling, such as some Apache-based products.<br>
+		A DRCP is enabled by default, configured to launch a minimum of four server proceses, 
+		up to a maximum of 40.Idle servers will be terminated after 300 seconds.<br>
+		To use the DRCP with easy connect name resolution simply add :POOLED to the 
+		end of the connect string: <code>sqlplus scott/tiger@jwvaio:1521/orclz:pooled</code> 
+		or in the tnsnames.ora in the connect_data of the net service alias add server=pooled: 
+		<code>(connect_data=(service_name=orclz)(server=pooled))</code> <br>
+		Note: in the book say that is started automatically by Oracle but I need to execute:
+		 <code>SQL&gt; EXECUTE DBMS_CONNECTION_POOL.START_POOL();</code><br>
+		 Note:When would one use a Database Resident Connection Pool? When manu application 
+		 server sessions connect to the same database schema, but use it for only short requests.
+	</li>
+	<li>Configuring Communication Between Databases<br>
+		Oracle Net can be configurated for communications between databases 
+		aka database links,i.e.: <code>create database link prodscott connect to fred 
+		identified by perry using 'prod'</code>. The remote database is identified by 
+		tnsnnames.ora connect string 'prod', it's stored in the local schema scott and 
+		only scoot can use it. A statement like <code>select * from score@prodscott;</code>
+		the session transparently connect with the remote database and run the query there. 
+		The name resolution occurs on the server.
+	</li>
+	
+</ul>
