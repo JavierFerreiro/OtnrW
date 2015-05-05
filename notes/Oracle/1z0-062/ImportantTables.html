@@ -12,10 +12,19 @@
 <tr><td>user_source</td><td>show the source code of a plsql</td></tr>
 <tr><td>trigger_source</td><td>show the source code of a trigger</td></tr>
 <tr><td>user_tab_privs_made</td><td>list privileges granted to other users or roles</td></tr>
+<tr><td>dba_tables</td>Show all the tables of the db<td>l</td></tr>
+<tr><td>dba_segments</td>Show all the segments of the db<td>l</td></tr>
 <tr><td>dba_extents</td>Show all the extents of the db<td>l</td></tr>
+<tr><td>dba_temp_files</td>Show all the extents of the db<td>l</td></tr>
+<tr><td>dba_data_files</td>Show all the extents of the db<td>l</td></tr>
 <tr><td colspan="2" style="text-align:center;font-weight:bold;">Dynamic Views</td></tr>
 <tr><td>V$TIMEZONE_NAMES</td><td>list time zone abbreviattions that Oracle support</td></tr>
-<tr><td>V$DATAFILE</td><td>List all the datafiles/td></tr>
+<tr><td>V$tablespace</td><td></td></tr>
+<tr><td>V$datafile</td><td>List all the datafiles</td></tr>
+<tr><td>V$controlfile</td><td>List all the controlflie</td></tr>
+<tr><td>V$logfile</td><td>List all the logfile/td></tr>
+<tr><td>V$log</td><td>Explain the status of the log: Active log file, if archived...</td></tr>
+<tr><td>V$tempfile</td><td>Describe the temporal files of the database</td></tr>
 </tbody>
 </table>
 
@@ -48,14 +57,29 @@
 				select * from v$logfile;<br>
 				select * from v$tempfile;<br>
 </td><td>Document a system</td></tr>
-<tr>select dbms_xdb.gethttpport from dual;<td></td><td>Obtain the port of express database.</td></tr>
+<tr><td>select dbms_xdb.gethttpport from dual;</td><td>Obtain the port of express database.</td></tr>
 <tr><td>select dbms_xdb.sethttpport(5500);</td><td>Set the port of express database.</td></tr>
 <tr><td>select name,value from v$parameter order by name;</td><td>Check the current values of the parameters of the instance.</td></tr>
 <tr><td>select name,value from v$spparameter order by name;</td><td>Check the values of the parameters in the spfile.</td></tr>
 <tr><td>select name,value from v$parameter where isbasic='TRUE' order by name;</td><td>show the parameters and values</td></tr>
+<tr><td>select member,bytes from v$logfile join v$log using (group#)</td><td>Obtain the port of express database.</td></tr>
+<tr><td>select t.name,d.name,d.bytes from v$tablespace t join v$datafile d using (ts#)</td><td>Look at the tablespaces and his datafiles associated</td></tr>
+</td><td>Alter a system</td></tr>
 <tr><td>alter system set &lt;parameter&gt;=&lt;value&gt; [scope={memory|spfile|both}]</td><td>Change the value of the parameter for the instance,spfile or both</td></tr>
 <tr><td>alter system reset &lt;parameter&gt;</td><td>Delete the parameter from spfile.</td></tr>
-<tr><td></td><td></td></tr>
+<tr><td>Create and manipulate tablespaces:<br>
+				create tablespace prova
+				datafile '/u02/oradata/cc/prova001.dbf' size 100m
+				extent management local autoallocate
+				segment space management auto;
+				create table newtab(c1 date) tablespace prova;
+				select extent_id, bytes from dba_extents where owner='SYS' and segment_name='NEWTAB';
+				alter tablespace prova offline;
+				alter table newtab allocate extent;
+				alter tablespace prova read only;
+				alter tablespace prova read write;
+				drop tablespace prova including contents and datafiles;
+</td><td></td></tr>
 <tr><td></td><td></td></tr>
 <tr><td></td><td></td></tr>
 

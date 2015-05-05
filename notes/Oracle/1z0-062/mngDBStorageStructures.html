@@ -1,0 +1,307 @@
+<h1>Managing Database Storage Structures</h1>
+<p>Users of DB never see datafiles only logical segments. System 
+	Administrators only see datafiles. Oracle database provides complete 
+	abstraction between physical storage and logical storage because is a 
+	requirement of the relational database paradigm.<br>
+	A DBA must know all of the two worlds.
+</p>
+<ul>
+	<li>Describe the Storage of Table Row Data in Blocks<br>
+		<ul>
+			<li>The Oracle Data Storage Model.<br>
+				If programmers are affected by physical changes, a simply 
+				change of name of the file break the program. If you separeted 
+				the logical from the physical you can change files, run on 
+				different hardware and O.S and the program will not be 
+				affected. Remember the "entity-relationship" diagram of the 
+				storage.<br>
+				<img src="img/storageModel.png" alt="storageModel.png"/><br>
+				Why the segment (I think could be used as synonym of table or 
+				index or...) is not directly related with datafiles? Because the 
+				relationship will be many-to-many (that the relational model try 
+				to avoid, think that a segment could be in many datafiles and in 
+				a datafile could be different segments. If not, for example, you 
+				relation a segment (like a table) directly with a datafile you're 
+				broken the relational model, linking the physycal space with the 
+				logical space.<br>
+				To resolve this we use the tablespace that can contain many 
+				segments and be made up of many datafiles, but one datafile 
+				could stay in one tablespace only and onse segment could be in 
+				one tablespace only. Then one segment could be spread accross 
+				multiple datafiles and any one datafile may contain all of or parts 
+				of many segments. The tablespaces are identified by a unique 
+				name. <br>
+				The segment entity represents any database object that stores 
+				data and therefore requires space in a tablespace. The typical 
+				segment is a table (or index segment or undo segment...). 
+				Segments are schema objects, identified by the segment name 
+				and qualified with the owning schema object. Note that 
+				programmatic schema objects (PL/SQL procedures, views or 
+				sequences) are not segments: they do not store data, and they 
+				exist as structures within the data dictionary.<br>
+				The oracle block is the unit of I/O for the database. Datafiles 
+				are formatted into Oracle blocks, consecutively numbered. The 
+				size of the block is fixed by for a tablespace (default 8KB). The 
+				size can range from 2KB to 16KB in windows/linux (in some 
+				other O.S. 32KB). The block size is controlled by the parameter 
+				DB_BLOCK_SIZE. This can never be changed after database 
+				creation because it is used to format the datafile that make up 
+				the SYSTEM tablespace. <br>
+				Note: The DB_BLOCK_SIZE is set at database creation and can 
+				never be changed.<br>
+				A block is uniquely identified by its number within a datafile: the 
+				block number alone is not enough.<br>
+				Managing space one block at a time would be a crippling task, 
+				so blocks are grouped into extents. A extent is a set of consecutively 
+				numbered Oracle blocks within one datafile. Every segment will 
+				consist of one or more extents, also consecutively numbered. These 
+				extents may be in any and all of the datafiles that make up the 
+				tablespace. An extent can be identified from either the dimension 
+				of the segment (extents are consecutively numbered per segment, 
+				starting from zero) or the dimension of the datafile (every extent 
+				is in one file, starting at a certain Oracle block number).<br>
+				A datafile is, physically, made up  of a number of O.S. blocks.<br>
+				The alternative to file systems for datafile storage are raw devices 
+				or ASM. Raw devices are no longer supported by Oracle for datafile 
+				storage.
+				cons
+			</li>
+			<li>Segments, Extents, Blocks and Rows<br>
+				dba_segments view describe every segment in the database.<br>
+				Segments types:<br>
+				<ul>
+					<li>Table: heap-structured tables of variable-length rows in 
+					random order. Never forget that the table is not the segment 
+					and that there are more complex table organizations that that 
+					use other segments types.
+					</li>
+					<li>Index: sorted lists of key values, each with a pointer, the 
+					ROWID, to the physical location of the row. The ROWID specifies 
+					wich Oracle block of wich datafile the row is in, and the row number 
+					within the block.
+					</li>
+					<li>Type2undo: the undo segments (no one refers to them as 
+					type2undo segments) store the prechange versions fo data 
+					necessary for providing transactional integrity: rollback , read 
+					consistency and isolation.
+					</li>
+					<li>Table Partition: A table can be divided into many partitions. 
+					If this is done, then the partitions will be individual segments and 
+					the table itself will not be a segment at all. These segments can 
+					be in different tablespaces, meaning that it becomes possible 
+					to spread one table across multiple tablespaces.
+					</li>
+					<li>Index Partition: Indexes can be partitioned. If you are 
+					partitioning your tables, you will usually partition the 
+					indexes on those tables as well.
+					</li>
+					<li>Lobsegment, Lobindex, Lobpartition: If a column is defined 
+					as a large object data type, then only a pointer is stored in the 
+					table itself: a pointer to an entry in a separate segment where 
+					the column data actually resides. LOBs can have indexes built 
+					on them for rapid acces to data within the objects, and LOBs 
+					can also partitioned.
+					</li>Cluster: segment that contain several tables. In contrast 
+					with partitioning, which lets you spread one table across many 
+					segments, clustering lets you denormalize many tables into 
+					one segment.
+					<li>Nested table: If a column of a table is defined as a 
+					user-defined  object type that itself has columns, then the 
+					column can be stored in its own segment, as a nested table.
+					</li>
+					<li>Rollback: segments that should not be used in normal 
+					running from 9i onward that introduced automatic undo 
+					management wich is based on undo segments. There will 
+					always be one rollback segment that protects the 
+					transactions used to create a database (because at that point 
+					no undo segments exist), but it shouldn't be used subsequently.
+					</li>
+				</ul>
+				When a segment it's created, Oracle will allocate an extent to it. 
+				When the extent is filled, Oracle create a second extent and so on. 
+				If you know that a segment is going to need more space you can 
+				manually allocate an extent.<br>
+				How to create a table assign a extent immediatly and allocate new 
+				one: 
+				<br><code>create table scott.newtab(c1 data) segment 
+				creation immediate;<br>alter table scott.newtab allocate extent;</code><br>
+				To override the Oracle algorithm for decide what datafile use you 
+				can use: <code>alter table tablename allocate extent storage (
+				datafile 'filename');</code>
+				An extent consist of a set of consecutively numbered blocks. Each block 
+				will have a header area and a data area. The header is of a variable 
+				size and grows downward, if necessary, from the top of the block. Among 
+				other things, it contains a row directory (list where in the block each row 
+				begins) and row locking information. The data area fills from the bottom 
+				up. The block header grow with inserts and locking rows. The data area 
+				is initially empty and fills as rows are inserted (or index keys in index 
+				segment). The free space does get fragmented as rows are inserted, 
+				deleted and updated but this is not important because all of this happens 
+				in memory, after the block has been copied into a buffer in the database 
+				buffer cache. The free space is coalesced into a contiguos area, when 
+				necessary, and always before the DBWn writes the block back to its 
+				datafile.<br>
+			</li>
+			<li>Create and Manage Tablespaces<br>
+				Tablespaces are repositories for schema data, including the data dictionary 
+				(SYS schema).<br>
+				All databases must have a SYSTEM and SYSAUX tablespace as well as 
+				(for practical purposes) a temporary tablespace and undo tablespace.<br>
+				How to create a tablespace: with DBExpress or <br>
+				<code>CREATE SMALLFILE TABLESPACE "PROVA" DATAFILE 
+					'prova' SIZE 100M AUTOEXTEND ON NEXT 100M
+					LOGGING DEFAULT NOCOMPRESS ONLINE
+					EXTENT MANAGEMENT LOCAL AUTOALLOCATE
+					SEGMENT SPACE MANAGEMENT AUTO;
+				</code><br>
+				SMALLFILE means that it can consist on one or many datafiles. With the 
+				alternative BIGFLE it's impossible to add a second file. Autoextends means 
+				that the datafile can grow automatically  on steps of 100M in this case. We 
+				indicate that by default we want generate redo (with loggin default option).
+				With "extent management local autoallocate" we indicate the use of bitmaps 
+				fpr allocating extents and finally "segment space management auto" say 
+				that will use bitmaps for tracking block usage.<br>
+				Usual Operations in tablespaces:<br>
+				<code>
+				Create and manipulate tablespaces:<br>
+				create tablespace prova
+				datafile '/u02/oradata/cc/prova001.dbf' size 100m
+				extent management local autoallocate
+				segment space management auto;
+				create table newtab(c1 date) tablespace prova;
+				select extent_id, bytes from dba_extents where owner='SYS' and segment_name='NEWTAB';
+				alter tablespace prova offline;
+				alter table newtab allocate extent;
+				alter tablespace prova read only;
+				alter tablespace prova read write;
+				drop tablespace prova including contents and datafiles;
+				alter tablespace oldname rename to newname;
+				</code>
+				Change name to a Datafile:
+				<code>
+						alter tablespace XXX offline; or alter datafile '111' offline;<br>
+						host<br>
+						mv '1111' '2222'<br>
+						(back to sqlplus)<br>
+						alter database rename file '1110' to '222'<br>
+						(maybe recover datafile '2222')<br>
+						alter tablespace XXX online ; or alterl datafile '222' online;
+				</code><br>
+				The other option that make all in one statement, no downtime!!!:
+				<code>
+					alter database move datafile '111' to '222';
+				</code><br>
+				When put a tablespace offline you could do:<br>
+				Alter tablespace tablespacename offline [normal|immediate|temporary];<br>
+				A normal offline (default) will force a checkpoint for all the tablespace datafile.
+				Immediate offline tablespace and his files  without flushing any dirty buffers. 
+				Therefore will be needed a recover, applying change vectors from the redo log 
+				before back online. Temporary offline will checkpoint all the files that can be 
+				checkpointed and then take them and the tablespace offline in an orderly fashion. 
+				Any damaged files will be offlined immediately.<br>
+				When you mark a tablespace as read only you can delete,insert... in this tablespace, 
+				but be carefully because you can drop objects.<br>
+				Resizing tablespace: <code>alter database datafile '111' resize n[M|G|T]; </code>
+				Add another datafile: <code>alter tablespace tbsname add datafile '/fdsf/111' size 2g;</code>
+				Enable automatic extension: <code> alter database datafile '/asda/111' autoextend 
+				on next 100m maxsize 4g;</code>
+				With bigfile:<br>
+				Create: <code> create bigfile tablespace tbsname datafile '/dadsd/sd' size 100m;</code><br>
+				Resize: you could resize the tablespace directly because have only one datafile: 
+				<code>alter tablespace tbsname resize 100m;</code><br>
+				The different size between small files and big file: big file can manage up to 4 billion 
+				block (4,000,000,000) and normal datafiles can manage up to 1022 datafiles everyone 
+				of 4 million blocks = 4,088,000,000. The differences is "only" 88 millions of blocks (2,1% in 
+				favor of small files)<br>
+				Droppiong tablespace:
+				<code>drop tablespace tbsname [including contents [and datafiles] ];</code><br>
+				If Including contents are not specified, the drop will fail if there are any objects in the 
+				tablespace, if included oracle drop the objects (although this could fail if a table is a 
+				foreign key for other table in other tablespace). The "and datafiles" included to drop the 
+				files too (at O.S. level), if not included, the files remain.
+
+			</li>
+			<li>Extent Management<br>
+				The extent management method is set per tablespace and applies to all segments 
+				in the tablespace. Exist 2 techniques: dictionary management or local management. 
+				The difference is local management should always be used, dictionary management 
+				never (holdover from the past versions). Dictionary management use 2 tables in 
+				data dictionary: SYS.UET$ (used extents) and SYS.FET$ (free extents). Every time 
+				the database needs to allocate an extent to a segment, it must search FET$ to search 
+				free extensions, then carry out DML against FET$ and UET$ to allocate it to the segment. 
+				This mechanism cause problems of performance because all operations in DB must 
+				serialize on the code that constructs the transacion.<br>
+				Local extent management was introduced in 8i and the default in 9i. It uses bitmaps 
+				stored in each datafile. Each bit in the bitmap covers a range of blocks, and when space 
+				is allocated the appropriate bits are changed from zero to one. This mechanism is more 
+				efficient than the transaction-based of the dictionary management.<br>
+				An important option when create a locally managed tablespace is uniform size. If uniform 
+				is specified, then every extent ever allocated in the tablespace will be that size transforming 
+				the space management in something highly efficient because the block ranges covered by 
+				each bit (of the bitmap) can be larger: only one bit per extent.--> 
+				<code>[...]extent management local uniform size 160m;</code> In this example the 
+				extent more little has 160MB. With only one bit we assign 160MB, that is very efficient. The 
+				problem is that a table has only a few rows with litte data the minimum extent that oracle 
+				give to it is 160MB. Then is best to give a size more little: <code>[...] extent management 
+				local uniform size 160k;</code>. The alternative is use autoallocate: 
+				<code>[...]extent management local autoallocate;</code> This is the default. When a 
+				segment needs a extent, the first time oracle allocate 8 blocks (normally 64KB) extent. As 
+				a segment grows and requires more extents, oracle will allocate extents of this size up 
+				to 16 extents. adter wich it will allocate 128-block (normally 1MB).<br>
+				To convert a dictionary-managed tablespaces to local management you can use pl/sql 
+				procedure call: 
+				<code>execute dbms_space_admin.tablespace_migrate_to_local('tbsname');</code><br>
+				It's a easy and quick procedure, except for a system tablespace that require 
+				some extra steps.
+			</li>
+			<li>Segment Space management<br>
+				The segment space management method is set per tablespace and applies to all segments 
+				in the tablespace. There are two techniques: manual (shouldn't be used, holdover of past versions )
+				and automatic  (should be used always). Automatic introduced in 9i and default in 11g. In 
+				automatic, every segment has a set of bitmaps that describe how full each block is. There 
+				are 5 bitmaps for each segment and each block will appear on exactly one bitmap. The 
+				bitmaps tracks the space used in bands: there is a bitmap for full blocks and there are bitmaps 
+				for blocks that are 75%-100% used, 50-75% used, 25-50% used and 0-25% used. When 
+				searching for a block into which to insert a row, the session server process will look at 
+				the size of the row to determine wich bitmap to search. For instance, if the block size is 4KB 
+				and the row to be inserted is 1,500 bytes an appropiate block will be found by searching the 
+				25-50% percent bitmap. Every block in this bitmaps is guaranted to have at least 2KB of 
+				free space.<br>
+				The old manual space management method used a simple list, know as the freelist, that 
+				stated wich blocks were available for insert but without any information on how full they were, then 
+				the blocks had to be tested for space at insert time. The only tablespaces that should be 
+				use this old method are system,undo and temporary. This segments are managed by 
+				Oracle and don't required assistance from any automatic mechanism.
+			</li>
+			<li>Oracle Managed Files (OMF)<br>
+				Use of OMF is intended to remove the necessity for the DBA to have any knowledge of the 
+				file system. The creation of database files can be fully automated. To enable OMF, set some 
+				or all of these instance parameters:<br>
+				<code>
+					DB_CREATE_FILE_DEST<br>
+					DB_CREATE_ONLINE_LOG_DEST_1<br>
+					DB_CREATE_ONLINE_LOG_DEST_2<br>
+					DB_CREATE_ONLINE_LOG_DEST_3<br>
+					DB_CREATE_ONLINE_LOG_DEST_4<br>
+					DB_CREATE_ONLINE_LOG_DEST_5<br>
+					DB_RECOVERY_FILE_DEST<br>
+				</code>
+				The DB_CREATE_FILE_DEST parameter specifies a default location for all datafiles 
+				and online redo logs files. The DB_CREATE_ONLINE_LOG_DEST_n parameters 
+				specify a default location for online redo log files taking precedence over 
+				DB_CREATE_FILE_DEST. DB_RECOVERY_FILE_DEST set up a default localtion 
+				for archive redo log files and recovery Manager (rman) backup files.<br>
+				As well  as settinf default file locations, OMF will generate filenames and (by 
+				default) set the file sizes. Once OMF has been enabled, it can always be overridden 
+				by specifying a datafile name on the create tablespace command.<br>
+				Example of activate OMF:<br>
+				<code>
+					alter system set db_create_file_dest='/u01/oradata';<br>
+					create tablespace omfts;<br>
+					select file_name, bytes, autoextensible, increment_by,maxbytes from 
+					dba_data_files where tablespace_name='OMFTS';<br>
+				</code>
+			</li>
+		</ul>
+	</li>
+</ul>
