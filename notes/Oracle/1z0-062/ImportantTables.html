@@ -17,6 +17,8 @@
 <tr><td>dba_extents</td>Show all the extents of the db<td>l</td></tr>
 <tr><td>dba_temp_files</td>Show all the extents of the db<td>l</td></tr>
 <tr><td>dba_data_files</td>Show all the extents of the db<td>l</td></tr>
+<tr><td>dba_thresholds</td>Show the thresholds for launch the alerts<td>l</td></tr>
+<tr><td>dba_resumable</td>Show the sessions suspended by (for example) space resumable action (no space)<td>l</td></tr>
 <tr><td colspan="2" style="text-align:center;font-weight:bold;">Dynamic Views</td></tr>
 <tr><td>V$TIMEZONE_NAMES</td><td>list time zone abbreviattions that Oracle support</td></tr>
 <tr><td>V$tablespace</td><td></td></tr>
@@ -79,7 +81,37 @@
 				alter tablespace prova read only;
 				alter tablespace prova read write;
 				drop tablespace prova including contents and datafiles;
-</td><td></td></tr>
+				alter tablespace oldname rename to newname;
+		</td>
+		<td></td>
+</tr>
+<tr>
+	<td>Select object_name, warning_operator,warning_value, critical_operator,critical_value 
+		 from dba_thresholds 
+		where metrics_name='Tablespace Space Usage'
+	</td>
+	<td>Show the thresholds for tablespace usage</td>
+</tr>
+<tr>
+	<td>SELECT rtime, name, tablespace_usedsize
+			FROM v$tablespace v join dba_hist_tbspc_space_usage d on (v.ts#=d.tablespace_id)
+			ORDER BY name,rtime desc
+	</td>
+	<td></td>
+</tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
 <tr><td></td><td></td></tr>
 <tr><td></td><td></td></tr>
 

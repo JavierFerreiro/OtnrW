@@ -1,0 +1,225 @@
+<h2>Managing Space</h2>
+<ul>
+	<li>Explain How Oracle Database Server Automatically Manages Spaces<br>
+		We've see in the previous chapter how storage (physical and  logical) works. 
+		Now we focusing on the logical part that is cmpound of Tablespaces, segments 
+		and oracle blocks.<br>
+		<ul>
+			<li>Extent Management<br>
+			space is allocated to a segment in the form of an extent, 
+			wich is a set of consecutive oracle blocks. Every datafile has a bitmap that 
+			describe the state of the block in the file: whether it's free or are a part of an 
+			extent that has been assigned to a segment. When a segment fills up and 
+			needs to extend , Oracle seach the bitmaps of the files of the tablespace for 
+			free space, select one file and create new extent of an appropriate size by 
+			modifyng the  bitmap. The extent can then be assigned to the segment. It's 
+			possible for the object to exist without a segment. When a segment it's created 
+			it will have at least one extent. The key to understand how it's possible for an 
+			object exist without a segment it the parameter DEFERRED_SEGMENT_CREATION 
+			wich defaults to true. This parameter instruct oracle to not create a segment 
+			until the object actually contains some data, then at table creation time, only 
+			the data dictionary structure describing the table is created. Attention because 
+			problems of limits of space only appear when the first insert is done, not at the 
+			table creation (whit the DEFERRED_SEGMENT_CREATION at true value).  It's 
+			possible to override this behavior with SEGMENT CREATION clause of the create 
+			table: <code>create table tab1(col1 varchar2(10)) segment creation [deferred|
+			immediate];</code><br>
+			Note: Segment creation is always immediate for objects created by internal 
+			users such SYS or SYSTEM, no matter what the setting of the parameter.
+			</li>
+			<li>Automatic Segment Space Management (ASSM)<br>
+				A table segment consists of multiple blocks, in one or more extents. 
+				When an attempt is made to insert a row Oracle must decide into wich block 
+				should the row be placed. This is determined by a bitmap that reflects how 
+				full each block in the segment is. This mapping works in 25% ranges: 0-25%, 
+				25-50%, 50-75%, 75-100% free space.  In addition the bitmap  shows whether 
+				the block is not actually formatted at all, that is, it is assigned to the segment 
+				but has  not yet been used or is classed as full and is therefore not available 
+				for inserts no matter how small the new row is. As rows are inserted and deleted 
+				into,from blocks the status of the block is adjusted in the bitmap.<br>
+				One of the problems of blocks is the row changes size. The row can change of 
+				size because we update a varchar2 (variable length) or update a value that 
+				previously has a null. By default Oracle reserve 10 percent of a block for 
+				row expansion. This is the PCTFREE (percent free) setting for the segment, set 
+				at segment creation time (can be modified later). A block whose usage has 
+				exceeded the PCTFREE setting for the segment is classed by the ASSM bitmap 
+				as FULL and therefore the block is not available for insert even though it may 
+				in fact still have some free space.<br>
+				When a row expands such that there is not sufficient space in the block, it 
+				must be moved to a block with sufficient space. This is know as row migration.<br>
+				Note: Row migration is caused by update statements. Insert and delete can never 
+				result in row migration. When a row is migrated, the update it's like it was transformed 
+				in insert and after delete, then a more expensive operation. The rowid of the row (
+				the physical locator of the row) is not changed.The rowid still point to the original 
+				block wich now stores no more than a "forwarding address" pointing to the new 
+				block wich the row has been moved. The fact that the rowid remains is good because 
+				the index is not modified, but is bad because when the row is retrieved through an 
+				index search, an extra I/O operation will be needed.<br>
+				Closely related to row migration is the issue of row chaining. A chained row is a row 
+				that is larger than the block, like a row of 20k with 8k blocks, then the row must 
+				be distributed across three blocks. In this case we need 3 blocks. At insert time 
+				the three blocks will be located by searching the ASSM bitmap for blocks available 
+				for insertion and when retrieving the row later all three blocks may be read (depend 
+				on wich columns are projected by the query). The rowid of a chained row points to 
+				the first block of the row, as is also the case with a migrated row.
+			</li>
+			<li>Save space by using compresion<br>
+				The primary purpose of compression is to reduce disk space requirements, but 
+				there is sometimes a fringe benefit: improved performance for subsequent 
+				queries. Sometimes the opposed, performance degradation. An advisor 
+				capability will estimate the space savings that compression can achieve for a 
+				table.<br>
+				Compression comes in three forms:
+				<ul>
+					<li>
+						Basic table compresion compresses data within a block when rows are 
+						inserted through a direct load operation. Subsequent DM operation will 
+						cause the rows to be uncompressed (and possibly migrated as a result 
+						of this)<br>
+						Basic compression (default) is in fact de-deplication. If a repeating pattern of 
+						characters occurs withing a block, the patterns is storesd once only in a symbol 
+						table, with a reference to the symbol table stored in each row where the pattern 
+						occurs.
+					</li>
+					<li>
+						Advanced row compression will compress row no matter how they are 
+						inserted, and mantain the compression though DML. The compression 
+						is still on a block-by-block basis.<br>
+						This compression use the same de-duplication technology of the basic 
+						table compresion
+					</li>
+					<li>
+						Hybrid Columnar Compression (HCC) restructures data into compression 
+						units of several megabytes, and is available only on certain storage 
+						platforms.<br>
+						This is a true compression, because use compression algorithms. HCC is 
+						not applied per block, but across groups of blocks (wich further enhances the 
+						achievable compression ratios).
+					</li>
+				</ul>
+				The type of compression is determined at table creation time, but can be added or 
+				removed after creation, but any such change will not affect existing rows. To bring 
+				the change into effect, the table must be reorganized (alter table ... move...).<br>
+				Basic compression: <code>create table ... compress [basic]</code><br>
+				Advanced compression: <code>create table ... row store compress advanced</code><br>
+			</li>
+		</ul>		
+	</li>
+	<li>Proactively Monitor and Manage Tablespace Space Usage<br>
+		The database will automatically monitor tablespace usage, through the server alert system.
+		We can use the DBA_THRESHOLDS view :
+		<code>select object_name, warning_value,
+			critical_operator, critical_value from dba_thresholds where metrics_name='Tablespace 
+			Space Usage';
+		</code><br>
+		Attention with temporary tablespace and undo tablespace. It's not useful to check the usage 
+		because normally is full and this is normal. The important of this tablespace is when the 
+		segments within them are full, that is another (and more complex metric), not configured 
+		by default.<br>
+		The history of the space usage of the tablespace is stored in the AWR snapshots created by 
+		the MMON process. This information can be seen in the DBA_HIST_TBSPC_SPACE_USAGE
+	</li>
+	<li>Use the Segment Advisor<br>
+		The segment advisor is a tool that attemtps to generate recommendation regarding 
+		reorganizing segments to reclaim space. Deletion frees up space within the segment, 
+		but the segment itself remains the same size.<br>
+		But it's not enough to know if the segment now is empty: if you have an stage table 
+		where you load data, process, move to the definitively tables and finally delete (DWH 
+		usually), if you look the segment of this table when it was deleted, then it's like all 
+		the space could be recover, but the next day you load data another time, and if you 
+		remove the space of the segment, this need to be assigned another time. With this example 
+		whe demostrate that the history of the segments is important to know if a space is candidate 
+		to be recovered. The segment Advisor can do this. It consider data in the AWR as well 
+		as the current state of the object.<br>
+		The Segment Advisor runs, by default, every night as an autotask scheduled job. The 
+		autotask does not attempt to analyze every segment, it select segments on these criteria:
+		<ul>
+			<li>Segments in tablespaces that have crossed a space usage threshold</li>
+			<li>Segments that have had the mos activity</li>
+			<li>Segments that have the highest growth rate</li>
+		</ul>
+		To see the results of the autotask, use the DBMS_SPACE.ASA_RECOMMENDATIONS 
+		function that return a table with the results of the last run.
+	</li>
+	<li>Reclaim wasted space from tables and indexes by using the segment shrink functionality<br>
+		Whe a row is deleted, the space becomes availabe for reuse when another row is inserted. 
+		However, the nature of the activity against a table can result in a significant amount 
+		of wasted space within the table. This could be reclaimed with a MOVE operation: 
+		following a move, all the blocks will be consecutively full of freshly reinserted rows, but 
+		during the move, the table is locked, and following it all the indexes must be rebuilt. 
+		To avoid it, the SHRINK command can be run without any impact on end users. A 
+		limitation is that the table's tablespace must have been created to use automatic segment 
+		space management.<br>
+		The underlaying implementation of a table shrink is to relocate rows from the end of the table 
+		into blocks toward the beginning of the table, by means of matched INSERT and DELETE 
+		operations, and then, when all possible moves have been done, to bring the high water mark 
+		of the table down to the last currently used block and release all the space above this 
+		point. There are two distinct phases: the compact phase moves the rows in a series of 
+		small transactions, through normal DML that generates both undo and redo and uses row 
+		lock. The second phase is a DDL command. As with any DDL command this is a transaction 
+		against the data dictionary: it will execute almost instantaneously, but will require a very 
+		short table lock. This last step is often referred to as "relocating the high water mark (HWM)" of 
+		the segment.<br>
+		Note: A table shrink operation generates undo and redo. Indexes are maintained, because 
+		the shrink is implemented as a set of DML transactions. There is no table lock during the 
+		compaction, but individual rows will be locked while they are being moved.<br>
+		Syntax: 
+			<code>alter table table_name shrink space [COMPACT] [CASCADE];</code>.
+		 Using COMPACT  carries out the first phase, but not the second: the rows are relocated, but 
+		 the space is not actually released from the segment. The reason for using this is that 
+		 while the compaction can occur during normal  running hours (though it may take many 
+		 hours to complete on a large table), it is possible that the DDL at the end will hang due 
+		 to concurrency with other transactions, and it will also invalidate parsed SQL in the library 
+		 cache. So it may be necessary to shrink  the table with the COMPACT keyword first, and 
+		 then again without COMPACT during a maintenance period: it will be fast, because the 
+		 compaction will have already been done. The CASCADE keyword instructs Oracle also 
+		 to shrink dependent objects, such  as indexes.<br>
+		 Before a table can be shrunk, you must enable row movement for the table: 
+		 <code>alter table tablename enable row movement;</code><br>
+		 Note: The shrink space compact command reorganizes the contents of the segment, but 
+		 does not return space to the tablespace.<br>
+		 Enabling row movement is necessary because the nature of the operation means that 
+		 row IDs will be changing. The same row (no change to the primary key) will be in a 
+		 different physical location and will therefore have a different row id. This is something that 
+		 Oracle will not permit unless row movement has been enabled.<br>
+		 Note: A table must be in a tablespace with automatic segment space management and 
+		 row movement must have been enabled, or it cannot be shrunk. If these conditions have 
+		 not been met, a MOVE may be the only way to reorganize the table.<br>
+		 Compression is incompatible with SHRINK SPACE: you will need to uncompress before 
+		 shrinking . To do this, use ALTER TABLE...NOCOMPRESS and ALTER TABLE...MOVE.
+	</li>
+	<li>Manage Resumable Space Allocation<br>
+		A example: try to load a table, first fails because tablespace goes out of space. Readjust 
+		the tablespace, then fails because the undo tablespace runs out of space. Adjust it, then 
+		when oracle is generating the index fail because temporary tablespace runs out of space, 
+		and so on. The resumable space allocation feature can be the solution.<br>
+		If you enable resumable space allocation, when an operation hits a space problem (any 
+		space problem at all), rather than failing with an error the operation will be suspended. 
+		To te user , this will show as the session hanging. When the error condition is resolved, it 
+		will continue. All suspend sessions (currently suspended and previously suspended but 
+		now running again) are listed in dba_resumable.<br>
+		To enable resumable space allocation at the session level:
+		<code>alter session enable resumable [timeout seconds]</code><br>
+		The TIMEOUT option lets you specify for how log the statement should hang, if timeout 
+		the error is returned and the statement fails. If not specifiy timeout then the session 
+		hang indefenitily.<br>
+		It's also possible to enable resumable space for all sessions by setting an instance 
+		parameter. This is a dynamic parameter. 
+		<code>alter system set resumable_timeout=60;</code><br>
+		Note: expdp and impdp data pump utilities have the command-line switch 
+		RESUMABLE=Y (default N), wich will allow data pump jobs to suspend if they hit space 
+		problems.<br>
+		An interesting trigger to control the problems with space:<br>
+		<code>
+		create trigger detect_suspend after suspend on database<br>
+		begin<br>
+		utl_mail.send(sender=>'dba@mycompany.com',<br>
+		recipients=>'dba@mycompany.com'<br>
+		subject=>'DB session suspended'.<br>
+		message=>'resumable space allocation event occurred'<br>
+		);<br>
+		end;
+		</code><br>
+		
+	</li>
+</ul>
