@@ -1,0 +1,459 @@
+<h2>Administering User Security</h2>
+<ul>
+	<p>User,user account and schema can often be used interchangeably in the oracle 
+	environment, nut they are not always the same thing. A user is a person who 
+	connects to a user account by stablishing a session against the instance and logging 
+	on with the user account name. A schema is a set of objects owned by a user account. 
+	A user account must be granted privileges before a session (or sessions) connected to 
+	the account can do anything.
+	</p>
+		
+	<li> Create and Manage Database User Accounts<br>
+		The account must be specified by a name and authenticated by some means. 
+		The account has set (when you create) a serie of attributes. This will be applied 
+		to sessions that connect to the account, although some can be modified by 
+		the session or the DBA while the session is running. The attributes are:
+		<ul>
+			<li>Username (mandatory)<br>
+				Must be unique in the database and must conform to certain rules. Must 
+				begin with a letter,&lt;=30 characters and can consist of only letters, digits 
+				and the dollar and underscore sign and cannot be a reserver word. The 
+				letters are case sensitive but will be automatically converted to uppercase. 
+				All of this rules (with length exception) can be broken if the username is 
+				specified within double quotes.
+			</li>
+			<li>Authentication method<br>
+				<ul>
+					<li>Operationg System and Password File Authentication<br>
+						To enable O.S. and password file authentication (the two go together) for 
+						an account, you must grant the user an administration role. The are 
+						six of these:
+						<table class="table table-striped table-hover table-condensed">
+							<thead>
+								<tr><td>Admin Role</td><td>Group Name</td><td>Capabilities</td>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>SYSDBA</td><td>OSDBA</td>
+									<td>Startup and shutdown; all system privileges with admin. Total power</td>
+								</tr>
+								<tr>
+									<td>SYSOPER</td><td>OSOPER</td>
+									<td>Startup and shutdown, nothing else. No privileges on users or data</td>
+								</tr>
+								<tr>
+									<td>SYSASM</td><td>OSASM</td>No relevant to an RDBMS instance.ASM only</td>
+								</tr>
+								<tr>
+									<td>SYSBACKUP</td><td>OSBACKUPDBA</td>
+									<td>Startup and shutdown; create anything; no privileges on data.</td>
+								</tr>
+								<tr>
+									<td>SYSDG</td><td>OSDGDB</td>
+									<td>startup and shutdown;privileges necessary to manage Data Guard</td>
+								</tr>
+								<tr>
+									<td>SYSKM</td><td>OSKMDBA</td>
+									<td>Privileges necessary to manage data security and encryption</td>
+								</tr>
+							</tbody>
+						</table>
+						Grant this roles:
+						<code>
+							Grant [SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM] to username;
+						</code>
+						Granting any (or all) of these privileges will copy the user's password from the data 
+						dictionary into the external password file, where it can be read by the instance even 
+						if the database is not open. Following database creation the only user with these privileges 
+						is SYS. It also allows the instance to authenticate users by checking whether the O.S. user 
+						attempting the connection is a member of the operationg system group mapped to the 
+						oracle group name. On linux the O.S. groups must be specified when installing the Oracle Home.<br>
+						Ro use password file authentication, the user can connect with this syntax with SQL*Plus: 
+						<code>
+							connect username/password [@db_alias] AS [SYSOPER|SYSDBA];
+						</code><br>
+						To use O.S. authentication, use this syntax on sql*plus: 
+						<code>
+							connect / as [SYSOPER|SYSDBA];
+						</code><br>
+						The equivalent of these syntaxes is also available when connecting with DBE (database 
+						express).<br>
+						To know who has the SYSDBA and SYSOPER privileges query V$PWFILE_USERS.<br>
+						Connect with O.S. or password file authentication is always possible, no matter what state the 
+						instance and database are in, and is necessary to issue startup and shutdown commands.<br>
+						Note: All users must be authenticated. There is no such thing as an "anonymous" login, and 
+						some authentication method must be used. there is, however, a user ANONYMOUS: this 
+						account is used by APEX applications.<br>
+						
+						Password Authentication<br>
+						The syntax for a connection with password authentication using SQL*Plus is:
+						<code>connect username/password [@db_alias]</code><br>
+						When user connects with password authentication, the instance will validate the 
+						password given against the password hash stored in data dictionary (therefore database 
+						OPEN). The user SYS is not permitted to connect with password authentication, only 
+						password file, O.S. authentication and LDAP authentication are possible for SYS.<br>
+						Usernames are case sensitive but are automatically converted to uppercase unles double 
+						quotes. Passwords are case sensitive and there is no automatic case conversion, it's not 
+						necessary to use double quotes, the password will always read exactly as entered.<br>
+						Change the password: <code>alter user username identified by password;</code> 
+						Every user can change her password or privileged users (such SYSTEM) that can change 
+						any user account password.
+					</li>
+					<li>External Authentication<br>
+						If a user account is created with external authentication, Oracle will delegate the 
+						authentication to an external service, oracle will not prompt for a password. If the 
+						Advanced Security Option has been licensed, then the external service can be a number 
+						of third-party services like Kerberos server, Radius. For example if Kerberos is being 
+						used, the database will check that the user does have a valid Kerberos token.<br>
+						Without Advanced Security Option, the only form of external authentication that can 
+						be used is O.S. authentication. The difference between a normal O.S. authentication 
+						(explained before), and a O.S. authentication for normal users (non sysdba or sysoper) 
+						is that you need to create a oracle user account with the same names as the O.S. 
+						user account but prefixed with a string specified by the instance parameter 
+						OS_AUTHENT_PREFIX. This parameter defaults to the string OPS$ (show parameter 
+						os_authent_prefix). Then if you want a normal user that use O.S. authentication, then 
+						if the O.S. jwatson previously exist, follow this:<br>
+						<code>
+							create user ops$jwatson identified externally;<br>
+							grant create session to ops$jwatson;<br>
+						</code>
+						Note:Using external authentication can be very useful, but only if the users 
+						actually log on to the machine hosting the database. This is rarely is more 
+						likely to be of value for accounts used for running maintenance or batch jobs.<br>
+					</li>
+				</ul>
+			</li>
+			<li>Default tablespace</li>
+				Every user account has a default tablespace, wich is the default tablespace where 
+				any schema objects created by the user will reside. The user can have objects 
+				in any tablespace that has quota, the default is just this, the default.<br>
+				A database-wide default tablespace will be applied to all user accounts if a 
+				default tablespace is not specified when creating the user. The default can be set 
+				when creating the database and then changed later with: 
+				<code>alter database default tablespace tablespace_name</code><br>
+				If not default tablespace is specified when the database is created, it will be 
+				set to the SYSTEM tablespace (very bad practice).
+			<li>Tablespace quotas<br>
+				A quota is the amount of space in a tablespace that a user is allowed to occupy. If 
+				the user has no quota on a tablespace, he cannot create any objects at all. Quotas 
+				can be changed at any time. If the quota is reduced below the size of the objects he 
+				already owns, the objects will survive and will still be usable, but the will not be 
+				permitted to get any bigger.<br>
+				<code>
+				    select default_tablespace, temporary_tablespace from dba_users;
+					alter user john quota 10m on users;<br>
+					alter user john quota unlimited on example;<br>
+					select tablespace_name, bytes,max_bytes from dba_ts_quotas<br>
+					select property_name, property_value from database_properties where 
+					property_name like '%TABLESPACE%';
+				</code><br>
+				Note: Before you can create a table, you must have both permission to 
+				execute create table and a quota on a tablespace in which to create it.
+			</li>
+			<li>Temporary tablespace<br>
+				Permanent objects like tables are stored in permanent tablespaces; temporary 
+				objects are stored in temporary tablespaces. A session will need space in a 
+				temporary tablespace if it needs space for certain operation that exceed the 
+				space available in the session's PGA. Every user account is assigned a temporary 
+				tablespace, and all user sessions connecting to the account will share this temporary 
+				tablespace.<br>
+				Note: Users do not need a quota in their temporary tablespaces.<br>
+				A user does not need to be granted a quota on their temporary tablespace, because 
+				ùthe objects in it are nor actually owned by the user; the are owned by the SYS 
+				user who has an unlimited quota on all tablespaces.<br>
+				To change a user's temporary tablespace (which will affect all future sessions) use 
+				: <code>alter user username temporary tablespace tablespace_name;</code><br>
+				Note: If many users are logging on the same user account(app?), the will share use 
+				of one temporary tablespace. This can be  a performance bottleneck, wich may 
+				be avoided by using temporary tablespace groups.
+			</li>
+			<li>User profile</li>
+			<li>Account status<br>
+				in account_status column of dba_users whe have 5 possiiblities:
+				<ul>
+					<li>Open: account available for use
+					</li>
+					<li>Locked: This indicates that the dba deliberately locked the account.
+							No user can connect to a locked account.
+					</li>
+					<li>Expired: This indicates that the password lifetime has expired. No user 
+						can connect until the password is reset.
+					</li>
+					<li>Expired (Grace): the grace period is in effect. A password need not expire 
+					immediately when its lifetime ends; it may be configured with a grace period during 
+					wich users connecting to the account  have the opportunity to change the password.
+					</li>
+					<li>Locked(Timed): account locked because of failed login attempts. An acount can 
+					be configured to lock automatically for a period after an incorrect password is 
+					ppresented a certain number of times.
+					</li>
+				</ul>
+				To lock an account: <code>alter user username account lock;</code><br>
+				To unlock an account: <code>alter user username account unlock;</code><br>
+				To force a user to change their password:
+				<code>alter user username password expire;</code> This will immediately 
+				start the grace period, forcing the user to change their password at their next 
+				login attempt.
+			</li>
+			<li>Creating Accounts<br>
+				The create user command has only two required arguments: a username and 
+				a method of authentication. Optionally , it can accept a clause to specify default 
+				tablespace and temporary tablespaces, one or more quota clauses, a named 
+				profile and commands to lock the account and expire the password. Example:<br>
+				<code>
+					create user scott identified by tiger<br>
+					default tablespace users temporary tablespace temp<br>
+					quota 100m on users, quota unlimited on example<br>
+					profile developer_profile<br>
+					password expire<br>
+					account unlock;<br>
+				</code>
+				This attriubutes can be modified later with alter user. Examples:<br>
+				<code>
+					alter user scott identified by lion;<br>
+					alter user scott password expire;<br>
+					...<br>
+				</code>
+				to drop the account: <code>drop user scott;</code> This command will 
+				succeed only if the user does not own any object (schema empty). If you want 
+				to drop the user and all the objects of the her schema, then: 
+				<code> drop user scott cascade;</code><br>
+			</li>
+		</ul>
+	</li>
+	
+	<li>Grant And Revoke privileges<br>
+	
+		By default, no one can do anything in an Oracle database. A user cannot even connect 
+		without being granted a privilege. Privileges are assigned to user accounts with GRANT 
+		and withdrawn with revoke. Privileges come in two groups: system privileges, that perform 
+		actions that affect the data dictionary, and object privileges, wich let users perform actions 
+		that affect data.<br>
+		<ul>
+			<li>System Privileges<br>
+				More than 200 system privileges. Most affect data dictionary such creating tables or 
+				users. Others affect the database or the instance, such as crceating tablespaces, 
+				adjusting instance parameter values, and stablishing a session. This is the most 
+				commonly used privileges:
+				<ul>
+					<li>
+						Create session: lets the user connect.
+					</li>
+					<li>
+						Restricted session: If database is started with STARTUP RESTRICT or adjusted 
+						with alter system enable restricted session, only users with this privilege will be 
+						able to connect.
+					</li>
+					<li>
+						Alter database: Gives access to many commands necessary for modifying 
+						physical structures.
+					</li>
+					<li>
+						alter system: gives control over instance parameters and memory structures
+					</li>
+					<li>
+						create tablespace:used along with the alter tablespace and drop tablespace privileges;
+						these privileges will let a user manage tablespaces.
+					</li>
+					<li>	
+						Create table: lets the grantee create tables in his own schema; includes alter, drop 
+						, select and others DML on them and to create, alter or drop indexes on them.
+					</li>
+					<li>
+						Grant any object privilege:lets the grantee grant object permissions on all objects, 
+						including those he does not own, to others (but not himself).
+					</li>
+					<li>
+						Create any table: the grantee can create tables that belong to other users.
+					</li>
+					<li>
+						Drop any table: the grantee can drop tables bolonging to any other users.
+					</li>
+					<li>
+						Insert any table, update any table, delete any table: the grantee can execute 
+						these dml commands against tables owned by all other users.
+					</li>
+					<li>
+						select any table: the grantee can select from any table in the database, with one 
+						provision: tables owned by SYS, including the data dictionary tables are not visible.
+					</li>
+				</ul>
+				The syntax: <code>GRANT privilege [,privilege...] TO username;</code><br>
+				Useful example if user involved in developing applications:<br>
+				<code>grant create session, alter session, create table, create view, create synonym, 
+				create cluster, create database link, create sequence, crecate trigger, create type, 
+				create procedure, create operator to username;
+				</code><br>
+				To grant a privilege to a user in form that this second user can grant to a third user 
+				you need to include a variation in the grant syntax: <code>grant create table to scoott 
+				with admin option;</code> This final with admin option permit it.<br>
+				Note: Revocation of a system privilege will not cascade (unlike revocation of an object 
+				privilege).<br>
+				Any third-parties that receive a permission will not be revoked if the "second-party"
+				will be revoked the permission.<br>
+				The ANY privileges give permissions against all relevant objects in the database.i.e.: 
+				<code> grant select any table to scott;</code> will let scott query every table in 
+				every schema on DB.
+			</li>
+			<li>Object Privileges<br>
+				Gives the ability to perform select, insert, update and delete commands against tables 
+				and related objects as well as to execute PL/SQL objects. These privileges do not exist 
+				for objects in the user's own schema; if a user has the system privilege create table, they 
+				can perform select and dml operations against the tables they create with no further 
+				need for permissions.<br>
+				Note: The ANY privileges, wich grant permissions against objects in every user account in 
+				the database, are not object privileges the are system privileges.<br>
+				The object privileges apply to different types of object: 
+				<table>
+					<thead>
+						<tr><td>Privilege</td><td>Granted On</td></tr>
+					</thead>
+					<tbody>
+						<tr><td>Select</td><td>Tables, views, sequences, synonyms</td></tr>
+						<tr><td>Insert</td><td>Tables, views, synonyms</td></tr>
+						<tr><td>Update</td><td>Tables, views, synonyms</td></tr>
+						<tr><td>Delete</td><td>Tables, views, synonyms</td></tr>
+						<tr><td>Alter</td><td>Tables, sequences</td></tr>
+						<tr><td>Execute</td><td>Procedures, functions, packages, synonyms</td></tr>
+					</tbody>
+				</table>
+				The syntax is: <code>Grant privilege on schema.object to username [with grant option];</code><br>
+				Variations include the use of ALL, which will apply all the permissions relevant to the type of 
+				object, and nominating particular columns of views or tables: 
+				<code>grant all on hr.regions to scott;<br>
+					grant update(salary) on hr.employees to scott;
+				</code><br>
+				Note: Revocation of an object privilege will cascade (unlike revocation of a system 
+				privilege).<br>
+				Using with grant option let a user pass their object privilege on to a third party. Oracle 
+				retains a record of who granted object privileges to whom; this allows a revoke of an 
+				object to cascade to all those in the chain.
+				
+			</li>
+		</ul>
+	</li>
+	<li>Create and Manage Roles<br>
+		Managing security with directly granted privileges works but can be a huge workload 
+		(administering) and it's not possible to enable/disable the permissions. These problems 
+		are solved with roles. A role is a bundle of system and/or ibject privileges that can 
+		granted or revoked as a unit, and having been granted can be temporarily activated 
+		or deactivated within a session.<br>
+		<ul>
+			<li>Creating and Granting Roles<br>
+				Roles are not schema objects: they aren't owned by anyone and therefore cannot 
+				be prefixed with a username. However, they do share the same namespace as user 
+				, then it's not possible to create a role with the same name as an already-existing user 
+				(or viceversa). To create a role use:<code>Create role rolename;</code> then 
+				grant privileges to the role with the usual syntax, including with admin or with 
+				gran option, as desired.
+			</li>
+			<li>Predefined Roles<br>
+				<ul>
+					<li>
+						Connect: this role exist only for backward compatibility.
+					</li>
+					<li>
+						Resource: also for backward compatibility, this role can create both data 
+						objects and  procedural objects(such as tables) .
+					</li>
+					<li>
+						DBA:has most of the system privileges as well as several object privileges 
+						and roles. Aby user granted DBA can manage virtually all aspects of the 
+						database, except for startup and shutdown.
+					</li>
+					<li>
+						select_catalog_role: has thousand of object privileges against data 
+						dictionary objects, but no system privileges or privileges against user data. 
+						Useful for junior administration staff who must monitor and report on the database 
+						but not be able to see user data.
+					</li>
+					<li>
+						scheduler_admin: has the system privileges necessary for managing the 
+						scheduler job-scheduling service.
+					</li>
+					<li>
+						public: is always granted to every database user account. It follows that if a 
+						privilege is granted to public, it will be available to all users.
+					</li>
+				</ul>
+			</li>
+			<li>Enabling Roles<br>
+				By default the roles when granted are enabled. This behavior can be modified by 
+				making the role nondefault.How to see if is default the role?:<code>select * from 
+				dba_role_privs where grantee='JON';</code> To change the default behavior use: 
+				<code>alter user jon default role none;</code>. The basic command to enable 
+				a role within a session is: <code>set role rolename</code> but if the role is 
+				created with the syntax: <code>create role rolename identified using procedure_name;</code>
+				 then the role can only be enabled by running the PL/SQL procedure nominated by 
+				 procedure_name. This procedure can make any number of checks (check the ip subnet, 
+				 permited hours, runs a particular user process(maybe not SQL*PLUS)...).
+			</li>
+			<li>Privilege Analysis<br>
+				It's difficult to identify what privileges a user has and what privileges he actually uses, for 
+				this reason , Oracle provides the Privilege Analysis mechanism.The flow is as follows: 
+				<ol>
+					<li>
+						Define the scope of what should be analyzed: privilege usage throughout the 
+						entire db; privileges used that were accessed through certain roles; privileges 
+						used by particular applications.
+					</li>
+					<li>
+						Start monitoring activity, allow users to work for a period. Stop monitoring.
+					</li>
+					<li>
+						Generate reports.
+					</li>
+				</ol>
+				The critical procedures are: dbms_privilege_capture.create_capture, 
+				dbms_privilege_capture.enable_capture, dbms_privilege_capture.disable_capture, 
+				dbms_privilege_capture.generate_result. <br>
+				The critical views are: dba_used_privs,dba_unused_privs
+			</li>
+		</ul>
+	</li>
+	<li>Create and manage profiles<br>
+		A profile can be used to enforce a password. The default profile (applied by default to all users 
+		, including SYS and SYSTEM) does very little.
+		<ul>
+			<li>Password profile limits:<br>
+				<ul>
+					<li>
+						Failed_login_attempts:number of consecutive errors on a password before the 
+						account is locked.
+					</li>
+					<li>
+						Password_lock_time: # of days to lock an account after failed_login_attempts is reached.
+					</li>
+					<li>
+						Password_life_time: # of days before a password expires.
+					</li>
+					<li>
+						Password_grace_time: # of days following the first successful login after the password 
+						has expired during wich the password can be changed. The old password is still usable 
+						during this time.
+					</li>
+					<li>
+						password_reuse_max: # of password changes before a password can be reused.
+					</li>
+					<li>
+						password_verify_function: the name of a function to run whenever a password is changed.
+					</li>
+				</ul>
+				Note: Profiles can be also be used to limit resource usage, but a much more sophisticated tool 
+				to accomplish this is the resource manager.<br>
+				See wich profile is currently assigned to each user:<code>select username,profile from dba_users;</code><br>
+				See the profiles:<code>select * from dba_profiles where profile='DEFAULT';</code><br>
+				The default profile has these password limits:FAILED_LOGIN_ATTEMPTS:10,
+				PASSWORD_LIFE_TIME:180 days, password_reuse_time:unlimited, 
+				password_reuse_max:unlimited, password_verify_function:null, password_lock_time: 1 day, 
+				password_grace_time:7 days.
+			</li>
+			<li>Creating and assigning profiles<br>
+				The simplest way to enable more sophisticated password management is to run:
+				 <code>$ORACLE_HOME/rdbms/admin/utlpwdmg.sql</code>
+				 To create a profile use create profile command
+			</li>
+		</ul>
+	</li>
+</ul>
