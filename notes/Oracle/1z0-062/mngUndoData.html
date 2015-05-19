@@ -1,0 +1,397 @@
+<h2>Managing Undo Data</h2>
+
+<ul>
+	<li>Explain DML and Undo Data Generation.
+		<p>
+			Undo data is the information needed to reverse the effects of DML 
+			statements. It is often referred to as rollback data, but try to avoid 
+			this term, from 9i onward are differents concepts: their function is 
+			the same, but their management is not. The old mechanism of 
+			rollback segments os long outdated, and all databases should use 
+			automatic undo management, wich uses undo segments to store 
+			undo data.
+		</p>
+		<ul>
+			<li>Database Transactions<br>
+				Oracle's mechanism for ensuring transactional integrity is the 
+				combination of undo segments and redo log files.<br>
+				Any relational database must be able to pass the ACID test:<br>
+				<ul>
+					<li>A is for Atomicity<br>
+						The principle of atomicity states that either all parts of 
+						transaction must complete or none of them complete. If the 
+						transaction is not complete then a proccess of rollback is launched, 
+						returning all the data at the state before the transaction.
+					</li>
+					<li>C is for Consistency<br>
+						The result of a query must be consistent with the state of the 
+						database at the time the query started.This principle requires 
+						that the database ensure that changed values are not seen 
+						by a query started before the change succed. Thorugh the use 
+						of undo segments, Oracle guarantees that if a query succeeds, 
+						the result will be consistent. If the undo segment is misconfigured 
+						then the query may not succeed (Ora-1555: snapshot too old).
+					</li>
+					<li>I is for Isolation<br>
+						An incomplete (that is, uncommitted) transaction must be invisible 
+						to the rest of the world. While the transaction is in progress, only 
+						the one session that is executing the transaction is allowed to see 
+						the changes: all other sessions must see the unchanged data.
+					</li>
+					<li>D is for Durable<br>
+						Once a transaction completes, it must be impossible for the database 
+						to lose it.  Oracle Fullfills these with log files. Log files come in two 
+						forms- online redo log files and archive redo log files that store 
+						a record of every change applied.
+					</li>
+				</ul>
+			</li>
+			<li>Undo Generation<br>
+				Whenever a transaction change data, the pre-update version of the data is 
+				written out to a rollback segment or to an undo segment. Rollbacks segments 
+				can still exist in 12c but since 9i onward oracle introduced the undo segment 
+				as an alternative. Oracle strongly advises that all db should use undo segments 
+				(rollback segments are for backward compatibility).<br>
+				to roll back a transaction means to use data from the undo segment to 
+				construct an image of the data as it was before the transaction occurred. 
+				Normally this is used when something goes wrong (rollback of transaction, 
+				crash...) but the flashback query capability (9i>) using the undo mechanism 
+				permit querying the DB as it was at some time in the past, and, of course. any 
+				usre can use the rollback command interactively.<br>
+				The ACID first (for A) requires that DB keep pre-update versions of data in order that 
+				incomplete transactions can be reversed. This type of rollback is permanent and 
+				published to all users. Second (for C), for consistency, the DB must be able to 
+				present a query with a version of the database as it was at the time the query 
+				started. The server process running the query will go to the undo segments and 
+				construct what is called a "read-consistent image" of the blocks being queried, if 
+				they were changed after the query started. This kind of "rollback" is temporary and 
+				visible only to the session running. Third (for I) undo segments are also used for 
+				transaction isolation. No transaction can be in any way dependent upon another, 
+				incomplete transaction. Even though several transactions may be running concurrently, 
+				isolation requires that the end result must be as if the transactions were serialized.<br>
+				From 9i> undo data can also used for flashback queries, that allows users to query 
+				a past image of the database. For flashback queries, undo data is used to construct 
+				a version of one or more tables as they were at some previous time by applying undo 
+				data.<br>
+				Note: undo segments is incompatible with the use of rollback segments: it is one 
+				or the other, depending on settig of the UNDO_MANAGEMENT parameter.By xavi:
+				with the exception of SYSTEM segment<br>
+				Rollbacks segments can (and one does) still exist in a 12c database. Undo segments 
+				can exist only in an undo tablespace, but at db creation time, there may not be an 
+				undo tablespace. Therefore, at db creation time, Oracle creates a single old-fashioned 
+				rollback segment in the system tablespace, along with the data dictionary. This is 
+				used during database creation but is never used in normal running: all user transactions 
+				will use undo segments (segment type2 undo).
+			</li>
+			<li>Executing SQL statements<br>
+				The sql concerned in undo are: select, insert, update, delete, commit, rollback.
+				<ul>
+					<li>Executing a SELECT statement<br>
+						The execution of a select statement is a staged  process: the server process 
+						executing the statement  will first check wheter the blocks containing the data 
+						required are already in memory, in the database buffer cache. If they are proceed, 
+						if not the server must locate them on disk and then copy them into the database 
+						buffer cache.<br>
+						Note: Always remember that servers read blocks from datafiles into the database 
+						buffer cache; DBWn writes blocks from the database buffer cache to the datafiles.<br>
+						Once the data blocks required for the query are in database buffer cache, any 
+						further processing /such as sorting or aggregation) is carried out in the PGA of the 
+						session. When the execution is complete, the result set is returned to the user. For 
+						consistency, if the query encounters a block  that has been changed since the time 
+						the query started, the server process will go to the undo segment that protected the 
+						change, locate the old version of the data, and (only for the current query) roll back 
+						the change. A similar mechanism guarantees transaction isolation, although this is 
+						based on whether the data has been changed. Clearly, if the data needed to do this 
+						rollback is no longer in the undo segments, this mechanism will not work: you get 
+						"snapshot too old".
+					</li>
+					<li>Executing an update statement.<br>
+						For any DML operation, it's necessary to work on both data blocks and undo blocks, 
+						and also to generate redo: the A,C and I of the ACID test require generation of the 
+						undo, and the D requires the generation of redo.<br>
+						Note: Undo is not the opposite of redo! Redo protects all blocks changes, wheter it is a 
+						change to a block of a table segment, an index segment ot an undo segment. As far 
+						as redo is concerned, an undo segment is just another segment and any changes 
+						to it must be made durable.<br>
+						The first step in executing DML is the same as SELECT: the required blocks 
+						 must be found in the database buffer cache or copied into it from datafiles. The 
+						 only change is that an empty ( or expired -later explained) block of an undo 
+						 segment is needed too. First, locks must be place on any rows and associated 
+						 index keys that are going to be affected by the operation. Then the redo is 
+						 generated: the server process writes to the log buffer the change vectors that 
+						 are going to be applied to the data blocks. This generation of redo is applied 
+						 both to table block changes and to undo block changes: if a column of a row 
+						 is to be updated, then the row ID and the new value of the column are 
+						 written to the log buffer (wich is the change that will be applied to the table block) 
+						 as wll as the old value. If the columns is part of an index key, the changes to be 
+						 applied to the index are also written to the log buffer, toghether with a change 
+						 to be applied to an undo block to protect  the index change.<br>
+						 Having generated the redo. Having generated the redo, the update is carried out 
+						 in the database buffer cache: the block of table data is updated with the new version 
+						 of the changed column, and the old version of the changed column is written to the 
+						 block of undo segment. From this point until the update is committed, all queries 
+						 from other sessions addressing the changed row will be redirected to the undo data. 
+						 Only the session that is doing the update will see the actual current version of the 
+						 row in the table block. The same principle applies to any associated index changes.
+					</li>
+					<li>Executing insert and delete statements<br>
+						Conceptually, insert and delete are managed in the same fashion as an update. For 
+						an insert, the change vector to be applied to the table block (and index) is the bytes 
+						that make up the new row. The vector to be applied to the undo block is the row ID 
+						of the new row. For a delete the change vector to be written to the undo block is the 
+						entire row. A crucial difference between insert and delete is in the amount of undo 
+						generated. When a row is inserted, the only undo generated is writing out the new 
+						row id to the undo block. This is because to roll back an insert, the only information 
+						oracle requires is the row id.<br>
+						Note: Insert generates a minimal amount of undo data; delete generates much 
+						more.<br>
+						For a delete the whole row must be written to the undo block, so that the deletion 
+						can be rolled back if need by constructing a statement that will insert the complete 
+						row back into the table.
+					</li>
+					<li>Transaction control: commit and rollback<br>
+						Oracle implementation of the relational database paradigm begins a transaction implicitly 
+						with the first DML statement. The transaction continues until a commit or rollback statement.<br>
+						Executing a Rollback: if something goes wrong, rollback of transactions in progress is 
+						completely automatic and is carried out by background process. The rollbacks could be 
+						done by pmon if this detect a problem with the session, by the smon if this detect 
+						a non clear shutdown previously, etc. A manual rollback requires the user to issue the 
+						rollback command, but the mechanism is identical.<br>
+						In the case of rollback an update, the pre-update version of the column are stored in the 
+						block of undo, that is recovered and used to create an update that recover the original value.<br>
+						To roll back an insert oracle retrieves the row id of the inserted row from the undo block and 
+						uses it as they for a delete statement on the table.<br>
+						To rollback a delete, oracle constructs a complete insert statement from the data in the 
+						undo blocks.<br>
+						When the roll back action is done, oracle issue a commit that will commit both the original 
+						change and the rollback change as one transaction.<br>
+						Note: a rollback will itself generate more redo as it executes, perhaps rather more than 
+						the original statement.<br>
+					</li>
+					<li>Executiong a commit<br>
+						When you say commit, all that happens physically is that logwr flushes the log buffer to disk. 
+						DBWn does absolutely nothing. <br>
+						Note:What does DBWn do when you say COMMIT? Absolutely nothing.<br>
+						The change vectors written to the redo log are all the change vectors: those applied to data 
+						blocks (tables and indexes) and those applied to undo segments.<br>
+						Note: The redo log stream includes all changes: those applied to data segments and 
+						to undo segments, for both committed and uncommitted transactions.<br>
+						The LGWR and DBWn could or not writte uncommited changes to the log files or the data files 
+						(respectively). This is not a problem, because if crash, with the use of redo log (that contain 
+						the vector change for data(tables,indexes...))  permit recover the data that was commited but 
+						not yet writted at the datafiles and to roll back the data that was writted but not commited (with 
+						the use of the change vectors of the undo segments writteds in the change vectors in the 
+						redo log file).<br>
+						Note: In normal running, DBWn writes only a few dirty buffers to disk; when a checkpoint 
+						is signaled, it writes all dirty buffers to disk.<br>
+					</li>
+					<li>DDL and Transaction Control<br>
+						The commit and rollback statements only apply to dml. You cannot roll back a DDL statement: 
+						once executed, it is immediately durable. Create a table comprise a set of inserts in the data 
+						dictionary that are finished with a commit. The possibility of incomplete transactions in the data 
+						dictionary could have appalling side efects.<br>
+						Note: Any DDL command, or a grant or revoke, will commit the current transaction.<br>
+						Because it is not possible to nest transactions (SQL standard does not permit it), executing 
+						one or more DML commands followed by a DDL command will commit the whole lot.
+					</li>
+					<li>The So-called "Autocommit"<br>
+						The autocommit does not exist.  When you execute a DDL statement, theres is a perfectly 
+						normal commit included in the source code that implements the DDL command. What about 
+						when you exit from your user process? SQL*Plus on windows the exit command has built into 
+						the commit statement. But if you close the SQL*Plus with the "X" of the windows, the transaction 
+						will be roll backed because in the internal implementation of the "X" routine has a rollback. This 
+						behavior depends of the program, plattform, etc. It needs to be tested.<br>
+						There is a SQL*Plus command "Set AUTOCOMMIT ON" that will cause SQL*Plus append a commit 
+						to every DML statement issued.All of this happens in the user process side, not exist the autocommit 
+						in the database.
+					</li>
+					<li>How transactions Use Undo Segments<br>
+						When a transaction starts, Oracle will assign it to one (and only one) undo segment. Any
+						one transaction can only be protected by one undo segment. It's not possible for the undo 
+						data generated by one transaction to cut across multiple undo segments. This is not a problem
+						 because undo segments are not of a fixed size. Therefore, if a transaction does manage to 
+						 fill its undo segment, Oracle will automatically add another extent to the segment. It's 
+						 possible for multiple transactions to share one undo segment, but in normal running this 
+						 should not occur. Oracle grow or shrink or drop undo segments automatically. a transaction 
+						 updates table or index data blocks, the information needed to roll back the changes is 
+						 written out to blocks of the assigned undo segments. All this happens in the database buffer 
+						 cache. Oracle guarantees absolutely the A (ACID) therefore all the undo data must be retained 
+						 until a transaction commits, if necessary DBWm will write the changed blocks of undo data 
+						 to the undo segment in the datafiles. <br>
+						 But, by default, Oracle no guarantee the C (ACID), 
+						 oracle guaranteess consistency in the sense that if the query succeeds, the results will be 
+						 consistent with the state of the DB at the time the query started, but it does not guarantee 
+						 that the query will actually succeed. Then we can categorize the undo data : Active undo 
+						 is undo data that might be needed to roll back transactions in progress. This data can never 
+						 be overwritten, until the transaction complete. Expired undo is undo data from committed 
+						 transactions  wich Oracle is no longer obliged to store. This data can be overwritten if 
+						 Oracle needs the space for another active transaction. Unexpired undo is an intermediate 
+						 category; it is neither active nor expired. The transaction has committed, but the undo 
+						 data might be needed for consistent reads.<br>
+						 Note: No transaction can ever span multiple undo segments but one undo segment can 
+						 support multiple transactions.<br>
+						 Note: Active undo can never be overwritten; expired undo can be overwritten. Unexpired 
+						 undo can be overwritten but only if theres is unsufficient undo space for active transactions.<br> 
+						 With automatic undo management the DBA has no control over wich undo segment will protect 
+						 any one transaction. If you want yo can query wich segment has been assigned to each 
+						 transaction by querying the view V$TRANSACTION with join to V$SESSION and 
+						 DBA_ROLLBACK_SEGS.
+					</li>
+				</ul>
+			</li>
+		</ul>
+	</li>
+	<li>Monitor And administer Undo Data<br>
+		Undo segments are managed automatically, but you must set the limits.<br>
+		<ul>
+			<li>Error Conditions Related to Undo<br>
+				Principles: First, there should always be sufficient undo space available to allow all transactions to 
+				continue. Second, there should always be sufficient undo data available for all queries to succed. 
+				The first case say that should enough space allocated for the peak usage of active undo data 
+				generated by your transaction workload. The second principle requires additional spaces in the 
+				undo tablespace to store unexpired undo data that might be needed for read consistency.<br>
+				Note: If a DML statement runs out undo space, the portion of it that had already succeeded will 
+				be rolled back. The rest of the transaction remains intact, and uncommitted.<br>
+				The two possibles errors that we speak are:"ORA-30036: unable to extend segment in undo 
+				tablespace" for transactions problems and "ORA-1555: snapshot too old" for select.<br>
+				The default behavior is to let the transactions succeed, to allow them to overwrite unexpired undo.
+			</li>
+			<li>Parameters for Undo Management<br>
+				The following 4 parameters control undo: 
+				<ul>
+					<li>UNDO_MANAGEMENT<br>
+					Defaults to AUTO. If manual oracle will not use undo segments at all (for backward 
+					compatibility, don't use it). Static parameter.
+					</li>
+					<li>UNDO_TABLESPACE<br>
+						Nominates a tablespace, wich must have been created as undo tablespace, as the active 
+						undo tablespace.
+					</li>
+					<li>UNDO_RETENTION
+					</li>
+					<li>TEMP_UNDO_ENABLED
+					</li>
+				</ul>
+			</li>
+			<li>Sizing and Monitoring the Undo Tablespace<br>
+				In an advanced environment, you may also have to add space to allow flashback queries as well.
+				The algorithm: calculate the rate at wich undo is being generated at your peak workload and 
+				multiply by the length of yout longest query. There is a view with all the information: V$UNDOSTAT. 
+				If you create the tablespace of undo autoextent you ensure that the transactions will never run out 
+				of space, but Oracle will not autoextent for UNDO_RETENTION target, then the select could fail 
+				with "snapshot too old".<br>
+				The view V$UNDOSTAT show undo activity, captured in 10 minute intervals.<br>
+				Example of calculate the size of UNDO tablespace:<br>
+				Select * from v$undostat; -- show undo activity captured in 10 minutes interval 
+				In our example we have a peak at 281,117 blocks in one 10-minute interval and 
+				generated 908 transactions. The query more longer was 1393 seconds. Finally 
+				querying DBA_DATA_FILES shows that undo tablespace datafile is 540800 blocks, 
+				about 4GB (8KB/block). Doing arithmetic show that the undo generation rate peaks 
+				at about 500 blocks a second, so if the longest query is about 1000 seconds, one 
+				would need an undo tablespace of about half a million blocks.
+			</li>
+			<li>Temporary undo<br>
+				Temporary undo segments are used for storing undo generated by DML against a 
+				global temporary tables. A global temporary table is a table whose definition may be visible 
+				to all sessions (hence "global") but whose rows are private to the session that inserted 
+				them. The duration of the row is either until commit or until the session terminates (hence 
+				"temporary"). The global temporary tables  are often useful offering storage location for 
+				data that may be useful for interim result sets, without any need to worry about clearing the 
+				data whne it is no longer needed  or ensuring that sessions will not interfere with (or even see) 
+				data created by another session. From DB's point of view, global temporary tables are easy 
+				to manage. They exist as segments created (and dropped) automatically in a temporary 
+				tablespace. Performance on temporary tables is usually superior to performance of permanent 
+				tables for 2 reasons: the I/O is direct. The ssions r/w it's temporary segments without going 
+				through the buffer cache, and without involving the database writer. The second reason is 
+				taht no redo is generated on global temporary tables the purpose of redo us to make changes 
+				persistent, and global temporary tables do not store persistent data. Undo data is generated 
+				by DML against temporary tables, this is necessary because the usual transactional rules 
+				apply. And it follows that redo is generated, because even thought the table may be a temporary 
+				segment, the undo segment is not. In earlier releases this caused two problems: a perfomance 
+				hit, because of undo segment I/O going via the buffer cache and generating associate redo and 
+				the impossibility of transactions against temporary tables in a read-only database: the table 
+				might not exist in a read/write tablespace, but the undo segment does. In 12c has a facility  that 
+				permits the creation of temporary undo segments in temporary tablespace. This may significantly 
+				 improve the performance of trnasactions against temporary tables without compromising the 
+				 transactional integrity and also means that transactions can be run against read-only databases, 
+				 such as a Data Guard physical standby database.
+			</li>
+			<li>Creating and Managing Undo Tablespaces<br>
+				A undo tablespace is the same as any other tablespace: files can be added, resized, taken online 
+				and offline, and moved or renamed. But it is not possible to specify any options regarding storage 
+				: you cannot specify automatic segment space management, and you cannot specify a uniform 
+				extent size. To create an undo tablespace, use the keyword UNDO: <code> create undo tablespace 
+				tablespace_name datafile datafile_name size size [M|G|T] [RETENTION NOGUARANTEE|GUARANTEE];
+				</code><br>
+				Note: Unless specified at creation time in the datafile clause, the datafile(s) of an undo tablespace 
+				will not be set to autoextend. But if your DB is created with dbca, it will enable automatic extension 
+				for the undo tablespace's datafile with maximum size unlimited. Automatic extension can be 
+				enabled or disabled at any time, as it can be for any datafile.<br>
+				The only segment that exist un a undo tablespace is undo segments that will be created automatically. 
+				Initially are 10 segments, more will be created if there are more than 10 concurrent transactions. Oracle 
+				monitor and adjust the number of segments as necessary. No matter how many undo tablespaces there 
+				may be in a database, generally speaking only one will be in use at a time. The segments in the undo 
+				tablespace active has the status online and in the other undo tablespace has the status offline. This has 
+				2 exceptions: In RAC every instance opening the DB must have it's own undo tablespace. The other 
+				exception is that if you change the undo_tablespace parameter, any segment in the proviously nominated 
+				tablespace that were supporting a transaction at the time of the change will remain online until the 
+				transaction finishes.
+			</li>
+		</ul>
+	</li>
+	<li>Describe the Difference Between Undo data and redo data<br>
+		Differences:
+		<ul>
+			<li>Undo is transient, whereas redo is permanent. Undo data persist for at least the duration of the 
+				transactionthat generates it, but possibly for no longer. 
+			</li>
+			<li>Undo operates at logical level, whereas redo operates at the physical level. Undo data is row oriented: 
+				changes are grouped according to the transaction that made them, and within an undo segment 
+				all the entries are related to rows of the same transaction. Redo is physically oriented: change 
+				vectors are related to physical locations in blocks, by the row ID pointer. There is no relationship between 
+				consecutive change vectors in the log buffer or the log files.
+			</li>
+			<li>Undo can reverse changes, whereas redo can repeat changes.</li>
+			<li>Undo resides in tablespaces, whereas redo resides in files.</li>
+			<li>Undo and redo are not opposites.Undo is about transactional integrity, whereas redo 
+			is about preventing data loss.
+			</li>
+		</ul>
+	</li>
+	<li>Configure Undo Retention<br>
+		<ul>
+			<li>Configuring undo retention to support log-running queries<br>
+				UNDO_RETENTION set in seconds is usually optional. It specifies a target for keeping inactive undo data 
+				and determines when it becomes classified as expired thater than unexpired. If you do not set this parameter, or 
+				set it to zero, Oracle will still keep data for as long as it can anyway.  THEREFORE by default UNDO_RETENTION 
+				is always at the maximum allowed by the size of the tablespace.<br>
+				Where the UNDO_RETENTION is not optional  is if you have configured guaranteed undo retention. 
+				The default mode of operation for undo is that Oracle will favor transactions over queries. If the 
+				sizing of the undo tablespace force to choose between fail transaction or fail a select, Oracle by default choose to fail 
+				the select. In other words, the undo retention is only a targetr that Oracle will try to achieve. Some 
+				times it's more importatn that the select will be succesful than the transactions (end-of-month billing?), then 
+				you prefer to risk in the transactions that will be blocked menawhile the select it's solved Another 
+				case is flashback queries wich rely on undo data. Guaranteed undo retention, meaning that undo data 
+				will never be overwritten until the time specified by the undo retention has passed, is enable at the 
+				tablespace level. This attribute can be specified at undo tablespace creation or alterated later. 
+				Once you active an undo tablespace for wich retention guarantee has been specified, all queries 
+				will complete successfully, provided they finish within the undo retention time. You will never 
+				have "snapshot too old" error again. The downside is that transactions may fail for lack of undo 
+				tablespace. If UNDO_RETENTION is set and the undo tablesapce is autoextend , the Oracle will 
+				increase the size of the datafile automatically if necessary to keep to the undo retention target. This 
+				combination means that bot queries and transactions always succeed if you have enough disk space.
+			</li>
+			<li>Flashback Query and Undo Retention<br>
+				Flashback query can place additional demands on the undo system. Flashback query is a 
+				facility that allows users to see the DB as it was at a time in the past:<code>select * from 
+				scott.emp as of timestamp (systimestamp-10/1440);</code>. This statement will return 
+				al the rows in the scott.emp table that were there 10 minuts ago. To execute flashback query, undo 
+				data is used to roll back all the changes. A query that tries to go back a week would almost 
+				certainly fail, because the undo data needed to reconstruct a version of the table as it 
+				was a week ago will have been overwritten.<br>
+				To recover data with a flashback query:<code>insert into scott.emp (select * from scott.emp 
+				as of timestamp (systemistamp-1/24) minus select * from scott.emp);</code>
+			</li>
+		</ul>
+	</li>
+</ul>
