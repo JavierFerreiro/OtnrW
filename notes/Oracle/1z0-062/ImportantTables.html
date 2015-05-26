@@ -34,6 +34,7 @@
 <tr><td>V$PWFILE_USERS</td><td>show the users with SYSDBA or SYSOPER role</td></tr>
 <tr><td>V$ROLLSTAT</td><td>Gives information on the size of the segments.</td></tr>
 <tr><td>V$UNDOSTAT</td><td>Gives information of the undo.</td></tr>
+<tr><td>V$SESSION</td><td>Gives information of the sessions in the instance (one row for logged-on session).</td></tr>
 
 </tbody>
 </table>
@@ -127,15 +128,6 @@
 </table>
 
 
-
-
-
-
-
-
-
-
-
 <h2>Useful parameters</h2>
 <table class="table table-striped table-hover table-condensed">
 <thead>
@@ -160,3 +152,26 @@
 
 </tbody>
 </table>
+
+<h2>Notes</h2>
+<p>
+	Name in Oracle with the DB and instance:<br>
+	SID= name of the instance
+	DB_NAME = Name of the Database
+	DB_DOMAIN = A DOMAIN (in the sense of set not of DNS) of Databases
+	GLOBAL_NAME = DB_NAME + DB_DOMAIN --> Only useful if GLOBAL_NAMES = true and is used when connect with dblink
+	DB_UNIQUE_NAME = Identify a database in a unique form in a distributed database environment.
+	----------------------------------------------------------------------------------------------------------------------------------
+</p>
+<p>
+	Boot sequence: 
+	<ol>
+		<li>export ORACLE_HOME, ORACLE_SID (MUST)</li>
+		<li>sqlplus / as sysdba</li>
+		<li>startup</li>
+		<li>sqlplus start the background process (pmon I think) and this search in ORACLE_HOME/dbs a init param file (sp or not)</li>
+		<li>in the init param localize the DB_NAME and CONTROL_FILES Localization</li>
+		<li>Startup all</li>
+	</ol>
+</p>
+<p>The default in linux for CONTROL_FILES parameter is the same as the init param file $ORACLE_HOME/dbs

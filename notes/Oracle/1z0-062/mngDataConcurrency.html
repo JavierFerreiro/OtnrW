@@ -1,0 +1,198 @@
+<h2>Managing Data Concurrency</h2>
+<p>DB applications are multiuser. When 2 or more sessions need to access the 
+	same data at the same time Oracle offer row and table locking mechanism that 
+	will manage this, ensuring data integrity.
+</p>
+<ul>
+	<li>Describe the Locking Mechanism and How Oracle Manages Data concurrency<br>
+		Internal locks: necessaries for serializing execution of certain critical sections of code 
+		or for proteting certain memory structures. OCA don't cover this.<br>
+		Application layer: locks are taken and released as sql statements execute. These locks are 
+		applied either to rows or to entire tables, automatically or manually. With record and 
+		table locking we can arrive at serialization of concurrent acces.
+		<ul>
+			<li>Shared and Exclusive Locks<br>
+				The standard level of locking in Oracle DB guarantees the highest possible level 
+				of concurrency. This means that if a session is updating one row, the one row is 
+				locked (and nothing else) to prevent other sessions from updating it (other sessions 
+				can read it at any time). The lock is held until the transaction completes, either with 
+				a commit or rollback.<br>
+				This is an exclusive lock: the first session to request the lock on the row gets it, 
+				and any other sessions requesting write access must wait. Read access is permited-
+				although if the row has been updated by the locking session, then use the undo data.<br>
+				Note:Locked rows cannot be updated or deleted by another session, but any other session 
+				can still read them.<br>
+				Only one session can take an exclusive lock on a row, or a whole table, at a time, shared 
+				locks can be taken on the same object by many sessions. It hasn't sense to take a shared 
+				on one row, because the only purpose of a row lock is to gain the exclusive access 
+				needed to modify the row. Shared locks are taken on whole tables, and many sessions 
+				can have a shared lock on the same table. The purpose of taking a shared lock on 
+				a table is to prevent another sessions acquiring an exclusive lock on the table: you 
+				cannot get an exclusive lock if anyone else already has a shared lock. Exclusive locks 
+				on tables are required to execute DDL statements (i.e.: cannot drop a column if another 
+				has a shared lock on the table).<br>
+				To execute DML on rows a session must acquire exclusive locks on the rows to be 
+				changed as well as shared locks on the tables containing the rows. If another session 
+				already sa exclusive locks on the rows, the session will hang until the locks are released 
+				by a COMMIT or a ROLLLBACK. If another session already has a shared lock on the 
+				table and exclusive locks on other rows, that is not a problem. An exclusive lock on the 
+				table could be a problem, but the default locking mechanism does not lock whole 
+				tables unless this is necessary for DDL statements.<br>
+				Note:It's possible to demand an exclusive lock on a whole table, but this has to be 
+				specifically requested, and programmers would need a good reason for doing it.<br>
+				All DML require at least two locks: an exclusive lock on each row affected and a shared 
+				lock on the table containing the row. The exclusive lock prevents another session from 
+				interfering with the row, and the shared lock prevents another session from changing 
+				the table definition with a DDL statement. This locks are requested automatically. If a 
+				DML cannot acquire the exclusive row locks it needs, it will hang until it gets them.<br>
+				To execute DDL commands requires an exclusive lock on the object concerned. This 
+				cannot be obtained until all DML transactions against the table have finished, thereby 
+				releasing both their exclusive row locks and their shared table locks. The exclusive 
+				lock required by DDL statements is requested atomatically but if it cannot be obtained 
+				typically  because another session already has the shared lock granted for DML then 
+				the statement will terminate with an error immediately.<br>
+				Note: Any uncommitted insert, update or delete of a row will cause any attempted DDL 
+				on the table to fail immediately.<br>				
+			</li>
+			<li>The enqueue mechanism<br>
+				Request for locks are queued. If a session request a lock and cannot get it because 
+				another session already has the row or object locked, the session will wait. Oracle 
+				keep track of the order in wich the sessions requested the lock and whe session with 
+				the lock releases it, the next session on the queu will be granted te lock and so on. 
+				This is the enqueue mechanism.<br>
+				If you don't want that the session hang because it's enqueue waiting for the release of 
+				the lock then use the NOWAIT (or WAIT if you want the opposite) clause of the 
+				SELECT...FOR UPDATE command. A normal SELECT will always succeed, because 
+				SELECT dows not require any locks- but a DML statement will hang. The SELECT...
+				FOR UPDATE command will select rows and lock them in exclusive mode. If any 
+				of the rows are locked already, the stament will be queued and the session will hang 
+				until the locks are released, just as a DML. To avoid sessions hanging, use either 
+				SELECT...FOR UPDATE NOWAIT or SELECT...FOR UPDATE WAIT <n> where <n> is 
+				a number of seconds. Having obtained the locks, you can then issue the DML commands 
+				with no possibility of the session hanging.<br>
+				Note:It's possible to append the keywords SKIP LOCKED to a SELECT FOR UPDATE 
+				statement, wich will return and lock only rows that are not already locked  by 
+				another session.
+			</li>
+			<li>Automatic and Manual Locking<br>
+				Whenever any DML is executed, automatically take a shared lock on the table and 
+				exclusive locks on the affected rows. The release of the locks are automatically when 
+				the transactions is completed with either COMMIT or ROLLBACK.<br>
+				Whenever any DDL is executed, the session will automatically take an exclusive lock 
+				on the entire object. The lock persists for the duration of the DDL and is released 
+				automatically when the statement completes.<br>
+				Manually locking objects: <code>lock table table_name in mode mode</code> where 
+				mode:
+				<table class="table table-striped table-hover table-condensed">
+					<thead>
+						<tr><td></td><td>Row Share</td><td>Row Exclusive</td><td>Share</td>
+							<td>Share Row Exclusive</td><td>Exclusive</td>
+						</tr>
+					</thead>
+					<tbody>
+						<tr><td>Row Share</td><td>Y</td><td>Y</td><td>Y</td>
+							<td>Y</td><td>Y</td>
+						</tr>
+						<tr><td>Row Exclusive</td><td>Y</td><td>Y</td><td>N</td>
+							<td>N</td><td>N</td>
+						</tr>
+						<tr><td>Share</td><td>Y</td><td>N</td><td>N</td><td>N</td>
+							<td>N</td>
+						</tr>
+						<tr><td>Share Row Exclusive</td><td>Y</td><td>N</td><td>N</td>
+							<td>N</td><td>N</td>
+						</tr>
+						<tr><td>Exclusive</td><td>N</td><td>N</td><td>N</td><td>N</td>
+							<td>N</td>
+						</tr>
+					</tbody>
+				</table>
+				A ROW SHARE lock permits DML by other sessions, but will prevent any other session 
+				from taking an exclusive lock on the table.A EXCLUSIVE lock is needed 
+				(and requested automatically) in order to drop the table.ROW SHARE will therefore 
+				ensure that the table is not dropped by another session. In practice, the only type 
+				of lock that is ever likely to be taken manually is the EXCLUSIVE lock preventing 
+				another sessions from performing any DML against the table.<br>
+				The DML statements automatically take a table lock in row exclusive mode.<br>
+				The table locks(TM):
+				<ul>
+					<li>A row share lock (RS), also called a subshare table lock (SS), indicates that 
+						the transaction holding the lock on the table has locked rows in the table and 
+						intends to update them. An SS lock is the least restrictive mode of table lock, 
+						offering the highest degree of concurrency for a table.
+					</li>
+					<li>A row exclusive lock (RX), also called a subexclusive table lock (SX), indicates 
+						that the transaction holding the lock has updated table rows or issued 
+						SELECT ... FOR UPDATE. An SX lock allows other transactions to query, insert, 
+						update, delete, or lock rows concurrently in the same table. Therefore, SX 
+						locks allow multiple transactions to obtain simultaneous SX and SS locks for the 
+						same table.
+					</li>
+					<li>A share table lock (S) held by one transaction allows other transactions to 
+						query the table (without using SELECT ... FOR UPDATE) but allows updates only 
+						if a single transaction holds the share table lock. Multiple transactions may hold 
+						a share table lock concurrently, so holding this lock is not sufficient to ensure 
+						that a transaction can modify the table.
+					</li>
+					<li>A share row exclusive table lock (SRX), also called a share-subexclusive table 
+						lock (SSX), is more restrictive than a share table lock. Only one transaction at a 
+						time can acquire an SSX lock on a given table. An SSX lock held by a transaction 
+						allows other transactions to query the table (except for SELECT ... FOR UPDATE) 
+						but not to update the table.
+					</li>
+					<li>An exclusive table lock (X) is the most restrictive mode of table lock, allowing 
+						the transaction that holds the lock exclusive write access to the table. Only 
+						one transaction can obtain an X lock for a table.
+					</li>
+				</ul>
+				The only row lock(TX) lock a single row.
+			</li>
+		</ul>
+	</li>
+	<li>Monitor And Resolve Locking Conflicts<br>
+		The lock contention can cause the db performance will be deteriorate because all the sessions 
+		 are queueing and waiting for locks. A special case of lock contention is the deadlock, wich is 
+		 always resolved automatically by the database itself.
+		 <ul>
+			<li>The causes of lock contention<br>
+				Some lockings are necessary part of business data processing but some faults in 
+				application design can exacerbate the problem. Long-running transactions will cause 
+				problems. An obvious case is where a user updates a row and then does not commit the 
+				change. This should never occur with well-written software.<br>
+				When you have a long in time transaction like the accounting end month, maybe the 
+				programmers need to change the one long transaction to a set of orderly 
+				intermediate transactions. But in this case the programmers need to worry about the 
+				whole pseudo-transaction and find a form of "rollback" everything in case of fail of, for 
+				example, fail the last real transaction.<br>
+				Another problem coul be the repeatable reads. for example if you do: <code>
+				select * from regions</code>, this return 4 rows, but immediatly you do <code>
+				select count(*) from regions;</code> and return 5. How it's possible? During the 
+				course of the first query another session inserted and committed the fifth row. To solve 
+				this you can lock the whole table or a more sophisticated way would be to use the 
+				SET TRANSACTION READ ONLY statement. This will guarantee (without imposing any locks) 
+				that the session does not see any DML on any tables, committed or not, until it 
+				terminates the read-only transation with a commit or rollback (based on undo segments).
+			</li>
+			<li>Detecting Lock Contention<br>
+				Lock contention can be seen in the V$session view. The column SID (session identifier) 
+				identify the session and blocking_session show the sid of the blocking session.
+			</li>
+			<li>Solving Lock Contention<br>
+				Fast solution:<code>alter system kill session 'SID,SERIAL#';</code><br>
+				The SID is unique, but because the users login,logoff and then the SID could be reuse 
+				and accidentally kill other session. For avoid it, oracle use the SID + SERIAL#
+			</li>
+			<li>Deadlocks: A special case<br>
+				It's a special situation where two sessions block each other and then all will hang waiting 
+				for the other to release it's lock.<br>
+				Note: You can do nothing about deadlocks other than report them- they are resolved 
+				automatically by the database.<br>
+				The information about deadlocks are writted to the alert log with full details in a 
+				trace file.<br>
+				If a deadlocks occurs, both sessions will hang for a brief moment. One of the sessions 
+				will detect the deadlock within seconds and it will roll back the statement that caused the 
+				problem.
+			</li>
+		 </ul>
+	</li>
+</ul>
