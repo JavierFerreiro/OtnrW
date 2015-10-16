@@ -1,0 +1,203 @@
+<h2>Managing Resources Using Database Resource Manager</h2>
+<p>
+Many computer systems will have several groups of users, each with different standards for the level of service it requires. If the system as a whole is highly stressed, it may be impossible to deliver the desired level of services to all groups. With a priority structure can be negotiated, making possible to guarantee a certaing level of service to certain groups- perhaps at the expense of other groups.
+</p>
+<ul>
+	<li>Configure the Database Resource Manager<br>
+		In mainframe the O.S. itself handles allocating resources to tasks. But simpler O.S like Unix and Windows may not have proper resource scheduling capabilities. Oracle Resource Manager brings mainframe-style resource management capabilities to all supported Oracle platforms.
+	</li>
+	<li>The Need for Resource Management<br>
+		O.S. such Linux and Windows use simple algorithm to assign resources to different processes: round-robin time slicing. For O.S. not exist differences between background processes that make up Oracle instance and any of the many server processes that support user sessions. The Resource Manager provides a mechanism whereby the O.S time-slicing algorithm can be adjusted, to ensure that some users receive more processing capacity than others. The underlaying mechanism is to place a cooperative multitasking layer controlled by Oracle on top of the O.S. preemptive multitasking system.<br>
+		This chapter use a telesales organization like example: data entry clerk (200) and the management accounts. The data entry clerk is important and need to be resolved fast (could attend more sales), the management accounts could be attended in order of days.In certain moments of the day the call center is really busy, then the clerks need 100% of computing resources. The Resource Manager can handle this and during that time of peak usage the sessons supporting the management accounts may hang completely. But during other times of day, when the call center is not busy, plenty of resources will be available to be directed to the management account's work. At month end, another task will become top priority: the end-of-month billing runs, and the rollover of the ledgers into the nect accounting period<br>
+		Note: Do not adjust the priorites of Oracle processes by using the Unix renice command, or windows equivalent. Oracle assumes that the O.S. is treating all processes equally and if you interfere with this there may be unexpected side effects.<br>
+		Clearly, Resource Manager is only necessary in highly stressed systems. It is configured by default in all databases to control the resources used by the Autotask system, but the default configuration has a minimal effect on normal work.
+	</li>
+	<li>The Resource Manager Architecture<br>
+		Users are placed in Resource Manager consumer groups, and Resource Manager plans, consisting of a set of directives, control the allocation of resources across the groups. Each session is assigned to a group, depending on attributes defined when the session was established and possibly modified subsequently. The server process of a session in a low-priority group will, when brought onto CPU by a context switch, voluntarily relinquish the CPU earlier than it would have done if relying purely on the O.S. preemptive multitasking algorithm.
+		<ul>
+			<li>Consumers groups<br>
+				A Resource Manager consumer group is a set of users with similar resource requirements. One group may contain many users, and one user may be a member of many groups, but at any given moment, each session will have one groups as its effective group. When a user first creates a session, his default consumer group membership will be active, but if he is a member of multiple groupsm he can switch to another group. In the telesales example the 200 clerks could be in a group called OLTP, and the half-dozen management accountants could be in a group called DSS. Some users coul be in both groups. Other groups might be BATCH, to be given ptop priority for month-end processing, and LOW for people who happen to have accounts on the system but are of no great significance.<br>
+				18 groups are created by default when a database is created:
+				<ul>
+					<li>
+						SYS_GROUP: This group is intended for the database administrator. By default, only SYS and SYSTEM users are in this group.
+					</li>
+					<li>
+						DEFAULT_CONSUMER_GROUP: This group is for all users who have not been specifically assigned to any other group. By default all sessions other than SYS and SYSTEM are in this group and this membership is active when they first create a session.
+					</li>
+					<li>
+						OTHER_GROUPS: All users are members of this group. It is used as a catch-all for any sessions that are in groups not explicitly mentioned in the active Resource Manager plan.
+					</li>
+					<li>
+						Demonstration groups: The following groups are intended for separating different types of work: BATCH_GROUP,DSS_CRITICAL_GROUP,DSS_GROUP,ETL_GROUP,INTERACTIVE_GROUP, LOW_GROUP.
+					</li>
+					<li>
+						ORA$AUTOTASK: The sessions running the autotasks will run under this group.
+					</li>
+					<li>
+						ORA$APPQOS_0 through ORA$APPQOS_7: These wight groups are used if Quality of Service has been enabled; this is applicable only to clustered systems.
+					</li>
+				</ul>
+				To view the groups in the database query the views: DBA_RSRC_CONSUMER_GROUPS and DBA_USERS.
+			</li>
+		</ul>
+	</li>
+	<li>Resource Manager Plans<br>
+		A Resource Manager plan is of a certain type. The most basic (and most commonly used) type of plan is one that allocates CPU resources, but there are other resource allocation methods. Only one plan is active at any one time. This plan applies to the whole instance: all sessions are controlled by it. The resources that can be controlled by a plan are: total cpu usage for all sessions in a group, degree of parallelism available to each session in a group, number of active sessions permitted per group, volume of undo space permitted per group, time before terminating idle sessions and maximum length 
+		of execution time for a call in a session, wich can also trigger the switch of a session into another group.<br>
+		In the example, there could be three plans based on CPU usage. A daytime plan would give top priority to the OLTP group. At times of peak activity, with the system working to full capacity, it is possible that te sessions of users in other groups would hang. At night, a different plan would be activated that guarantees the DSS jovs will run, though perhaps still not with the priority of the OLTP group. A month-end plan would give 100% of resource to the BATCH group, if it requires this.<br>
+		A plan consist of a number of directives. Each directive assigns resources to a particular group at a particular priority level. Eleven plans are cofigured at db creation time:
+		<ul>
+			<li>
+				INTERNAL_PLAN: in not for normal use- it disables the resource manager.
+			</li>
+			<li>
+				DEFAULT_PLAN: has 3 directives, the first any session connected to the SYS_GROUP consumer group can take 90% of CPU, OTHER_GROUPS are guaranteed at least 9 percent, and the ORA$AUTOTASK 1 percent.
+			</li>
+			<li>
+				DEFAULT_MAINTENANCE_PLAN: raise the proportion of resources guaranteed to maintenance task and other users to 25 percent (OTHER_GROUPS and ORA$AUTOTASK consumer groups).
+			</li>
+			<li>
+				INTERNAL_QUIESCE plan has a particular purpose covered at the end of the chapter: it will freeze all sessions except those of the SYS_GROUP members.
+			</li>
+			<li>
+				MIXED_WORKLOAD_PLAN: gives top priority to SYS_GROUP, then the INTERACTIVE_GROUP and then BATCH_GROUP. Other demonstration plans are DSS_PLAN and ETL_CRITICAL_PLAN.
+			</li>
+			<li>
+				ORA$AUTOTASK_PLAN: is used by the Autotask system and cannot be adjusted.
+			</li>
+			<li>
+				ORA$ROOT_PLAN: relevant only to the multitenant container database.
+			</li>
+			<li>
+				ORA$QOS_PLAN used by the Quality of Service system
+			</li>
+		</ul>
+		To enable a plan, set the RESOURCE_MANAGER_PLAN instance parameter. This can be set automatically by the Scheduler, manually with an ALTER SYSTEM or programmatically with the DBMS_RESOURCE_MANAGER.SWITCH_PLAN procedure.<br>
+		Following creation of a database with DBCA, the Scheduler will be configured to activate the DEFAULT_PLAN during normal working hours and the DEFAULT_MAINTENANCE_PLAN at night and weekends. It is assumed that these plans will be appropiate for most sites: they give the DBA staff top priority, followeb by users, and restrict the resources that can be taken by maintenance jobs.<br>
+		Note: the instance parameter RESOURCE_LIMITS has nothing to do with the RESOURCE Manager. It pertains to the older method of controlling resources through database profiles.<br>
+		The Resource Manager works on a "trickle (gota,goteo) down" model. All resources not utilized at one priority level are available to the lower down and within a level any resources not needed by one group are available to the other groups. So, if the DEFAULT_PLAN is enabled, and no member of the SYS_GROUP are doing anything, the entire machie is available to the OTHER_GROUPS sessions, except for 1 percent, wich may be used by the ORA$AUTOTASK group if it needs it.
+	</li>
+	<li>Resource Manager Configuration<br>
+		a PL/SQL API can be used to administer the Resource Manager. This API consists of 2 packages: DBMS_RESOURCE_MANAGER_PRIVS and DBMS_RESOURCE_MANAGER. DBMS_RESOURCE_MANAGER_PRIVS is used to put users into consumer groups and also to grant the system privilege necessary to administer the Resource Manager.Example:<br>
+		<code>
+			SQL&gt; execute dbms_resource_manager_privs.grant_system_privilege(grantee_name=&gt;'JOHN',admin_option=&gt;true);
+		</code><br>
+		This snippet gives user JOHN the capability of administering the Resource Manager, with the ability to pass on the privilege to other users.<br>
+		<code>
+			SQL&gt; exec dbms_resource_manager_privs.grant_switch_consumer_group('ROOPESH','OLTP',false);
+		</code><br>
+		This call adds ROOPESH to the group OLTP, but without giving him the ability to add other users to the groups. To designate the default group:<br>
+		<code>
+			SQL&gt; exec dbms_resource_manager.set_initial_consumer_group(user=&gt;'ROOPESH',consumer_group=&gt;'OLTP');
+		</code><br>
+		The DBMS_RESOURCE_MANAGER package is used to create consumer groups, plans and directives. It is also used to create the "pending area". Before any work can be done with Resource Manager objects, you must create a pending area, wich is an area of memory in the SFA used for storing the objects while they are being configured. A plan may consist of many directives and each directive is created independently; it would therefore be possible to create a totally impossible plan. The pending area is provided to prevent this possibility: the plan is created in the pending area and then when complete it is validate to check that it does make sense, only then does the plan get saved to the data dictionary.<br>
+		Any user can switch ther active consumer group to any of the groups of wich they are a member using the SWITCH_CURRENT_CONSUMER_GROUP procedure in the DBMS_SESSION package. Alternatuvely, a user with the privilege to administer the Resource Manager can switch another session over by using one of two procedures int the DBMS_RESOURCE_MANAGER package: the SWITCH_CONSUMER_GROUP_FOR_USER procedure will sqitch all sessions logged on with a particular user name, or SWITCH_CONSUMER_GROUP_FOR_SESS will switch one particular session, identified by SID and SERIAL#:<br>
+		<code>
+			SQL&gt; exec dbms_resource_manager.switch_consumer_group_for_sess(session_id=&gt;29, session_serial=&gt;123,consumer_group=&gt;'OLTP');
+		</code><br>
+	</li>
+	<li>Access and Create Resource Plans.<br>
+		A plan consists of a set of directives that divide resources between consumer groups. The following principles can be used to control this: CPU, # of active sessions, degree of parallelism, operation execution time, idle time, volume of undo data.
+		<ul>
+			<li>CPU Method<br>
+				Continuing the telesales example, the daytime plan would give maximum resources to the OLTP group. All other sessions will hang if the OLTP users really do need the whole machine. The only exception is the SYS_GROUP. You should always give the SYS_GROUP priority over anything else: if you, the DBA, need to do something on the production system, you should be able to do it as fast as possible. The plan could look like this:
+				<table>
+					<thead>
+						<tr><td>Priority Level</td><td>Group</td><td>CPU%</td></tr>
+					</thead>
+					<tbody>
+						<tr><td>1</td><td>SYS_GROUP</td><td>100</td></tr>
+						<tr><td>2</td><td>OLTP</td><td>100</td></tr>
+						<tr><td>3</td><td>DSS<br>BATCH</td><td>50<br>50</td></tr>
+						<tr><td>4</td><td>OTHER_GROUPS</td><td>100</td></tr>
+					</tbody>
+				</table>
+				There are eight possible priority levels; this plan uses four. All CPU resources not used at one level trickle down (filtrarse) to the next level. When this plan is active the SYS_GROUP at level 1 can, if necessary, take over the whole machine; all other sessions will hang and of this form with all levels.<br>
+				Note: The total CPU allocated at each level cannot exceed 100 percent. If it does, the pending area will fail to validae and the plan will not be saved to the data dictionary. It's possible to have a plan that allocates less than 100 percent at a level, but there is little purpose in doing this.<br>
+				The nightime plan will have different settings:
+				<table>
+					<thead>
+						<tr><td>Priority Level</td><td>Group</td><td>CPU%</td></tr>
+					</thead>
+					<tbody>
+						<tr><td>1</td><td>SYS_GROUP</td><td>100</td></tr>
+						<tr><td>2</td><td>OLTP<br>DSS<br>BATCH</td><td>50<br>25<br>25</td></tr>
+						<tr><td>3</td><td>OTHER_GROUPS</td><td>100</td></tr>
+					</tbody>
+				</table>
+				In this plan the BATCH users are guaranteed processing time. They still do not have as high a priority as the OLTP group, but their sessions will not hang. The month-end plan might change this further: 
+				<table>
+					<thead>
+						<tr><td>Priority Level</td><td>Group</td><td>CPU%</td></tr>
+					</thead>
+					<tbody>
+						<tr><td>1</td><td>SYS_GROUP</td><td>100</td></tr>
+						<tr><td>2</td><td>BATCH</td><td>100</td></tr>
+						<tr><td>3</td><td>DSS<br>OLTP</td><td>50<br>50</td></tr>
+						<tr><td>4</td><td>OTHER_GROUPS</td><td>100</td></tr>
+					</tbody>
+				</table>
+				When this plan is active, the BATCH jobs will take priority over everyone else, taking the whole machine if necessary.<br>
+				Note: Every plan must include a directive for the group OTHER_GROUPS; otherwise, the validation will fail and you cannot save plan from the pending area to the data dictionary.<br>
+				To create a plan such as the daytime plan just described requires a series of procedure call through the API. First step is to create the pending area:<br>
+				<code>
+					SQL&gt; exec dbms_resource_manager.create_pending_area;
+				</code><br>
+				Then create the plan:<br>
+				<code>
+					SQL&gt; exec dbms_resource_manager.create_plan(plan=&gt;'DAY',comment=&gt;'plan for normal working hours');
+				</code><br>
+				Then you create the directives within it:<br>
+				<code>
+					SQL&gt; exec dbms_resource_manager.crate_plan_directive(plan=&gt;'DAY',group_or_sublplan=&gt;'SYS_GROUP',mgmt_p1=&gt;100,comment=&gt;'give sys_group users top priority');<br>
+					exec dbms_resource_manager.crate_plan_directive(plan=&gt;'DAY',group_or_sublplan=&gt;'OLTP',mgmt_p2=&gt;100,comment=&gt;'give oltp users next priority');<br>
+					[...]
+				</code><br>
+				Finally,validate the pending area and if successfully save the plan to the data dictionary.<br>
+				<code>
+					SQL&gt; exec dbms_resource_manager.validate_pending_area;<br>
+					SQL&gt; exec dbms_resource_manager.submit_pending_area;
+				</code><br>
+				Finally to activate the plan:<br>
+				<code>
+					SQL&gt; alter system set resource_manager_plan=day;
+				</code>
+			</li>
+			<li>Use of the Ratio CPU Method.<br>
+				There is an alternative technique for allocating CPU resources. Rather than coding CPU usage as a percentage, you can specify ratios and let Oracle work out the percentages. For example to add to: OLTP(50%), DSS(25%), BATCH(25%) the group OLTP(33%), you need to change all the percentage. With ratios you have an original ratio like: OLTP(20), DSS(10),BATCH(10) then you can add WEB(20).
+			</li>
+			<li>The Active Session Pool Method.<br>
+				The active session pool method of the Resource Manager lets DBA limit the number of statements that will run concurrently for one group, without restricting the actual number of logins. If, for example, six accounts of DSS group are logged and if three of them submit reports, they will all run, but if a fourth submits a job, it will be queued until one of the other three finishes. The nightime plan would remoce all restrictions of this nature.<br>
+				An active session is defined as a session that is running a query or a as a sessionthat is in an uncommitted transaction.If parallel processing has been enabled, the individual parallel processors do not count against the session pool; rather, the entire parallel operation counts as one active session. By default, a session will be queued indefinitely, but if you wish, you can set a time limit, when arrived, the statement is aborted and error returned.Example of 3 active sessions with queing of one minute(60s) before returning an error:<br>
+				<code>SQL&gt;execute dbms_resource_manager.update_plan_directive(plan=&gt;'DAY',group_or_subplan=&gt;'DSS',new_active_sess_pool_p1=&gt;3,new_queueing_p1=&gt;60)
+				</code><br>
+				Note: A session that is not actually doing anything will still count against the active session pool for the group if has mede a change and not committed it.<br>
+				To monitor the effect of the active session pool, the column CURRENT_QUEUE_DURATION in V$SESSION will show for every queued session the number of seconds it has been waiting. The view V$RSRC_CONSUMER_GROUP gives a global picture, showing how many sessions for each group are queued any give moment.<br>
+				If active session pool were set to zero for all groups the result would be that all sessions would hang. This is very useful capability used by <code>ALTER SYSTEM QUIESCE RESTRICTED</code>. This command activates the Resource Manager plan INTERNAL_QUIESCE, wich sets the active session pool for all groups other than the SYS_GROUP to zero. The effect is that statements in progress will continue until they finish, but that no one (other than members of the SYS_GROUP) can issue any more statements. To cancel the quiesce: <code>ALTER SYSTEM UNQUIESCE</code>
+			</li>
+			<li>Limiting the Degree of Parallelism<br>
+				To avoid that a user uses stataments with so high parallelism (select with 50 parallelism) you can use resource manager for setting a hard limit in the number of parallel processors that each session of any one group is allowed to use. On the example, in the daytime you might limit the DSS and BATCH groups to no more than four per session, and not permit OTHER_GROUPS sessions to use parallel processiong at all. The nightime plan could remove these retrictions. Here is an example:<br>
+				<code>
+					SQL&gt; execute dbms_resource_manager.update_plan_directive(plan=&gt;'DAY',group_or_subplan=&gt;'DSS',new_parallel_degree_limit_p1=&gt;4,new_queueing_pq=&gt;60)
+				</code><br>
+			</li>
+			<li>Controlling Jobs by Execution Time<br>
+				The problem of one large job killing performance from everyone could be solved by Resource Manager, that provides a mechanism whereby large jobs can be completely eliminated from the system at times. Alternatively, a session can be allowed to launch the job, but if it exceeds (or is likely to exceed) a time threshold, the session can be switched to a lower priority group. This will allow the statement to run, but with reduced impact on other users. The relevant arguments to DBMS_RESOURCE_MANAGER.CREATE_PLAN_DIRECTIVE procedure are: SWITCH_GROUP, SWITCH_TIME (measured as CPU time), SWITCH_ELAPSED_TIME (measured as wall-clock execution time), SWITCH_ESTIMATE, MAX_EST_EXEC_TIME. The SWITCH_GROUP nominates a cosumer group, probably one with lower priority in the plan, to wich a session will be switched if a call takes longer than the number of seconds specified by SWITCH_TIME or SWITCH_ELAPSED_TIME to complete. If SWITCH_ESTIMATE is TRUE, the sessions will be switched before the statement starts running, if the optimizer thinks it might take more than that number of seconds. The MAX_EST_EXEC_TIME argument will block all statements that the optimizer believes would take longer than that number of seconds.
+			</li>
+			<li>Terminating Sessions by Idle Time<br>
+				Sessions that are not doing anything waste machine resources. Even if the session is not executing a statement, the O.S. system must still bring it onto CPU according to it's round.robin time-slicing algortihtm (sure? by Xavi). The Resource Manager can disconnect sessions that are not working, according to two criteria. The first is idle time: how long is it since the session executed a statement? The second is more sophisticated: it not only checks how long since a session executed a statement, but also wheter the session is holding any record or table locks that are blocking other sessions. By using the Resource Manage, you can configure automatic killing of any sessions that block other sessions for more than a certain lenght of time. The arguments to the DBMS_RESOURCE_MANAGER.CREATE_PLAN_DIRECTIVE procedure that will enable idle sessions termination are: MAX_IDLE_TIME and MAX_IDLE_BLOCKER_TIME.
+			</li>
+			<li>Restricting Generation of Undo Data<br>
+				All your undo data will be written to a single undo tablespace, unless (against Oracle best practices) you are using the outdated rollback segment method of undo management. This means that transactions from all users are sharing a common storage area. A potential problem is that one badly designed transaction could fill this storage area, the undo tablespace. The Resource Manager provides a mechanism whereby the undo tablespace can in effect be partitioned into areas reserved for different consumer groups. To calculate how much undo tablespace you need use V$UNDOSTAT (general) and for individual transactions V$TRANSACITON while the transaction is in progress (USED_UBLK column).<br>
+				Note:The undo pool per group has nothing to do with tablespaces quotas, wich are assigned per user. You cannot even gran quotas on undo tablespaces.<br>
+				When the amount of active undo data generated by all sessions of a certain consumer group hits its pool limit, it will no longer be possible for members of that group to add more undo to current transactions or to start new transactions: they will hang until transaction commits, this freeing up space within the pool. The argument to the DBMS_RESOURCE_MANAGER.CREATE_PLAN_DIRECTIVE procedure that will define an undo pool is UNDO_POOL.
+			</li>
+		</ul>
+	</li>
+	<li>Monitor the Resource Manager<br>
+		The Resource Manager configuration is documented in a set of DBA views, principally the following: DBA_RSRC_PLANS (plans and status), DBA_RSRC_PLAN_DIRECTIVES (plan directives), DBA_RSRC_CONSUMER_GROUPS (consumer groups).<br>
+		The current situation is documented in V$ views:V$SESSION (active consumer group of each session),V$RSRC_PLAN (currently active plan),V$RSRC_CONSUMER_GROUP (Statistics for the groups.).<br>
+		If a session has been impacted by the Resource Manager, this shows up as the wait event "resmgr:cou quantum" wich will be visible in the V$SESSION.EVENT column.
+	</li>
+</ul>

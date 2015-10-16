@@ -1,0 +1,86 @@
+<h2>Installing Oracle Grid Infrastructure for a Standalone Server</h2>
+<p>
+	Grid Insfrastructure (GI). GI is a separately installed product that provides clustering, networking, storage, and high availability services for Oracle databases. In a single-instance environment, GI is usually used to provide Automatic Storage Management(ASM) devices for storing database files(as dscribed in this chapter) and to provide an automatic restart capability in the event of failures(next chapter). In OCA the GI is only treated to the restart capability.
+</p>
+<ul>
+	<li>
+		Configure Storage for Oracle Automatic Storage Management (ASM)<br>
+		In earlier releases (&lt;11.1.X) ASM was shipped as part of the db soft, but onward 11.2.X is part of GI.<br>
+		GI is a set of processes that run as part of the O.S.(services on windows, deamons on linux with root privileges). The FI processes start an ASM instance. In some ways, an ASM instance resembles the RDBMS instance with wich all DBAs are familiar but manages devices for file storage.
+		<ul>
+			<li>GI Architecture<br>
+				GI are a set of processes, all of wich are protected against failure. The core process is the Hifh Availability Services daemon, the OHASD. This is protected by the O.S. If it fails, the OS will restart it. The OHASD then starts and monitors a ser of other processes, wich in turn will start and monitor resources used by database instances. These resources are ASM and database listeners.<br>
+				Note: You can run database listeners from a database home or from a GI home. It is considered to be best practice to run them from the GI home if GI has been installed.<br>
+				GI maintains a registry of resources that run under its control. These resources may include any or all of the following: Database listeners, Virtual IP addresses, an ASM instance(one only), ASM disk groups, Database instances, Third-party products.<br>
+				The registry exist in a file: the Oracle Local Registry, or OLR. The location of the OLR is specified by a platform-specific pointer. On linux, the pointer is the file /etc/oracle/olr.loc. Resources are registered in the OLR using the crsctl utility. These registrations include details of how to start and stop the resources, the operating acounts under wich they should run, and waht to do if they fail. <br>
+				Note: GI processes and any resources can be administered with the crsctl utility. The srvctl utility can manage only Oracle resources: it cannot manage GI or third-party resources.<br>
+				The crsctl is also used  to stop and start GI processes themselves, including the OHASD, and to administer registered resources. An alternative administration tool is the srvctl utility, that can manage Oracle resources, but not any third-party products that may have been registered and placed under GI control. It is generally much easier to use syntactically (and is less prone to error) than the crsctl utility.
+			</li>
+			<li>ASM Architecture<br>
+				ASM is a logical volume manager(LVM) that can be used to configure striped and mirrored volumes for storing Oracle database files. These volumnes are know as disk groups. Disk groups are not formatted with a file system that is visible to the O.S.: they can be used only for Oracle database files, and these files can be managed only with Oracle Products and utilities. To view the architecture of the ASM at files level see the chapter about <a target="_blank" href="http://otnr.no-ip.org/notes/Oracle/index.html?page=1z0-062/Architecture" alt="Oracle Architecture">oracle Architecture</a> <br>
+				ASM is managed by the ASM instance. The ASM instance is memory components and backgrounds processes: a lightweight structure that manages the ASM environment. It tracks the extent maps that define file locations, adding or removing file extents to or from files according to demands from the RDBMS instance using the file instance using the file.<br>
+				The ASM instance has an SGA, and it accepts sessions in the same way that an RDBMS instance does, but it is never in any mode other than NOMOUNT. An ASM instance never mounts a controlfile; it has no data dictionary. Therefore, the only way to log on is by using O.S. authentication or password file authentication.<br>
+				The ASM bootstrap:
+				<ol>
+					<li>
+						The O.S. starts the GI processes.
+					</li>
+					<li>
+						GI starts the ASM instance
+					</li>
+					<li>
+						The ASM instance locates the ASM disk devices.
+					</li>
+					<li>
+						The ASM instance mounts the disk groups and registers them with GI
+					</li>
+					<li>
+						The RDBMS instance identifies that a file is on an ASM disk group.
+					</li>
+					<li>
+						The RDBMS requests the ASM instance address from GI.
+					</li>
+					<li>
+						The RDBMS instance logs on to the ASM instance and requests access to the ASM file.
+					</li>
+					<li>
+						The ASM instance returns the file's extent map.
+					</li>
+					<li>
+						The RDBMS instance opens the file.
+					</li>
+				</ol>
+				In summary, when opening an ASM file, GI facilitates the connection between the RDBMS and ASM instances, then the ASM instance facilitates the connection between the RDBMS instance and the file.<br>
+				Note: No data ever passes through an ASM. All I/O is between the RDBMS instance and the file. The ASM instance is only a control structure.<br>
+				An ASM disk group can store only database files, but it is a broad definition of database files and includes these file types: Controlfiles, Datafiles, Tempfiles, Online logfiles, Archive logfiles, Server parameter file, the spfile, Password file, RMAN backups, Data Pump dump files. These file types cannot be stored on an ASM disk group: The Oracle HOME, Trace files or the alert log, a pfile initialization file, user-managed backups.
+			</li>
+			<li>ASM disks<br>
+				The term "ASM disk" is a little misleading, because the devices are not actually disks, The possibilities are: Partitions of directly attached storage (DAS) devices, Storage area network (SAN) devices, Network-attached storage (NAS) devices.<br>
+				DAS devices are disks physically attached to the server. Typically, this means scsi disk or some variation. In earlier releases, it was possible to give the entire, raw disk to ASM to use as an ASM disk. This was rarely advisable, and is no longer possible. It is now required that the disk have a partition table.l, even if this defines only one partition covering the entire disk. The partition is then presented to ASM.<br>
+				SAN devices will usually be striped (and possibly mirrored) volumes managed by a storage array and attached to the server over a fiber optic channel. They will be presented to ASM as LUNs. There is no practical limit to the size that these volume may be. Striping the volumes with whatever RAID algorithm is considered appropiate will improve performance. Mirroring can be enabled at the SAN level or managed by ASM.<br>
+				NAS devices will typically be iSCSI volumes or NFS files. An iSCSI device is exported to the network by an iSCSI initiator. NFS files will exist as large zero-filled files on a NFS volumne exported from an NFS server and mounted by the database server. The underlaying storage for NAS devices may of course be a RAID device: the NAS layer will conceal this from ASM. The lan connection between db and server and storage server should be high speed and dedicated to this function. Multipathing is advisable to add bandwidth and resilience against network failures.<br>
+				DAS, SAN or iSCSI devices (which should not be formatted with any file system) are identified by their device drivers. NFS files are identified by theit fully qualified filename. An ASM instance is controlled by a a parameter file , in the same way as an RDBMS instance. One critical parameter is ASM_DISKSTRING. This is a comma-separated list of values (wich may include wildcard characters) that identify the ASM disk (the default value for linux are /dev/raw/* or if using ASMLib Kernel Driver ORCL:*). Atenttion that ASM can identified any disk that match with ASM_DISKSTRING and maybe not all of the disk are for Oracle.
+			</li>
+			<li>Creating ASM Disks<br>
+				To make devices usable by ASM, it is necessary that the names should be persistent across system restarts and that the drivers should be readable and writeable by the Oracle processes. On linux, there are two techniques for this: The ASMLib kernel library available for some Linux distributions and the udev facility that runs scripts written by your system administrator that identify devices and set appropiate ownership and permissions.<br>
+				If you are using NFS files as ASM disks, create them with commands such as these, wich create a 1TB file, and give access to the Oracle owner:<code> dd if=/dev/zero of=/asm/disk1 bs=1048576 count=1048576<br>chown oracle:dba /asm/disk1<br>chmod 660 /asm/disk1</code>
+				The details of creating ASM disk are beyond scope of the OCA.
+			</li>
+		</ul> 
+	</li>
+	<li>Install Oracle Grid infrastructure for a Standalone Server<br>
+		GI is installed into a dedicated Oracle Home. The release of GI must be greater than or equal to the release of any database that intends to use the GI services. GI must always be running on the same nodes as the database instance. It's possible in a clustered environment to configure Flex ASM, where only a small number of nodes (by default, three) run ASM instances. The GI include a copy of Oracle Universal Installer (OUI). Run runInstaller.sh. In the installer are three major choices: Download Software Updates, Select Installation Option (options are: Install and configure Oracle Grid infrastructure for a Cluster, Install and Configure Oracle Grid Infrastructure for a Standalone Server, Upgrade Oracle Grid Infrastucture or Oracle Automatic Storage Management, Install Oracle Grid infrastructure Software Only), Create ASM Disk Group.<br>
+		Options on Create ASM disk group: 
+		<ul>
+			<li>
+				Redundancy: could be High (3 copies on different 3 disks), normal (mirroring, then 2 copies on 2 different disks), external (ASM will not mirror at all but rely on fault tolerance provided by the storage medium).
+			</li>
+			<li>
+				The allocation unit(AU): default to 1MB. This has a knock-on effect on the file extent size. The first 20,000 extents are one AU, the next 20,000 extents are four AUs, and beyond that they are 16 AUs. AU can be set to 1,2,4,8,16,32,64. It applies to all files on the disk group and can never be changed after disk group creation.
+			</li>
+		</ul>
+		If the ASM not present disk you can click on "Change Discovery Path" button and then you will prompted for the location of the prepared ASM disks.<br>
+		It's not possible to have two instances of GI running on one machine concurrently.<br>
+		It is considered best practice to install GI under a different O.S. user than the database software. The GI administrator must be a member of the OSASM group (must be created before running OUI) 
+	</li>
+</ul>

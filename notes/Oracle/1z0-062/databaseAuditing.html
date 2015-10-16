@@ -1,0 +1,153 @@
+<h2>Managing Undo Data</h2>
+
+<ul>
+	<li>Explain DBA Responsabilities for Security and Auditing<br>
+		Audit is necessary to detect suspicious or even downright illegal 
+		activity.<br>
+		2 users require specially atention: developers and DBAs.
+		<ul>
+			<li>Reasons for audit<br>
+				Typical reasons are:
+				<ul>
+					<li>Enable accountability for actions for hold users
+						responsible for their actions.
+					</li>
+					<li>To deter (impedir) users from inappropiate activity.Knowing that they are monitored will dissuade them from doing this.
+					</li>
+					<li>Investigate suspicious activity.
+					</li>
+					<li>To notify an auditor of unauthorized activity. Maybe a user has more privileges than they need.
+					</li>
+					<li>Compliance issues: legal requirements.
+					</li>
+				</ul>
+			</li>
+			<li>Auditing Techniques<br>
+				There are several techniques available in an Oracle environment. The most powerful is the Audit Vault. This is separately installed and licensed product (not in OCP). 12c introduces a new auditing method: unified auditing (studied here).<br>
+			</li>
+			<li>Standard Database Auditing<br>
+				It's enable with the parameter: AUDIT_TRAIL (default null, meaning disabled).If the db is created with dbca it's enable with the value 'DB'. With this value ('DB') a minimum set of information auditing use of privileges considered to be potentially dangerous is configured by default.<br>
+				Standard auditing is configured with the AUDIT and NOAUDIT commands. It can track to objects, use of privileges, and execution of certain statements. Audit could be done for all users or only some, once per session or once per action in the session, whenever the attemp was made, or filtered by successful or unsuccesful attempts. The audit records are either written to a database table (SYS.AUD$) and visible through a set of views or written to the O.S. where they are stored as files external to the database. This technique is fully supported but in 12.1 Oracle recommends that unified auditing should be used instead.
+			</li>
+			<li>Fine Grained Auditing<br>
+				Fine grained auditing(FGA) can be configured to focus on precise areas of concern. Rather than auditing acces at the object level, FGA can track access to certain rows and columns. Without FGA, audit tends to produce a large number of "false positives".Example: "Access to a table exmployee data is fine in general, but if a Salary column is accessed, that should be recorded. or if a user query a table with a non official program (the user should use the x program but use sqlplus directly"<br>
+				FGA will generate an audit record when certain conditions are met. The condition can be based on a predicate and also on a column list. FGA can also execute a user-defined procedure (in effect, it's a trigger on SELECT). It's possible to define different audit polices for different statements, for example record changes to data, but not reads. The interface to FGA is a simple-to-use API, the DBMS_FGA package with four procedures:
+				<ul>
+					<li>DBMS_FGA.ADD_POLICY</li>
+					<li>DBMS_FGA.DROP_POLICY</li>
+					<li>DBMS_FGA.DISABLE_POLICY</li>
+					<li>DBMS_FGA.ENABLE_POLICY</li>
+				</ul>
+				Examples:
+				<code>
+					execute dbms_fga.add_policy(object_schema=>'scott',object_name=>'emp',policy_name=>'emp_d10_pol',audit_condition=>'deptno=10',statement_types=>'selec,insert,update,delete');<br>
+					execute dbms_fga.add_policy(object_schema=>'scott',object_name=>'emp',policy_name=>'emp_sal_pol',audit_column=>'sal');<br>
+					execute dbms_fga.add_policy(object_schema=>'scott',object_name=>'emp',policy_name='emp_sal_pol',audit_column=>'sal');<br>
+					execute dbms_FGA.add_policy(object_schema=>'scott',object_name=>'emp',policy_name=>'emp_del_pol',handler_schema=>'sec',handler_module=>'empdel',statement_types=>'delete');<br>
+				</code>
+				Some useful defaults to understand add_policy: STATEMENT_TYPE='SELECT', AUDIT_CONDITION=null (any row). The third statement generates the audit and run a procedure: sec.empdel whenever a row is deleted. The procedure must conform a defined interface: accept 3 varchar2 arguments(object schema,object name,policy name).<br>
+				The audit records are visible in the data dictionary view DBA_FGA_AUDIT_TRAIL (underlaying: SYS.FGA_LOG$=>SYSTEM tablespace).
+			</li>
+			<li>Value-Base auditing<br>
+				The declarative techniques for audit (standard auditing, FGA, and unified auditing) do not capture the data themselves. They capture the action: who, what, when and with wich privilege. This means the statement executed, not the values that were actually seen or updated. If necessary to see the values, one must resort to value-base auditing wich is implemented with triggers.<br>
+				A DML trigger designed to fire whenever any DML statement is executed can capture the rows values and write them out to a user-defined audit table.Example:<br>
+				<code>
+					create or replace trigger emp_val_audit after update or insert or delete on emp for each row<br>begin<br>
+					case<br>
+					when updating then insert into sec.emp_aud values(user, sysdate,:new.empno,:old.sal,:new.sal);<br>
+					when inserting then inserti into sec.emp_aud values(user,sysdate,:new.empno,null,:new.sal);<br>
+					when deleting then insert into se.emp_aud values(user,sysdate,:new.empno,:old.sal,null);
+					end case;
+					end;
+				</code>
+				The insert inside the trigger is considered part of the the original transaction anc will be committed or rollback wuth the calling transaction. It's possible that performance may degrade. this should not be the case with standard or FGA auditing where the capture is accomplished by routines that are internal to the instance, not by user-defined PL/SQL code.
+			</li>
+			<li>Unified Auditing<br>
+				New technique that replaces standard auditing, although the two can work concurrently. Unified auditing declares policies, wich are then enabled for particular (or all) users. Five preconfigured policies are available to be implemented:
+				<ul>
+					<li>ORA_SECURECONFIG: declares similar audits to the default standard auditing.
+					</li>
+					<li>ORA_DATABASE_PARAMETER: captures changes implemented with alter database and alter system commands.
+					</li>
+					<li>ORA_ACCOUNT_MGMT: captures changes made with ALTER,DROP, and CREATE roles and users, as well as GRANT and REVOKE.
+					</li>
+					<li>ORA_RAS_POLICY_MANAGEMENT, ORA_RAS_SESSION_MANAGEMENT: These are to do with Real Application Security, wich is beyond the scope of the OCP examinations.
+					</li>
+				</ul>
+				To know if unified auditing is enable, query the V$OPTION:<code>select value from v$option where parameter='Unified Auditing';</code><br>
+				Unified auditing is very efficient. By default, audit records are not written to the audit trail table (in the AUDSYS schema) in real time, but via buffered queue. So sessions are writing only to a memory structure in the SGA. A background process, the GEN0 generic process, takes the strain of writing the records from the queue to the table asynchronously. This delayed write does rise the possibility of losing audit records in the event of an instance crash. Although enable by default, this can be changed. To switch from delayed write mode to immediate write mode, use a procedure in the DBMS_AUDIT_MGMT package: <code>exec dbms_audit_mgmt.set_audit_trail_property(dbms_audit_mgmt.audit_trail_unified,dbms_audit_mgmt.audit_trail_write_mode,dbms_audit_mgmt.audit_trail_immediate_write);</code><br>
+				Unified audit records are written to a table in the AUDSYS schema. The table has a system-generated name that may be different in every database and is read-only to any regular DDL or DML statemnts. It can be managed only through DBMS_AUDIT_MGMT.
+			</li>
+			<li>Mandatory Auditing<br>
+				A small number of operations are always audited, wheter configured or not:
+				<ul>
+					<li>Execution of the unified auditing commands CREATE/ALTER/DROP AUDIT POLICY.
+					</li>
+					<li>Execution of the standard audit commands AUDIT/NOAUDIT
+					</li>
+					<li>Execution of the FGA package DBMS_FGA
+					</li>
+					<li>Execution of the management package DBMS_AUDIT_MGMT
+					</li>
+				</ul>
+				Furthermore, all top-level statements executed by administrative user (sessions connected as SYSDBA, SYSOPER, SYSBACKUP,SYSDG,SYSKM, or SYSASM) while the database is in nomount or mount mode are audited to the operating system audit trail. On unix/linux the records are written to files in the directory specified by the AUDIT_FILE_DEST parameter. These statements include connect attempts, startup or shutdown and any altersystem and alter database commands.
+			</li>
+		</ul>
+	</li>
+	<li>Enable Standard Database Auditing and Unified Auditing<br>
+		Standard auditing is enable by default but not configured. Unified auditing requires an appropriate dynamic library to be available wich is not the case following installation of the Oracle Home.
+		<ul>
+			<li>Enable Standard Auditing<br>
+				<code>
+				select name,value from v$parameter where name like 'audit%';<br>
+				audit all statements by scott;<br>
+				audit select,insert,update,delete on scott.emp;<br>
+				</code>
+				The (static) parameters are:
+				<ul>
+					<li>audit_sys_operations: Records all SQL executed as an administrative user to the operationg system audit trail. Default false.
+					</li>
+					<li>audit_file_dest: the location of audit records if auditing is to the O.S.:Unix default->$ORACLE_BASE/admin$ORACLE_SID/adump.
+					</li>
+					<li>audit_syslog_level: Enables writing to the syslog daemon.Default: null
+					</li>
+					<li>audit_trail: Enables or disable standard audit to the O.S. or the database in various formats.Default: null.
+					</li>
+				</ul>
+			</li>
+			<li>Enable Unified Auditing<br>
+				to enable unified auditing you must relink the Oracle executables for linux: <code>cd %ORACLE_HOME/rdbms/lib<br> make -f ins_rdbms.mk uniaud_on ioracle ORACLE=HOME=$ORACLE_HOME</code> and restart the listener<br>
+				To configure unified auditing, first grant the necessary roles to a user. These roles are AUDIT_ADMIN to administer unified auditing and AUDIT_VIEWER to view and analyze audit data. Then as an AUDIT_ADMIN user, enable the supplied policies or create your own. A policy consist of specifying one (or more) of the three categories to audit:
+				<table>
+					<thead>
+						<tr><td>Category</td><td>What to specify</td><td>What is audited</td>
+						</tr>
+					</thead>
+					<tbody>
+						<tr><td>PRIVILEGES</td><td>One or more system and/or object privileges</td><td>All events that use any of the specified privileges</td>
+						</tr>
+						<tr><td>ACTIONS</td><td>One or more SQL commands</td><td>All invocations of the command</td></tr>
+						<tr><td>ROLES</td><td>One or more roles</td><td>Use of any privileges used through a direct grant to the role</td></tr>
+					</tbody>
+				</table>
+				Example: 
+				<code>
+					create audit policy privpol privileges select any table, create trigger;<br>
+					create audit policy actpol actions drop table,alter trigger;<br>
+					create audit policy rolepol roles dba;<br>
+					create audit policy mixedpol privileges select any table, create trigger actions drop table, alter trigger roles dba;<br>
+					create audit policy emppol actions insert, update, delete on scott.emp;<br>
+				</code>
+				When the policy is create this must be activated: either globally or for individual users:
+				<code>
+					audit policy privpol;<br>
+					audit policy setpol whenever succesful;<br>
+					audit policy rolepol by scott.system;<br>
+					audit policy mixedpol whenever not successful;<br>
+					noaudit policy actpol;<br>
+					exec dbms_audit_mgmt.flush_unified_audit_trail;<br>
+				</code>
+			</li>
+		</ul>
+	</li>
+</ul>

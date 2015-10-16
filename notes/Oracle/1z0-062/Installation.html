@@ -1,8 +1,407 @@
-<h1>Index</h1>
+<h2>Preparation of the S.O (RedHat/Centos/Oracle linux)</h2>
 <ul>
-<li>----------------Previous--------------------------------</li>
-<li><a href="" onclick="goPage('1z0-062/Requirements12c')">Requirements 12c</a></li>
-<li><a href="" onclick="goPage('1z0-062/OSRH')">Preparation of the S.O (RedHat/Centos/Oracle linux)</a></li>
-<li>----------------Installation----------------</li>
-<li><a href="" onclick="goPage('1z0-062/createDB')">Create a DB</a></li>
+	
+	<li>Concepts and Terminology
+		<p> Oracle usually use 2 users, one per grid Infrastructure and another
+			for the DB. For education or simplify you can use only one that 
+			traditionally is called oracle:oinstall (second group dba).
+		</p>
+		<p>Oracle Home is the location of an Oracle product installation (a set of
+			files and directories) located in a local filesystem or in a clustered fs.
+			(not in a raw device or ASM).<br>
+			The recomended directory structure for oracle home is determinated by the OFA
+			(Oracle Flexible Architecture).<br>
+			Every Oracle product should have his own oracle home.<br>
+		</p>
+		<p>
+			Up in the directory structure of the oracle home are the oracle base. The 
+			oracle base contain one or more oracle homes.<br>
+		</p>
+	</li>
 </ul>
+<ul>
+	<li>
+		<p>The recommended name convention are:<br>
+			Oracle base: /pm/s/u<br>
+			Oracle home:/pm/s/u/product/v/type_[n]<br>
+			The values for the letters are:
+		</p>
+		<table class="table table-striped table-hover table-condensed">
+			<thead><tr><td>Variable</td><td>Description</td><td>Typical Values</td></tr></thead>
+			<tbody>
+				<tr>
+					<td>pm</td>
+					<td>Mount point: p is a string (whatever) and m is a fixed-length key (normally two digits)</td>
+					<td>Linux:/u01 or /disk01</td>
+				</tr>
+				<tr>
+					<td>s</td>
+					<td>standard directory name</td>
+					<td>app</td>
+				</tr>
+				<tr>
+					<td>u</td>
+					<td>OS installer account (owner of the directory)</td>
+					<td>oracle</td>
+				</tr>
+				<tr>
+					<td>v</td>
+					<td>Software Version</td>
+					<td>12.1.0</td>
+				</tr>
+				<tr>
+					<td>type</td>
+					<td>Type of product</td>
+					<td>dbhome</td>
+				</tr>
+				<tr>
+					<td>[n]</td>
+					<td>Installer counter</td>
+					<td>1</td>
+				</tr>
+				<tr>
+					<td>q</td>
+					<td>Indication of the contents</td>
+					<td>oradata</td>
+				</tr>
+				<tr>
+					<td>d</td>
+					<td>Database name</td>
+					<td>orcl</td>
+				</tr>
+			</tbody>
+
+		</table>
+		
+	</li>
+	<li>
+		<p>
+			For an administrative data we have: /h/admin/d/a.<br>
+			Where a:
+			<table class="table table-striped table-hover table-condensed">
+				<thead>
+					<tr>
+						<td>Subdirectory</td>
+						<td>Description</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>arch</td>
+						<td>Archived redo log files</td>
+					</tr>
+					<tr>
+						<td>adump</td>
+						<td>Audit files(Set the AUDIT_FILE_DEST initialization parameter to specify the adump directory)</td>
+					</tr>
+					<tr>
+						<td>create</td>
+						<td>Contains database creation log files and scripts used to create the database</td>
+					</tr>
+					<tr>
+						<td>dpdump</td>
+						<td>Default directory for data pump operations. Also contains the data pump file dp.log</td>
+					</tr>
+					<tr>
+						<td>exp</td>
+						<td>Database export files</td>
+					</tr>
+					<tr>
+						<td>logbook</td>
+						<td>Files recording the status and history of the database</td>
+					</tr>
+					<tr>
+						<td>pfile</td>
+						<td>Instance parameter files</td>
+					</tr>
+					<tr>
+						<td>scripts</td>
+						<td>Ad hoc SQL scripts</td>
+					</tr>
+				</table>
+			</p>
+		</li>    
+
+		<li>For normal database, the data are in : /pm/s/u/q/d
+		</li>
+		<li>Naming Mount Points for Very Large Databases (VLDBs):/pm/q/d
+		</li>
+		<li>For the automatic diagnostic repository (ADR): /h/diag/rdbms/d/i. Where: h=oracle_base,diag fix string (diagnostic),rdbms fix string, d= database, i= instance
+		</li>
+		<li>To name the files
+			<table class="table table-striped table-hover table-condensed">
+				<thead>
+					<tr>
+						<td>File Type</td>
+						<td>File Name Convention</td>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>Control Files</td>
+						<td>/h/q/d/control.ctl</td>
+					</tr>
+					<tr>
+						<td>Redo log files</td>
+						<td>/h/q/d/redo[n].log</td>
+					</tr>
+					<tr>
+						<td>Data files</td>
+						<td>/h/q/d/tn.dbf (t=tablespace_name;n=two digit string)</td>
+					</tr>
+				</tbody>
+			</table>
+		</li>
+
+		<li>OUI: Oracle universal installer
+			<p>The OUI prerequisites (for running it) are coded in the file 
+				oraparam.ini
+			</p>
+			<p>The file cvu_prereq.xml indicate the prereq for the differents 
+				products that OUI install.
+			</p>
+			<p>OUI creates a inventory (a set of xml files) that record exactly 
+				what Oracle  products have been installed with details like: whereis 
+				the home of every product or what paches are applied.
+			</p>
+			<p>To determinate whereis the Oracle inventory read the file: 
+				/etc/oraInst.loc in linux. On Solaris or AIX the file that 
+				indicate whereis the inventory are in: /var/opt/oracle 
+			</p>
+			<p>OUI is installed in the same oracle home that the product that 
+				install the OUI. If the OUI that you have in the computer is newer
+				than the OUI that is shipped in the files (or cd/dvd/whatever) that
+				have the product, you should use the computer versions (the newer).
+			</p>
+		</li>
+		<li>Installing Oracle (Operating system checklist)
+			<p>For installing Oracle you should to go at the directory where is 
+				decompressed the installation files and execute ./runInstaller
+			</p>
+			<p>The parameters more used are: -ignoreSysPreReq to avoid to stop
+				for the requisites of the product that are not accomplished,not are
+				obligatory, only advisable for support,etc., in test it's normally use.
+			</p>
+			<p>For installation without the graphical environment use a response 
+				file. To generete it copy it from response/ where you decompressed the 
+				installation files. Another form of obtain the response files is use the 
+				graphical environment of the OUI and in the final step you could save 
+				your response in a responsefile, after it cancel the installation (if you 
+				want)For use this file: ./runInstaller -responseFile responsefile.rsp. 
+				If you add -silent  the operations are did it in background.
+			</p>
+			<p>In linux you should create the oracle user with groups oinstall
+				and dba. This user execute the OUI.
+			</p>
+			<p>The minimum number of groups in the O.S. that you must 
+				precreated is one: the OSDBA group (normally called dba), but the 
+				main group of the oracle user should be oinstall.
+			</p>
+			<p>package to install in Centos 6 (refer to the official oracle page):
+				yum install binutils compat-libcap1  compat-libstdc++  compat-libstdc++ 
+				gcc gcc-c++ glibc glibc-devel  kshlibgcc libgcc libstdc++ libstdc++ 
+				libstdc++-devel libstdc++-devel libaio libaio libaio-devel libaio-devel 
+				libXext libXtst libX11 libXau libxcb libXi make sysstat
+			</p>
+			<p>Check:
+				<ol>
+					<li>Confirm : <code>$ more /etc/fstab |grep "tmpfs" </code> -----> tmpfs         /dev/shm       tmpfs     defaults     0 0</li>
+					<li>Confirming Host Name Resolution: <code>ping hostname</code></li>
+					<li>Disabling Transparent HugePages: <code>
+						cat /sys/kernel/mm/redhat_transparent_hugepage/enabled</code>  
+						----> If you see whatever [always] is enable , then disable: vi /etc/grub.conf
+						add "transparent_hugepage=never" in the boot options of the kernel.</li>
+						<li>Create the directory tree (OFA):  Oracle Base-> 
+							<code>mkdir -p /uo1/app/oracle </code>
+							Oracle Home-> <code>mkdir -p /uo1/app/oracle/product/12.1.02</code>
+						</li>
+						<li>If the ORACLE_BASE variable is not declared the orainventory 
+							it's created in the home of the user (normally oracle user). If not
+							goes to $ORACLE_BASE/../oraInventory 
+						</li>
+						<li>Check if exist a previous installation with the corresponding 
+							oracle base: cat /etc/oratab .
+						</li>
+						<li>The oracle home could be in a normal disk, a certified NAS via NFS or cluster filesystem.
+						</li>
+						<li>Oracle home: <code>mkdir -p /mount_point/app/oracle_sw_owner; chown -R 
+							oracle:oinstall /mount_point/app/oracle_sw_owner; chmod -R 775
+							/mount_point/app/oracle_sw_owner</code> <br> Example:
+							<code>mkdir -p /u01/app/oracle; chown -R oracle:oinstall 
+								/u01/app/oracle; chmod -R 775 /u01/app/oracle
+							</code>
+						</li>
+						<li>Change the scheduler for ASM (if use it): 
+							<code># echo deadline > /sys/block/${ASM_DISK}/queue/scheduler</code>
+						</li>
+						<li> If you don't want to use the default directory propposed by 
+							OUI for the database directory and the recovery file directory 
+							(the propossed are under oracle_base)
+							Database directory: <code>mkdir /mount_point/oradata; chown 
+							oracle:oinstall /mount_point/oradata; chmod 755 
+							/mount_point/oradata;</code>
+							Recovery file directory: <code>mkdir 
+							/mount_point/fast_recovery_area; chown oracle:oinstall 
+							/mount_point/fast_recovery_area; chmod 755 
+							/mount_point/fast_recovery_area
+						</code>
+					</li>
+				</ol>
+			</li>
+			<li>Installing Oracle (Oracle User Environment Configuration Checklist)
+				<ul>
+					<li><p>Check if exist previous users for install oracle exist: 
+						<code>less /etc/oraInst.loc 
+						</code><br>
+						Inside the file find inst_group= (that indicate the group 
+						of) installation) and then check in /etc/group for the user
+						with this group.
+					</p>
+					<p>If not exist previously create it:<code>
+						# /usr/sbin/groupadd -g 54321 oinstall
+					</code>
+				</p>
+			</li>
+			<li>Create the groups with Job Role Separation:
+				<table class="table table-striped table-hover table-condensed">
+					<thead>
+						<tr><td>Oracle Name</td>
+							<td>O.S. name</td>
+							<td>Function</td>
+							<td>how to create</td>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>OSDBA</td>
+							<td>typically dba</td>
+							<td>O.S. users with administrative privileges on DB (SYSDBA 
+								privileges on db)
+							</td>
+							<td>
+								<code># /usr/sbin/groupadd -g 54322 dba</code>
+							</td>
+						</tr>
+						<tr>
+							<td>OSOPER</td>
+							<td>typically oper</td>
+							<td>Limited set of db administrative privileges for starting
+								and shuting down the db.</td>
+								<td>
+									<code># /usr/sbin/groupadd -g 54323 oper</code></td>
+								</tr>
+								<tr>
+									<td>--Extended database groups for Job Role Separation (>12g)--</td>
+									<td>--Extended database groups for Job Role Separation (>12g)--</td>
+									<td>--Extended database groups for Job Role Separation (>12g)--</td>
+									<td>--Extended database groups for Job Role Separation (>12g)--</td>
+								</tr>
+								<tr>
+									<td>OSBACKUPDBA</td>
+									<td>typically backupdba</td>
+									<td>Group with limited set of database backup and recovery 
+										related administrative privileges (SYSBACKUP privilege)
+									</td>
+									<td>
+										<code># /usr/sbin/groupadd -g 54324 backupdba</code>
+									</td>
+								</tr>
+								<tr>
+									<td>OSDGDBA</td>
+									<td>typically dgdba</td>
+									<td>Group of O.S with limited set of privileges to administer 
+										and monitoring Oracle Data Guard (SYSDG db privilege).
+									</td>
+									<td>
+										<code># /usr/sbin/groupadd -g 54325 dgdba</code>
+									</td>
+								</tr>
+								<tr>
+									<td>OSKMDBA</td>
+									<td>typically kmdba</td>
+									<td>Group of O.S. with limited set of privileges for 
+										encryption key management such as oracle wallet
+										manager (SYSKM db privilege).
+									</td>
+									<td>
+										<code># /usr/sbin/groupadd -g 54326 kmdba</code>
+									</td>
+								</tr>
+								<tr>
+									<td>--FOR ASM--</td>
+									<td>--FOR ASM--</td>
+									<td>--FOR ASM--</td>
+									<td>--FOR ASM--</td>
+								</tr>
+								<tr>
+									<td>OSDBA for ASM</td>
+									<td>typically asmdba</td>
+									<td>dba for asm. typically grid user must be member of asmdba.</td>
+									<td>
+										<code># /usr/sbin/groupadd -g 54327 asmdba</code>
+									</td>
+								</tr>
+								<tr>
+									<td>OSASM</td>
+									<td>typically asmadmin</td>
+									<td></td>
+									<td>
+										<code># /usr/sbin/groupadd -g 54329 asmadmin</code>
+									</td>
+								</tr>
+								<tr>
+									<td>OSOPER</td>
+									<td>typically asmoper</td>
+									<td></td>
+									<td>
+										<code># /usr/sbin/groupadd -g 54328 asmoper</code>
+									</td>
+								</tr>
+							</tbody>	
+						</table>
+					</li>
+					<li>Create the users:
+						<code>
+							# /usr/sbin/useradd -u 54321 -g oinstall -G dba,asmdba,backupdba,dgdba,kmdba oracle<br>
+							# passwd oracle
+						</code>
+					</li>
+					<li>Checking resource limits for Oracle Software Installation users.
+						<table class="table table-striped table-hover table-condensed">
+							<thead>
+								<tr>
+									<td>Resource Shell Limit</td>
+									<td>Resource</td>
+									<td>Soft Limit</td>
+									<td>Hard Limit</td>
+									<td>How to check it</td>
+								</thead>
+								<tbody>
+									<tr>
+										<td>Open file descriptors</td><td>nofile</td><td>at least 1024</td><td>at least 65536</td>
+										<td>ulimit -Sn;ulimit -Hn</td>
+									</tr>
+									<tr>
+										<td>Number of processes available to a single user</td><td>nproc</td><td>at least 2047</td><td>at least 16384</td>
+									</tr>
+									<tr>
+										<td>Size of the stack segment of the process</td><td>stack</td><td>at least 10240 KB</td><td>at least 10240 KB, and at most 32768 KB</td>
+										<td>ulimit -Su;ulimit -Hu</td>
+									</tr>
+									<tr><td>Maximum Locked Memory Limit</td><td>memlock</td>
+										<td>at least 90 percent of the current RAM when HugePages memory is enabled and at least 3145728 KB (3 GB) when HugePages memory is disabled</td>
+										<td>at least 90 percent of the current RAM when HugePages memory is enabled and at least 3145728 KB (3 GB) when HugePages memory is disabled</td>
+										<td>ulimit -Ss;ulimit -Hs</td>
+									</tr>
+								</tbody>
+							</table>
+							<p>If some value are not in the range, modify it in /etc/security/limits.conf</p>
+						</li>
+						<li>Configuring the environment of the user
+							<p><code>vi ~/.bash_profile</code> and add umask 022</p>
+						</li>
+					</ul>
+
+				</li>
+			</ul>
+

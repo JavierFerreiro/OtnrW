@@ -1,0 +1,174 @@
+<h2>Backup and Recovery Operations</h2>
+<p>
+	The final OCP exam has many objectives on these topics. It's possible that general knowledge of techniques could be tested in the first exam. Oracle recommended tool for backup and recovery is the Recovery Manager (RMAN), wich is invoked from an executable program that act as a client to the database: it logs on and establishes sessions as does any other user process. RMAN backups are often referred to as server-managed backups, because the work is done by server processes. It is possible to perform backup and recovery operations without using RMAN: these are usually referred to as user-managed backups.
+</p>
+<ul>
+	<li>Create Consistent Database Backups<br>
+		A consistent backup is a backup taken while the database is closed. You may hear offline backups referred to as closed or cold backups. For a datafile to be consistent, every block in the datafile must have been chekcpointed and the file closed by the O.S. In normal running, the datafiles are inconsistent: there will be a number of blocks that have been copied into the database buffer cache, updated, and not yet written back to disk. The datafile itself, on disk, is therefore not consistent with the real-time state of the database. To make a datafile consistent you must flush all the buffers to block disk and this only happens whe the db is shutdown cleanly (imediate, transactional or normal shutdown). An inconsistent backup is a backup taken while the database is in use. A datafile that is backed up online will not be synchronized with any particular SCN, nor is it synchronized with the other datafiles or the controlfile.<br>
+		A server-managed consistent backup can be accomplished only when the database is in mount mode. This is because the datafiles must be closed, or they would not be consistent. RMAN needs to read the controlfile in order to find the datafiles, and will also write to the controlfile details of the backup operation. To back up the mounted controlfile, RMAN avoids the problem of inconsistency by taking a read-consistent snapshot of the controlfile and backing that up.<br>
+		An RMAN backup is launched from the RMAN executable. The RMAN executable is a tool supplied by Oracle and installed nto the Oracle Home. RMAN logs on the database and then launches additional server processes to copy files. In general, there are three techniques for using RMAN: an interactive interface, for performing ad hoc task; a script interface, for running jobs through the O.S. scheduler; and an Enterprise Manager interface, for generating scripts and defining jobs to be scheduled by Enterprise Manager. This is a RMAN script for performing an offline full backup:<br>
+		<code>
+			run {<br>
+			shutdown immediate;<br>
+			startup nomount;<br>
+			allocate channel d1 type disk;<br>
+			backup as backupset database<br>
+			format '/u02/backup/orcl12c/offline_full_whole.bset';<br>
+			alter database open;<br>
+		}
+		</code><br>
+		The first two command perform a clean shutdown and bring the database back up in mount mode. Then the script launches a server process to perform the backup that is known as a channel. In this case, the chanel is a disk channel because the backup is being directed to disk; the alternative channel type is SBT_TAPE, wich is used for backups directed to a tape device. The next command launches a backup operation of type BACKUPSET. A backup set is a RMAN propietary structure that can combine many unput files into one output file. Backup sets have other advantages, such as compression (not enabled in this example) and the ability to reduce the size of the backup by ignoring blocks in the input datafiles that have never been used. The keyword DATANASE instruct RMAN to back up the entire set of datafiles and the controlfile. RMAN will never back up online redo logfile members or tempfiles. The FORMAT keyword names the file that will contain the backup set. Finally, the script opens the database.<br>
+		Note: RMAN will never backup the online redo logfiles, or the tempfiles. It will back up datafiles, archivelog files, the controlfile and the spfile<br>
+		An operating system command that could be scheduled to run script is: <code> rman target sys/oracle@orcl12c @offline_full_whole.rman</code><br>
+		This command launches the RMAN executable, with the SYS login (necessary because of the SHUTDOWN and STARTUP commands) and then the name of the script, wich must be preceded by an "@" symbol.". Note that the connect string uses a net alias, so the connection will be made via a database listener.<br>
+		Rman can generate three types of backup:
+		<ul>
+			<li>
+				A backup set is a propietary format that can contain several files and will not include never-used blocks.
+			</li>
+			<li>
+				A compressed backup set has the same content as a backup set, but RMAN will apply a compression algorithm as it writes out the backup set.
+			</li>
+			<li>
+				An image copy is a backup file that is identical to the input file. An image copy is immediately interchangeable with its source, whereas to extract a file from a backup set requires an RMAN restore operation.
+			</li>
+		</ul>
+	</li>
+	<li>Backup Up Your Database Without Shutting It Down<br>
+		There is no reason to shut down the database for backups. An Oracle database can remain open indefinitely and be perfectly adequately protected by open backups- provided that it is running in archivelog mode. It is not possible to take an open backup in noarchivelog mode, because the change vectors stored in the archive logfile generated while the inconsistent backup was being made are required to make the datafiles consistent when the are restored.<br>
+		Note: Hot backup is impossible in noarchivelog mode. RMAN will not permit it.<br>
+		An absolutely reliable open backup can be made with RMAN with a four-word command: BACKUP DATABASE PLUS ARCHIVELOG. This command relies on configured defaults for the destination of the backup (disk or tape lirary), the names of the backup files generated, the number of server channels to launch to carry out the backup, and the type of backup (image copies of the files, backup sets, or compressed backup sets).<br>
+		This RMAN script performs a full whole online backup of the database and the archive logfiles:<br>
+		<code>
+			run{<br>
+			allocate channel t1 type sbt_tape;<br>
+			allocate channel t2 type sbt_tape;<br>
+			backup as compressed backupset filesperset 4 database;<br>
+			backup as compressed backupset archivelog all delete all input;<br>
+		}
+		</code><br>
+		The script launches twho channels that will write to the tape library. The device driver for the tape library (supplied by the hardware vendor) must have been installed. The use of multiple channels (possible related to the number of tape drives in the library) will parallelize the backup operation, wich should  make it run faster. The first backup command backs up the complete database, but rather than puting every file into one huge (even though compressed) backup set, it instructs RMAN to divide the database into multiple backup sets of four files each; this can make restore operations faster than if all the files are interleaved in one backup set. The second backup command will back up all the archive logfiles, removing them from disk as it does so.<br>
+		Note: When creating backup sets, or compressed backup sets, RMAN will never back up blocks that have never been used. This results in considerable space savings.
+	</li>
+	<li>Create Incremental Backups<br>
+		Incremental backups can be made with server-managed backups, but not with user-managed backups. As far as an O.S. utility is concerned, the granularity of the backup is te datafile, not blocks of datafile changed. Incremental backups must always be as backup sets. It is logically impossible to make an image copy incremental backup. If it were, it wouldn't be incremental.<br>
+		An incremental backup relies on a starting point that contains all blocks: this is know as the incremental level 0 backup. Then an incremental level 1 backup will extract all blocks that have changed since the last level 1 backup, or the last level 0 backup if there have been no intervening level 1 backups. A cumulative backup will extract all blocks that have changed since the last level 0 backup, irrespective of wheter there have benn any level 1 backups in the meantime. An RMAN command to make a level 0 backup is: <code>backup as backupset incremental level 0 database;</code> This command relies on configured defaults for launching channels, for the number of files to place in each backup set, and to where the backup set will be written. The backup set will contain all blocks that have ever been used. Many sites will make an incremental level 0 backup every weekend. Then a level 1 backup can be made with this command: <code>backup as backupset incremental level 1 database;</code>.<br>
+		Note: If there is no level 0 backup when tou attempt a level 1 backup, RMAN will realize this and rather than returning an error will in fact perform a level 0 backup.<br>
+	</li>
+	<li>Automate Database Backups<br>
+		Enterprise Manager can schedule backups. The mechanism is not related to the O.S., nor job scheduling system within the database. It is purely an Enterprise Manager facility and is available only if Cloud Control has been deployed. You cannot automate backups with Database Express.<br>
+		In a Cloud Control-manageg environment, every machine runs an Enterprise Manager agent. Cloud Control launches jobs according to a specified schedule by contracting the agent and passing it apporpriate instructions. Backup jobs are in fact RMAN scripts. The backups can be of any type but will always be server managed: using RMAN.<br>
+		The "Oracle Suggested Backup" (one click implementation) consists of making a once-only complete copy (an image copy of all files, rather than a backup set), folowed by daily incremental backups. The incremental backups are applied to the copy a day after their creation, this rolling it forward such that the copy is always 24 and 48 behinf the live database. This allows for very fast recovery in the event of a problem: a damaged datafile can be restored from the copy and broght up to date by applying any necessary archive logfiles. 
+	</li>
+	<li>Manage Backups<br>
+		RMAN uses a repository to store details of all the backup operations it has carried out. This repository is the key to automated restore and recovery, and the source of reports on backups. By default, server-managed backups will go to the fast recovery area. RMAN will attempt to manage space in the fast recovery, but DBA must monitor it as well.
+		<ul>
+			<li>The RMAN Repository<br>
+				During a backup operation, RMAN will write to its repository all detail of the backup: what was backed up, where the backup files are, the time and system change number of certain events and so on.<br>
+				For a datafile restore operation, RMAN must determine the most recent backup (full or level 0) from wich the file should be extracted. Then to recover it, RMAN must determine wich incremental backups (if any) are available and then extract and apply them. Then it must determine what archive logfiles are needed and (if they are no longer available on disk) restore them too from backups, and apply them. Finally, it will apply change vectors from the online logfiles to bring the restored file right up to date.<br>
+				Note: The RMAN repository is always stored in the target database's controlfile- though it is possible to have a copy of it in a separate database, known as the Recovery Manager Catalog.<br>
+				The repositry is the source of the information RMAN needs. Whenever it does anything, it will consult the repository. The repository is stored in the database's controlfile. What to do if the controlfile itself needs to be restored. There are techniques to cover this situation (delat with in the second OCP examination) by creating a separate database known as the Recovery Manager Catalog, and by creationg automatic backups of the controlfile.
+			</li>
+			<li>Reports on Backups<br>
+				RMAN has two commands that tell you the state of your backups: LIST will tell you what backups there are; REPORT will tell you what backups are needed. Examples:<br>
+				<code>
+					list backup of database;<br>
+					list backup of archivelog all;<br>
+					report need backup;<br>
+					report obsolete;
+				</code><br>
+				The first command list all the backups that have been made and are still recorded in the repository. The second command lists all backups of archived redo logfiles. The third command lists everything that needs to be backed up according to the Recovery Manager's configured retention policy (such as three backups of every file). The final command lists all backups that are no longer needed according to the Recovery Manager's configured retention policy.
+			</li>
+			<li>Administering Backups<br>
+				Using server-managed backups, management should be largely automatic. In some circumstances it's necessary manual intervention. If backup files are removed or damaged or relocated, then RMAN must be informed of what has happened. Four critical commands:
+				<ul>
+					<li> 
+						Crosscheck: A crosscheck forces RMAN to compare its repository with the real world. It will check that all the backups it has made do still exist, on disk or tape. Any that it finds to be missing are flagged as EXPIRED.
+					</li>
+					<li>
+						Delete expired: This will remove all references from the repository to expired backups. If the backups have merely been moved (offsite, perhaps), an alternative is to mark them as UNAVAILABLE.
+					</li>
+					<li>
+						Delete Obsolete: This will force RMAN to apply its retention policy. It will delete all backups that it considers to be no longer necessary from disk or tape, and remove the references to them from its repository.
+					</li>
+					<li>
+						Catalog: This command lets you inform RMAN about relocated backups, so that RMAN can include them in its repository in their current location.
+					</li>
+				</ul>
+			</li>
+		</ul>
+	</li>
+	<li>Determine the Need for Performing Recovery<br>
+		The terms restore and recover have precise meanings in the Oracle environment. To restore a file is to extract it from a backup and return it to the place from wich it came. If a datafile is damaged or missing, a restore operation will replace it with a copy extracted from a backup, but the restored file will be out of date compared to the rest of the database. To recover the file, extract the relevant change vectors from the redo log stream and apply them to bring the file forward in time until it is synchronized with the rest of the database.<br>
+		To open a database, the following conditions must be met:all copies of the controlfile must be available, each online logfile group must have at least one available member, all online datafiles must be present.<br>
+		The controlfile and the online logfile members will usually be protected by multiplexing, so if a controlfile is damaged, wit a copy of a surviving controlfile could replace it. This must be done while the database instance is shut down, or possibly started in nomount mode. Loss off a multiplexed logfile member is not critical, but it should be replaced without unnecessary delay in order to reestablish the desired level of safety. Never forget that losing all members of a logfile group may result in loss of data. A database can be opened with a missing datafile- If the file is taken offline. This can be done when the database is in mount mode, and then the file can be restored and recovered while the database is open.<br>
+		The technique for determining the nned for restore and recovery will depend on the nature of the problem:
+		<ul>
+			<li>
+				A damaged controlfile means that the instance gets stuck in nomount mode. Inspect the alert log to determine wich copy of the controlfile is damaged.
+			</li>
+			<li>
+				A damaged datafile will mean that the database mounts, but cannot open. Query the V$DATAFILE view to determine wich file or files are in trouble.
+			</li>
+			<li>
+				A damaged online redo logfile member will allow the database to open (assuming the file is multiplexed) and the problem will be reported in the V$LOGFILE view.
+			</li>
+		</ul>
+	</li>
+	<li>Use Recovery Manager(RMAN) and the Data Recovery Advisor to Perform Recovery of the Controlfile, Redo Logfile, and Datafile.<br>
+		The Data Recovery Advisor (DRA) is a facility for diagnosing and repairing problems with a database. There are two interfaces: the RMAN executable and Enterprise Manager. The DRA is capable of generating scripts to repair damage to datafile and (in sime circumstances) the controlfile: it does not advise on problems with the spfile or with the online redo logfiles. It is dependent on the Automatic Diagnostic Repository (ADR) and the Health Monitor.
+		<ul>
+			<li>The Health Monitor and the ADR<br>
+				The Health Monitor is a set of checks that run automatically when certain errors conditions arise, or manually in response to the DBA's instructions. The results of the checks are not stored in the database, but in the file system. This is because the nature of some errors is such that the database is not available, then is essential to have an external repository for the Health Monitor results. This repository is the ADR, wich is located in the directory specified by the DIAGNOSTIC_DEST instance parameter. Different Health Monitor checks can run only at various stages:
+				<ul>
+					<li>
+						In nomount mode, only the "DB Structure Integrity" check can run, and it can only check the integrity of the controlfile.
+					</li>
+					<li>
+						In mount mode, the "DB Structure Integrity" check will check the integrity of the controlfile, and of the online redo logfile and the datafiles headers. The "Redo Integrity Check" can also run, wich will check the online and archive logfiles for accessibility and corruption.
+					</li>
+					<li>
+						In open mode, it is possible to run checks that will scan every data block for corruption, and check the integrity of the data dictionary and the undo segments.
+					</li>
+				</ul>
+				The DRA can do nothing unless the instance is in nomount mode or higher. It follows that it cannot assist if there is a problem with the initialization file. In nomount mode, it can diagnose problems with the controlfile and generate scripts to restore it, either by using an existing valid copy or (if none is available) by extracting a copy from a backup set- provided it can find one. Once the database can reach mount mode, the DRA can diagnose problems with missing or damaged datafiles and missing online logfile groups, and generate repair scripts.
+			</li>
+			<li>Using the DRA<br>
+				The Data Recovery Advisor makes use of information gathered by the Health Monitor to find problems, and then it constructs RMAN scripts to repair them. As with any RMAN-based utility, the instance must be started. To start an instance in nomount mode, all that is required is a parameter file. RMAN is in fact capable of starting an instance without a parameter file, using the ORACLE_SID environment variable as a default for the one parameter for wich theres is no default value: the DB_NAME parameter. This ability may mean that is possible to bootstrap a restore and recovery operation from nothing. The flow for using th DRA is as follows:
+				<ul>
+					<li>
+						Assess data failures: the Health monitor, runnig reactively or on demand, will write error details to the ADR.
+					</li>
+					<li>
+						List failures: The DRA will list all failures, classified according to severity.
+					</li>
+					<li>
+						Advise on repair: The DRA will generate RMAN scripts to repair the damage
+					</li>
+					<li>Execute repair: Run the scripts.
+					</li>
+				</ul>
+				Example (the instance started and mounted the controlfile, but failed to open the database):
+				<code>
+					[oracle@supermachine]$ rman target /<br>
+					RMAN&gt; list failure;
+				</code><br>
+				The LIST FAILURE command identifies the problems(three).<br>
+				<code>
+					RMAN&gt;advise failure;
+				</code><br>
+				The content of the script to repair generated is:<br>
+				<code>
+					# clear rerdo log group<br>
+					sql "begin 
+					sys.dbms_ir.execsqlscript(filename=>''/u01/app/oracle/diag/rdbms/orclz/orclz/hm/reco_2270m'');end;";<br>
+					#restore and recover datafile<br>
+					restore (datafile 6);<br>
+					recover datafile 6;<br>
+					sql 'alter database datafile 6 online';
+				</code><br>
+				Executing the REPAIR FAILURE command will cause RMAN to run the script, wich will fix the problems. Note that th DRA does not generate the CLEAR LOGFILE command that one would use within SQL*Plus, but rather uses a PL/SQL procedure that has the same effect. If the damage is to a contro
+			</li>
+		</ul>
+	</li>
+</ul>

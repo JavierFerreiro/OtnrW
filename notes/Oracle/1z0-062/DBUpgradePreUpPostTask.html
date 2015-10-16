@@ -1,0 +1,65 @@
+<h2>Database Upgrade: Preparation, Upgrading and Post-Upgrade Task</h2>
+
+<ul>
+	<li>Describe Upgrade Requirements When Certain Features or Options Are used
+		In Oracle Database<br>
+		<p>An upgrade involves running scripts against the data dictionary that will upgrade various database features and options. Depending on what options have been installed and configured, some preparatory work may be needed.
+		<ul>
+			<li>Oracle Label Security and Oracle Data Vault<br>
+				The options are beyond the scope of the OCP curriculum, but their impact on upgrade may be tested. In summary Oracle Label Security (OLS) is a technique for filtering access by users to rows. This is in addition to the usual mechanism of privileges. Two users may have the same SELECT or DML privileges on a table, but even though they run identical SQL statements, they will see a diferent subset of the table. The filtering is based on session attributes over wich the users have no control, and they will not be aware that the filtering has occurred.<br>
+				Oracle Data Vault adds an additional layer to Oracle's privilege and role model. Users can be placed in groups, and policies can be designed that control group's access to user objects even though they may have the requisite privilege. These policies apply to all users, including those with the SYSDBA privilege. This is the only way to limit access to data by otherwise all-powerful database administrators. To determine if either OLS or Data Vault has been installed in the database, run this query: <code>select * from V$option where parameter in ('Oracle Database Vault','Oracle Label Security');</code><br>
+				If either option is installed, then it is possible that the SYS.AUD$ table will need to be relocated. A script is provided in the new 12.x Oracle Home to accomplish this: <code>ORACLE_HOME/rdbms/admin/olspreupgrade.sql</code>. Copy the script from the newly installed 12.x Oracle Home to the Oracle Home currently in use, study the instructions in the script, and then run it while connected AS SYSDBA.
+			</li>
+			<li>Oracle Warehouse Builder<br>
+				Oracle Warehouse Builder (OWB) is a graphical tool for designing, building, managing and maintaining data integretaion processes in business intelligence systems. It is beyond the scope of the OCP. OWB is not shipped with 12c database.
+			</li>
+		</ul>
+	</li>
+	<li>Use the Pre-Upgrade Information Tool Before Performing an Upgrade<br>
+		Following the installation of the new 12c database home, you will have access to the Pre-Upgrade Information Tool. This is a script, preupgrd.sql, installed into the ORACLE_HOME/rdbms/admin directory. Run this script against the database to be upgraded. It will generate a report detailing any issues as well as a "fix-up" script that will fix some issuses; other isues will have to be addressed manually. The script produces files in a directory: cfgtoollogs/&lt;db_name&gt;/preupgrade below the Oracle Base directory. Preupgrade.log details all the checks that were run with advice on items that should be addressed, preupgrade_fixups.sql contains commands that should be run in the database before commencing the upgrade to fix any problems, postupgrade_fixups.sql contains commands that should be run in the database after the upgrade has completed.
+	</li>
+	<li>Prepare the New Oracle Home Prior to Performing an Upgrade<br>
+		The new Oracle Home must be installed, using the OUI.
+	</li>
+	<li>Upgrade the Database to Oracle Database 12c by using the Database Upgrade assistant (DBUA)<br>
+		DBUA is a guided dialog box that automates the process of configuring an existing database to run with the new release of the software. It can also be run non-interactively, by a single statement supplied with appropriate command-line arguments that answer all the questions.<br>
+		Fro an interactive upgrading set the ORACLE_BASE,ORACLE_HOME and PATH variables appropriatly. The launch the DBUA.<br>
+		Check the steps of the book or try to run the DBUA.
+	</li>
+	<li>Perform a Manual Upgrade to Oracle Database 12c by using Scripts and Tools<br>
+		Steps:
+		<ol>
+			<li>
+				Connected to the old Oracle Home and with the database open run Pre-Upgrade Information Tool and act appropriate.
+			</li>
+			<li>Back up the source database</li>
+			<li>
+				Prepare the new ORACLE_HOME: copy the password file and the instance parameter file into the new ORACLE_HOME. If any parameters need to be adjusted make the adjustments first (scope=file).
+			</li>
+			<li>
+				Shut down the source database.
+			</li>
+			<li>
+				Set your environment to connect to the new Oracle Home, and open the database with sql*plus using the command <code>STARTUP UPGRADE</code>. The UPGRADE mode disables logons (except SYSDBA privilege), disables system triggers, ad most importantly permit connections to a database that has a data dictionary in an indeterminate state: neither one release nor another.
+			</li>
+			<li>
+				Execute the parallel upgrade script, wich is provided in the ORACLE_HOME/rdbms/admin directory. This is a Perl script that invokes parallelism to reduce the necessary downtime: <code>cd $ORACLE_HOME/rdbms/admin; $ORACLE_HOME/perl/bin/perl catctl.pl catupgrd.sql
+			</li>
+			<li>
+				The parallel upgrade script finishes by shutting down the database. Open it as normal.
+			</li>
+			<li>
+				Run the Post-Upgrade Status Tool: <code>SQL&gt;@?/rdbms/admin/utlu121s.sql
+			</li>
+			<li>
+				run catuppst.sql that attempts to fix any problems encountered by the upgrade and ultrp.sql that recompiles all invalid PL/SQL.
+			</li>
+		</ol>
+	</li>
+	<li>Migrate to Unified Auditing<br>
+		Detail ho how to configure and enable unified audit has been given in chapter 11.
+	</li>
+	<li>Perform Post-Upgrade Tasks<br>
+		In addition to the steps identified by the Pre-Upgrade Information Tool, various actions may or not be necessary. All these item should be considered: Update environment variables in all relevant scripts (ORACLE_HOME, PATH, ORACLE_SID), on linux, update /etc/oratab, If an RMAN catalog database is in use, connect with the RMAN executable and upgrade the catalog, If DBE has been installed confirm and configure the listening ports, eneble the Database Vault (if it's installed), reset all passwords (if upgrade from 10.x), Set threshold for tablespaces usage alerts, implement new features as appropriate.
+	</li>
+</ul>

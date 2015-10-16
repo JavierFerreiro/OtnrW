@@ -17,7 +17,7 @@
 	will connect. This parameter is also embedded in the controlfile.	<br>
 	The parameter control_files tells the instance the location of the 
 	controlfile. When the instance read the controlfile (because knows
-	the position thanks to control_file parameter),  if there is a mistmatch in
+	the position thanks to control_files parameter),  if there is a mistmatch in
 	 database names the database will not mount. In mount mode has succesfully 
 	 connected to the controlfile. If the control file is damaged it's 
 	 impossible to open the database.<br>
@@ -49,16 +49,15 @@
 			<li>Create the data dictionary: is created by running a set of SQL 
 			scripts that exists in the ORACLE_HOME/rdbms/admin. They are 
 			called by CREATE DATABASE command. The first is sql.bsq and 
-			this call several other scripts. After it will be called all the cat* 
-			files that creates views and other objects.
+			this call several other scripts.
 			</li>
 			<li>Make the database usable: The database in this moment it's not 
 			usable by humans because the structure is too abstruse. For resolve 
 			this before use the database must be created a set of views and pl/sql
-			 packages.
+			 packages.For this need to be called all the cat* files that creates views and other objects.
 			</li>
 		</ol>
-		<p>Using the DBCA to create a database:
+		<p>Manually can do of this form:
 			<ol>
 				<li>
 				Create a parameter file (optionally) and a password file.
@@ -132,8 +131,8 @@
 					requirements. If it's desired include the schema examples.
 					</li>
 					<li>In this step, you can choose the parameters of the 
-					database. The DB_BLOCK_SIZE  is critical because is the 
-					parameter that can never be changed after database creation.
+					database. The DB_BLOCK_SIZE  is critical because is the only one  
+					parameter that can never be changed after database creation(db_name could be changed with DBNEWID utility)
 					The default value are 8K and  the legal values are 
 					2k,4k,8k, 16k and on some platforms 32k.<br>
 					The best option for database character is AL32UTF8.

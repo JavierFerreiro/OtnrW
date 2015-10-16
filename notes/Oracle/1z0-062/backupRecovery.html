@@ -1,0 +1,154 @@
+<h2>Backup and Recovery: Concepts and Configuration</h2>
+<p>
+	The second part of OCP speak in deep about it. Here we take some knowledge of basic concepts and configurations that will be tested in the first examination.
+</p>
+<ul>
+	<li>Identify the Importance of Checkpoints, Redo Logfiles and Archive Logfiles<br>
+		Checkpointing is the process of forcing the DBWm to write dirty buffers from the database buffer cache to the datafiles. There are circumstances when this must be done to ensure that the instance and the database can be recovered. Also necessary for recovery are the online redo logs and the archive redo logs. Instance recovery is automatic and occurs after any instance failure. It requires online redo logs. Database recovery is a manually initiated process following damage to the disk-based structures that make up the database, and requires archive logfiles as well as online logfiles.
+		<ul>
+			<li>Instance recovery<br>
+				In principle, instance recovery is nothing more than using the contents of the online logfiles to rebuild the database buffer cache to the state it was in before the crash. This will replay all changes extracted from the online redo logfiles that refer to blocks that had not been written to disk at the time of the crash. Once this has been done, the database can be opened. This phase of recovery, know as the roll forward, reinstates all changes- changes to data blocks and changes to undo blocks- for both committed and uncommitted transactions. Each redo record has the bare minimum of information needed to reconstruct a change: the block address and the new values. During roll forward, each redo record is read, the appropriate block is loaded from datafiles into the database buffer cache, and the change is applied. The block is written back to disk.<br>
+				Once the roll forward is complete, it is as though the crash had never occurred. But at that point, there will be uncommitted transactions in the database-these must be rolled back, and Oracle will do that automatically in the rollback phase of instance recovery. However, that happens after the database has been opened for use. If a user connects and hits some data that needs to be rolled back and hasn't yet been, this is not a problem- the roll forward phase will have populated the undo segment that was protecting the uncommitted transaction, so the server can roll back the change in the normal manner for read consistency.<br>
+				Instance recovery is automatic, and unavoidable- so how do you invoke it? By issuing a STARTUP command. When starting an instance, after mounting the controlfile and before opening the database SMON checks the file headers of all the datafiles and online redo logfiles. At this point, if there had been an instance failure, it is apparent because the file headers are all ouy of sync. Si SMON goes into the instance recovery routine, and the database is opened only after the roll forward phase has completed.<br>
+			</li>
+			<li>The impossibility of Database Corruption.<br>
+				A lot of examples to read in the book.<br>
+				Note: Can a SHUTDOWN ABORT corrupt the database? Absolutely not!It is impossible to corrupt the database. The instance recovery mechanism will always repair any damage-so long as the online logfiles are available.
+			</li>
+			<li>Checkpointing<br>
+				The checkpoint position (the point in the redo stream from wich instance recovery must start following a crash) is advanced automatically by the DBWn. This process is known as incremental checkpointing. In addition, there may be full checkpoints and partial checkpoints.<br>
+				A full checkpoint occurs when all dirty buffers are written to disk. In normal running, there might be a hundred thousand dirty buffers in the cache, but the DBWn would write just a few hundred of them for the incremental checkpoint. For a full checkpoint, it will write the lot. This entails a great deal of work: very high CPU and disk usage while the checkpoint is in progress, and reduced performance four user sessions. Full checkpoints are bad for business. Because of this, there will never be a full checkpoint except in two circumstances: an orderly shutdown and at the DBA's request.<br>
+				Note: Manually initiated checkpoints should never be necessary in normal running, although they can be useful when you want to test the effect of tuning. Theres is no full checkpoint following a log switch. This has been the case since release 8i, though to this day many DBA do not realize this.<br>
+				When the database is shut down with the NORMAL, IMMEDIATE, or TRANSACTIONAL option, there is a checkpoint: all dirty buffers are flushed to disk by the DBWm before the db is closed and dismounted. This means that when the database is opened again, no recovery will be needed. A clean shutdown is always desirable ans is necessary before some operations (such as enabling archivelog mode). A full checkpoint can be signaled at any time with this command: <code>alter system checkpoint;</code><br>
+				A partial checkpoint is necessary and occurs automatically as part of certain operations. Depending on the opreation the partial checkpoint will affect different buffers:
+				<table>
+					<thead>
+						<tr><td>Operation</td><td>What Buffers Will Be Flushed to Disk</td></tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Taking a tablespace offline</td>
+							<td>All blocks that are part of the tablespace</td>
+						</tr>
+						<tr>
+							<td>Taking a Datafile offline</td>
+							<td>All blocks that are part of the datafile</td>
+						</tr>
+						<tr>
+							<td>Dropping a segment</td>
+							<td>All blocks that are part of the segment</td>
+						</tr>
+						<tr>
+							<td>Truncating a table</td>
+							<td>All blocks that are part of the table</td>
+						</tr>
+						<tr>
+							<td>Putting a tablespace into backup mode</td>
+							<td>All blocks that are part of the tablespace</td>
+						</tr>
+					</tbody>
+				</table>
+				Note: Full checkpoints occur only with an orderly shutdown, or by request. Partial checkpoints occur automatically as needed.
+			</li>
+			<li>Protecting the Online Redo Logfiles<br>
+				Note:Always have at least two members in each logfile group, for security. This is not just data security-it is job security, too.<br>
+				The only way to protect against data loss when you lose all members of the current group is to configure a Data Guard environment for zero data loss.<br>
+				If a member of a redo logfile group is damaged or missing, the database will remain open if there is a surviving member. This contrasts with the controlfile, where damage to any copy will crash the database immediately. Similarly, groups can be added or removed and members of groups can be added or moved while the database is open, as long as there are always at least two groups, and each group has at least one valid member.<br>
+				Note: The online redo log can be reconfigured while the database is open with no downtime, whereas operations on the controlfile can only be carried out when the database is in nomount mode or completely shut down.<br>
+				In the V$LOG you could view the STATUS column: "CURRENT" is the current redo log group that oracle is using (where LGWR is writting) , "ACTIVE" means that this group file is still needed by SMON for instance recovery if the instance failed now, in a short time, as the chekcpoint position advances, it will become INACTIVE. The first status of a file is INVALID, this will only be ther until the first log switch (if the status is persistently INVALID, then you have a problem).The suquence# column tell us the number of the log switche when arrive at the file, this number is incremented with every log switch.<br>
+				Whe can query V$LOGFILE to know the files members of a group.<br>
+				Note: as with the controlfile and datafiles, Oracle does not enforce any naming convention for logfiles, but most organizations will have standards for this.<br>
+				To force a log switch: <code>ALTER SYSTEM SWITCH LOGFILE</code><br>
+				The parameters of MAXLOGFILES and MAXLOGMEMBERS in the CreateDB.sql (if the db is created with dbca) resolve what is writed in the controlfile and what limit the maximun number of files per redo log group and the maximum redo log groups. Whith the DBCA defaults that are 16 for MAXLOGFILES and 3 FOR MAXLOGMEMBERS. It is possible to re-recreate the controlfile with different values, however as with all controlfile operations, this will require downtime.<br>
+				To add members to a logfile group (multiplexing): <code> alter database add logfile member 'D:\APP\ORACLE\ORADATA\ORCLZ\REDO01A.log' to group 1;</code>
+			</li>
+			<li>Archivelog Mode and the Archiver Process(es)<br>
+				Oracle guarantees that your DB is never corrupted, though use of the online redo logfiles to repair any corruptions caused by an instance failure. This is automatic and unavoidable. But to guarantee no loss of data following a media failure, it's necessary to have a record of all changes applied to the database since the last backup of the database; this is not enabled by default. The online redo logfiles are overwritten as log switches occur, so the history of change vectors is by default not kept, but the transition to archivelog mode ensures that no online redo logfile is overwritten unless it has been copied to an archive logfile first.<br>
+				Note: An online redo logfile can be overwritten only if it is inactive, and (if the database is in archivelog mode) if it has been archived.<br>
+				Once the DB is transitioned to archivelog mode, it is impossible to lose data (backup and archive log files are available).<br>
+				When a dbb is converted to archivelog mode, a new background process will start, automatically. This is the archiver process, ARCn. By default, Oracle will start four, but you can have up to 30.<br>
+				The archiver processes will copy the online redo logfile to an archive logfile after each log switch, thus generating a continuos chain of logfiles that can be used for recovering a backup. The name and location of these archive logfiles is controlled by initialization parameters. For safety, the archive logfiles can be multiplexed- but eventually they should be migrated to offline storage, such as a tape library. The migration to tape must be controlled by the DBA, it's not automatic did it by the Oracle instance. DBA can do it either through O.S. commands or RMAN.<br>
+				Note: Archiver processes launch automatically if the database is in archivelog mode.<br>
+				The transition to archivelog mode can be done only while the database is in mount mode after a clean shutdown, and it must therefore be done by a user with a SYSDBA connection. It is also necesary to set the initialization parameters that control the names and locations of the archive logs generated. Clearly, these names must be unique or archive logs could be overwritten by other archive logs. To ensure unique filenames, it is possible to embed variables suchs as the log switch sequence number in the archive logfile names. Variable Description:
+				<table>
+					<thead>
+						<tr><td>Variable</td><td>Description</td></tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>%d</td>
+							<td>
+								A unique database identifier, necessary if multiple databases are being archived to the same directories
+							</td>
+						</tr>
+						<tr>
+							<td>%t</td>
+							<td>
+								The tread number, visible as the THREAD# column in V$INSTANCE. This is not significant, except in a RAC database.
+							</td>
+						</tr>
+						<tr>
+							<td>%r</td>
+							<td>
+								The incarnation number. This is important fi an incomplete recovery has been done, wich will reset the log switch sequence number.
+							</td>
+						</tr>
+						<tr>
+							<td>%s</td>
+							<td>
+								The log switch sequence number. This will guarantee that the archives from any one database incarnation do not overwrite each other.
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				The minimum archiving necessary to ensure that recovery from a restored backup will be possible is to set one archive destination, But for safety it's possible multiplex it up to 31 archive destination. The reason for so many possible destinations is distributed systems. Destination coul be a local directory, an Oracle Net alias, specifying the address of a listener on a remote computer. This is the key to zero data loss: the redo stream can be shipped across the network to a remote database, where it can be applied to give a real-time backup. Remote destinations are also used for Streams, to propagate changes between independent databases.
+			</li>
+		</ul>
+	</li>
+	<li>Backup and Recovery: Configuration<br>
+		Configuring a database for recoverability means ensuring that certain critical files are multiplexed. These files are the online redo logfiles and the controlfile. Adjusting the onlineredo logfile configuration is an online operation, whereas adjusting the controlfile configuration requires a shutdown/startup.<br>
+		To determine the names and locations of the controlfile copies, either query a view or a parameter:<br>
+		<code>
+			orclz&gt;select name from v$controlfile;<br>
+			orclz&gt;select value from v$parameter2;<br>
+		</code><br>	
+	</li>
+	<li>Configure the Fast Recovery Area<br>
+		The fast recovery area is a disk destination used as the default location for recovery-related files. It is controlled with two instance parameters:<code>DB_RECOVERY_FILE_DEST, DB_RECOVERY_FILE_DEST_SIZE</code>. The first of these parameters nominates the location. This can be a file system directory or an ASM disk group. It's possible for several databases to share a common destination; each database will have its own directory structure (created automatically) in the destination. The second parameter limits the amount of space in the destination that the database will occupy; it says nothing about how much space is actually available in the destination. The configuration and usage of the fast recovery area is shown in two views: v$recovery_file_dest, v$recovery_area_usage.<br>
+		Note: Release 10.x introduced the flash recovery area. In release 11.2.x it was renamed to the fast recovery area (a major upgrade). Some old views (and some old DBAs) still use the original name.<br>
+		The files that will be written to the fast recovery area (unless specified otherwise) include: Recovery Manager backups, Archive redo logfiles, Database flashback logs.<br>
+		RMAN, the Recovery Manager, can manage space within the fast recovery area: it can delete files that are no longer needed according to its configured policies for retaining copies and backup of files. Ideal situation, the fast recovery area will be large enough to store a complete copy of the database, plus any archive logs and incremental backups that would be necessary to recover the copy if necessary.<br>
+		The database backup routines should also include backing up the fast recovery area to tape, this implementing a strategy of primary, secondary and tertiary storage:
+		<ul>
+			<li>
+				Primary storage is the live database, on disk.
+			</li>
+			<li>
+				Secondary storage is a copy of the database plus files needed for fast recovery.
+			</li>
+			<li>
+				Tertiary storage is long-term backups, usually in a tape library.
+			</li>
+		</ul>
+		RMAN can manage the whole cycle: backup of the database from primary to secondary, and migration of backups from secondary to tertiary storage. The fast recovery area can be reconfigured at any time, without affecting any files within it: changes will apply only to files created subsequently. Example of configuration of the fast recovery area:<br>
+		<code>
+			orclz&gt;select name, value from v$parameter where name like 'db_recovery%';<br>
+			orclz&gt;select name, space_limit, space_used from v$recovery_file_dest;<br>
+			orclz&gt;alter system set db_recovery_file_dest_size=10g;<br>
+			orclz&gt;alter system set db_recovery_file_dest='/u02/fra';<br>
+		</code>
+	</li>
+	<li>Configure Archivelog Mode<br>
+		A db is by default created in noarchivelog mode. The transition to archivelog mode is straightforward, but it does require downtime. The process is as follows:
+		<ol>
+			<li>Shut down the database, cleanly.</li>
+			<li>Start up in mount mode</li>
+			<li>Issue the command ALTER DATABASE ARCHIVELOG;</li>
+			<li>Open the database</li>
+			<li>Perform a full backup</li>
+		</ol>
+		Following a default installation; the archive logs will be written to only one destination, wich will be the fast recovery area. This is specified by an implicit setting for LOG_ARCHIVE_DEST_1 parameter, visible in the V$ARCHIVE_DEST view. If the parameters that enable the fast recovery area have not been set, they will go to a plattform specific destination ($ORACLE_HOME/dbs  directory for Unix systems).<br>
+		Note: The change to archivelog mode can only be done in mount mode, after a clean shutdown.<br>
+		A full backup is an essential step for the transition to archivelog mode. Following the transition, all backups made earlier are useless. The backup can be made while the database is open or closed, but until it is made, the database is not protected ar all.
+	</li>
+</ul>

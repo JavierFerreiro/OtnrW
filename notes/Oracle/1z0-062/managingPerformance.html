@@ -1,0 +1,83 @@
+<h2>Managing Performance</h2>
+<ul>
+	<li>Use Enterprise Manager to Monitor Performance<br>
+		<li>A performance Tuning Methodology<br>
+			Tuning has one purpose only: to reduce response time for end users, that is tunning all where the end users say "... so slow", check, find whereis the problem and tunning. With this message a top-down approach is required: start by analyzungm and if necessary re-engineering the business processes. A performance tuning methodology should concentrate on business needs, and performance should be considered at all stages.
+		</li>
+		<li>Performance Monitoring Data<br>
+			Oracle collects a vast amount of information regarding activity and perfomance. This information is accumulated throught the lifetime of the instance in a set of V$ views and periodically flushed to the AWR repository by the MMON background process. Two terms must be defined: statistics and metrics. In Oracle world, a statistic is a figure that is meaningless by itself, whereas a metric is two or more statistics correlated together- and often correlated with time. For example, the number of disk reads is a statistic.Useless, one needs to know is disk reads per second or disk reads per execution of a statement or per transaction...
+			Execution of an SQL statement is rarely a continuos process. Usually, it is a set of stop-start events. For example: SELECT COUNT(*) FROM EMP might require reading every block of the segment containing the EMP table. This could be many thousands of blocks. To accomplish this, the session's server process must ask the O.S. to deliver a set of blocks( but not all of them in one go). The session will then hang while the O.S. I/O subsystem locates ad delivers the blocks. Then the session can wake up, process the rows in the blocks and issue another read request. It will hang until the next set of blocks is delivered. Many reasons are possible for a session to hang during execution of a statement. The reasons for hanging are known as wait events. It's impossible to eliminate wait events completely (are normal) but if certain wait events are consuming an inordiante amount of time, the cause of the wait event should be investigated and if possible removed/reduced. In the example the wait event most significant would probably be "db file scattered read". This is the event that occurs during a full table scan, as groups of blocks are read for insertion into the buffer cache. Other wait events could also occur: "free buffer wait" as the server process searches for buffers in the cache into wich to place the blocks or "buffer busy wait", wich means that the block is already in the cache but temporarily inaccesible because another session is working on it.<br>
+			Here, some og the critical views:
+			<ul>
+				<li>V$STATNAME: Documentation view, listing every statistic gathered, grouping them into classes</li>
+				<li>V$SYSTAT: The current value of each statistic for the entire instace, accumulated since the instance was started.</li>
+				<li>V$SESSTAT: The current value of each statistic for each currently logged-on session, accumulated since the session started.</li>
+				<li>V$MYSTAT: the statistics for your currently logged-on session</li>
+				<li>V$EVENT_NAME: A documentation view, listing every wait event, grouping them into classes.</li>
+				<li>V$SYSTEM_EVENT: The number of times each wait event has occurred and the total time spent waiting on the event for the entire instance, accumulated since the instance was started</li>
+				<li>V$SESSION_EVENT: The number of times each wait event has occurred for each currently logged-on session and the total time spent by that session waiting on the event, </li>
+			</ul>
+		</li>
+		<li>The Database Express Performance Pages<br>
+			Maybe put a image summarizing all... TODO
+		</li>
+	</li>
+	<li>Use Automatic Memoty Management.<br>
+		Memory usage falls in two categories: PGA and SGA. From 9i it has been possible to automate the management of the PGA. From 10g it has been possible to automate the management of the SGA. 11G and 12c can manage both (PGA/SGA) together, fully automatically.<br>
+		Note: All Oracle memory usage is virtual memory. Oracle Processes have no way of knowing if the memory to wich they they are connections is in RAM or has been swapped(or paged) to disk. However, swapping will cripple performance and should be avoided.
+		<ul>
+			<li>PGA Memory Management<br>
+				Associated with the server process is a block of nonsharable memory: the PGA. When executing SQL, the server process makes use of the PGA to store session-specific data, including:sorting rows, merging bitmaps, variables, the call stack.<br>
+				For some data in the PGA, use of memory is nonnegotiable.For example, if the session needs memory for its call stack, that memory must be made available. For other structures(such as sort space), use of PGA is nice but not essential, because if necessary the data can be written out to disk-based storage structure- although this will impact adversely on performance.<br>
+				Every SQL statement uses memory in the SGA (specifically, the shared SQL area, in the shared pool) and also will require a minimum amount of PGA memory (sometimes referred to as the private SQL area), without wich it cannot be execute. Making more PGA memory available will often reduce execution time, but the reduciton is not linear. Typically, there will be three stages of memory allocation: these are known as optimal, one-pass, and multipass.<br>
+				The optimal memory allocation will allow the statement to execute purely in memory, then is sufficient to accomodate all the input data and any auxiliary data structures that the statement must create.<br>
+				The one-pass memory allocation is insufficient for optimal execution and therefore forces an extra pass over the data.<br>
+				The multipass memory alloction is even smaller and means that several passes over the data will be needed.<br>
+				Note: A statement's shared SQL area is in the shared pool of the SGA; its private SQL area is in the session's PGA.<br>
+				Managing PGA memory is strongly recommended by Oracle, the manual techniques are supported only for backward compatibility. To implement automatic PGA memory management, you set a target for the total PGA memory allocation,summed up for all sessions. The Oracle instance will then pass out memory this total to sessions on demand. When a session has finished executing its statement, the PGA ot was using can be alocated to another session.<br>
+				Automatic PGA memory management is enabled with three instance parameters: WORKAREA_SIZE_POLICY, PGA_AGGREGATE_TARGET, PGA_AGGREGATE_LIMIT. The WORKAREA_SIZE_POLICY will default to AUTO, meaning that Oracle can assign PGA to sessions on demand, while attempting to keep the total allocated PGA within the PGA_AGGREGATE_TARGET. This parameter defaults to the greater of 10MB or 20% of the size of the SGA and should be adjusted upward until a satisfactory proportion of statements are executing optimally, but not set so high that memory is over-allocated and the O.S. has to page virtual memory to disk. Note that this is only a target (a soft limit), if set so low (don't permit work) the target will be nroken and more memory will be allocated.<br>
+				Note: What happens to sessions if the PGA_AGGREGATE_TARGET is exceeded?Nothing, that is, until the PGA_AGGREGATE_LIMIT is also exceed, at wich point statements will fail.<br>
+				The PGA_AGGREGATE_LIMIT is a hard limit on the total PGA that can be used. The default  is the greater of 2GB or double the PGA_AGGREGATE_TARGET, or 3MBxPROCESS parameter. If this limit is exceeded, Oracle will terminate calls in progress in order to bring the PGA usage down below the limit.<br>
+				Note: If your PGA_AGGREGATE_TARGET is not sufficient for optimal and one-pass operations, your database will be performing badly. If the PGA_AGGREGATE_LIMIT is ever reached, the situation is disastrous. As a matter of urgency, tune the SQL to require less memory, and if possible add more memory to the system.
+			</li>
+			<li>SGA Memory Management<br>
+				The SGA contains several memory structures that can be sized independently: shared pool, database buffer cache, large pool, streams pool, java pool and log buffer. As a general rule, the memory allocation to the large pool, java pool and the streams pool is not matter for negotiation (either the memory is needed or it isn't). If these structures are undersized, there will be errors. If they are oversized, there will be no performance improvement. The memory allocations to the shared pool, the database buffer cache, and the log buffer is negotiable: if less than optimal, there will not be errors but performance will degrade. The exception is the shared pool: if this is chronically undersized, errors will occur.<br>
+				Note: Do not throw memory at Oracle unnecessarily. An oversized shared pool or log buffer can be bad for performance. An oversized buffer cache is less likely to be a problem, unless it is so oversized that the system is having to swap.<br>
+				Note: The log buffer is the only SGA structure that cannot be adjusted automatically. It cannot therefore be automatically managed.<br>
+				SGA memory can be automatic(Oracle corporation advises that it should be), with the exception of the log buffer. The DBA sets a total size for the SGA, and the instance will apportion this total to the various structures, thus ensuring that there are no errors from SGA components being undersized and that memory above this minimum is allocated where it will do the most good. The components will be resized on demand. The parameters for manual management of the SGA are: SHARED_POOL_SIZE, DB_CACHE_SIZE, LARGE_POOL_SIZE, STREAMS_POOL_SIZE, JAVA_POOL_SIZE. To eneable automatic shared memory management (ASMM) leave all of these on default (or set to zero) and se one parameter intead: SGA_TARGET. Optionally, set SGA_MAX_SIZE as well. The log buffer is also included within the target. This is sized with the LOG_BUFFER parameter, wich is static.<br>
+				Note: The default for LOG_BUFFER is probably correct. You can set the parameter to higher than the default, but this may well cause a degradation in performance. If you set it to less than the default, your setting will often be ignored.<br>
+				If you set any of the parameters that control the automatically managed SGA compoents, the value given will act as the minimum size below wich ASMM will never reduce that component.<br>
+				Note: The DBA can set minimum values for the automatically managed memory structures, but not maximum values.<br>
+				The SGA_TARGET is dynamic: it can be adjusted to a lower value, and the instance will resize the variable components downward to meet the new target (the same up). The SGA_MAX_SIZE defaults to the SGA_TARGET ans is a static parameter. Therefore, by default you can never make the total SGA larger than it was at instance startup time.
+			</li>
+			<li>Automatic Memory Management<br>
+				The Automatic Memory Management(AMM) mechanism lets Oracle instance manage server memory usage as a whole via one parameter: MEMORY_TARGET. Optionally you can set MEMORY_MAX_TARGET as well. This takes the automatic PGA management (enabled with PGA_AGGREGATE_TARGET) and the automatic shared memory management (enable with SGA_TARGET) a step further, by letting Oracle transfer memory between PGAs and SGA on demand.<br>
+				Note: To make your life easy, set the parameter MEMORY_TARGET only and dono set any of the other parameters listed previously. Set MEMORY_MAX_TARGET to, perhaps, 20 percent higher- to give yourself some wiggle room if you need to tune later.<br>
+				AMM is not just a tool to make DB administration easy, it will often give big performance benefits as well.<br>
+				Note: The MEMORY_TARGET parameter is dynamic but only within a limit set by another parameter: MEMORY_MAX_TARGET. This is static.<br>
+				Note: if you set the parameters PGA_AGGREGATE_TARGET and SGA_TARGET when AMM is enabled, the values you specify are a minimum size beneath wich AMM will never reduce the PGA or SGA.<br>
+				Two views will be useful to monitor this: V$MEMORY_DYNAMIC_COMPONENTS that shows the current sizes of the structures and V$MEMORY_RESIZE_OPS that shows the history of the last 800 resizing operations.<br>
+				AMM is implemented by the memory broker, wich is made up of two background processes. The MMON manageability Monitor process monitors activity and when advisable instructs the MMAN Memory Manager process to reassign memory between components.
+			</li>
+		</ul>
+	</li>
+	<li>Use the Memory Advisor to Size Memory Buffers.<br>
+		The Oracle instance collects a vast amount of information regarding activity and performance. These statistics enable the memory advisors, wich are tools that calculate the effect of varying the sizes of the SGA and PGA memory structures. The Automatic Memory Management facility uses the advisors to make decisions about memory allocation, and they are also visible to the DBA through various views and EM. <br>
+		The important tables are: V$PGA_TARGET_ADVICE, V$SGA_TARGET_ADVICE and V$MEMORY_TARGET_ADVICE. <br>
+		Table with the views and historical views for the advising.<br>
+		<table>
+			<thead>
+				<tr><td>Advisor</td><td>V$View</td></td>DBA View</td></tr>
+			</thead>
+			<tbody>
+				<tr><td>PGA</td><td>V$PGA_TARGET_ADVICE</td><td>DBA_HIST_PGA_TARGET_ADVICE</td></tr>
+				<tr><td>SGA</td><td>V$SGA_TARGET_ADVICE</td><td>DBA_HIST_SGA_TARGET_ADVICE</td></tr>
+				<tr><td>Memory</td><td>V$MEMORY_TARGET_ADVICE</td><td>DBA_HIST_SGA_TARGET_ADVICE</td></tr>
+				<tr><td>DB cache</td><td>V$DB_CACHE_ADVICE</td><td>DBA_HIST_DB_CACHE_ADVICE</td></tr>
+				<tr><td>Java pool</td><td>V$JAVA_POOL_ADVICE</td><td>DBA_HIST_JAVA_POOL_ADVICE</td></tr>
+				<tr><td>Streams pool</td><td>V$STREAMS_POOL_ADVICE</td><td>DBA_HIST_STREAMS_POOL_ADVICE</td></tr>
+				<tr><td>Shared pool</td><td>V$SHARED_POOL_ADVICE</td><td>DBA_HIST_SHARED_POOL_ADVICE</td></tr>
+			</tbdody>
+		</table>
+	</li>
+</ul>

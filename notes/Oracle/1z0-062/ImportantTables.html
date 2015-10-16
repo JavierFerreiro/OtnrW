@@ -22,7 +22,29 @@
 <tr><td>dba_ts_quotas</td>Show the user quotas on the differents tablespaces<td>l</td></tr>
 <tr><td>dba_role_privs</td><td>show the grantee granted_role grantor, etc. of the system privileges.</td></tr>
 <tr><td>dba_rollback_segments</td><td>show the undo segments that joined with V$SESSION and V$TRANSACTION shows the undo segments for transactions.</td></tr>
+<tr><td>SYS.AUD$</td><td>show the audit records of standard database auditing</td></tr>
+<tr><td>dba_fga_audit_trail</td><td>show the audit records of fga</td></tr>
 <tr><td>database_properties</td>Show properties of the database for example default tablespace, temporary tablespace...<td>l</td></tr>
+<tr><td>dba_outstandings_alerts</td>Show alerts.<td>l</td></tr>
+<tr><td>dba_sql_profiles</td>Show the profiles to improve som SQL statements..<td>l</td></tr>
+<tr><td>dba_autotask_client</td><td>will show ehter the task are enable</td></tr>
+<tr><td>DBA_ADVISOR_LOG</td><td>Task names,status and execution statistics for all task.</td></tr>
+<tr><td>DBA_ADVISOR_TASK</td><td>More detailed information about advisor tasks, such as advisor name, user-specified description, and execution type for the current user</td></tr>
+<tr><td>DBA_RSRC_CONSUMER_GROUPS</td><td>Description of the predefined cosumers groups</td></tr>
+<tr><td>DBA_USERS</td><td>Show infromation about the users and the consumer group</td></tr>
+<tr><td>DBA_RSRC_PLANS</td><td>plans and status</td></tr>
+<tr><td>DBA_RSRC_PLAN_DIRECTIVES</td><td>plan directives</td></tr>
+<tr><td>DBA_RSRC_CONSUMER_GROUPS</td><td>consumer groups</td></tr>
+<tr><td>DBA_SCHEDULER_JOBS</td><td>table that is the storage point for all Scheduler jobs</td></tr>
+<tr><td>DBA_SCHEDULER_JOB_LOG</td><td>View logging information about scheduling</td></tr>
+<tr><td>DBA_SCHEDULER_JOB_RUN_DETAILS</td><td>A more detailed view about the execution of the scheduled jobs.</td></tr>
+<tr><td>DBA_DIRECTORIES</td><td>Information about Oracle Directories</td></tr>
+<tr><td>DBA_REGISTRY</td><td>Waht is installed and what release on the database</td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+
+
 <tr><td colspan="2" style="text-align:center;font-weight:bold;">Dynamic Views</td></tr>
 <tr><td>V$TIMEZONE_NAMES</td><td>list time zone abbreviattions that Oracle support</td></tr>
 <tr><td>V$tablespace</td><td></td></tr>
@@ -35,9 +57,28 @@
 <tr><td>V$ROLLSTAT</td><td>Gives information on the size of the segments.</td></tr>
 <tr><td>V$UNDOSTAT</td><td>Gives information of the undo.</td></tr>
 <tr><td>V$SESSION</td><td>Gives information of the sessions in the instance (one row for logged-on session).</td></tr>
-
+<tr><td>V$MEMORY_DYNAMIC_COMPONENTS</td><td>shows the current sizes of the structures</td></tr>
+<tr><td>V$MEMORY_RESIZE_OPS</td><td>shows the history of the last 800 resizing operations.</td></tr>
+<tr><td>V$PGA_TARGET_ADVICE</td><td>Advice of the memory to PGA</td></tr>
+<tr><td>V$SGA_TARGET_ADVICE</td><td>Advice of the memory to SGA</td></tr>
+<tr><td>V$MEMORY_TARGET_ADVICE</td><td>Advice of the total memory target</td></tr>
+<tr><td>V$ADVISOR_PROGRESS</td><td>More detailed information about the completion status and time remaining for an advisor task.</td></tr>
+<tr><td>V$RSRC_CONSUMER_GROUP</td><td>Gives Global Picture, showing how many sessions for each group are queued at any given moment.</td></tr>
+<tr><td>V$SESSION</td><td>active consumer group of each session</td></tr>
+<tr><td>V$RSRC_PLAN</td><td>currently active plan</td></tr>
+<tr><td>V$RSRC_CONSUMER_GROUP</td><td>Statistics for the groups.</td></tr>
+<tr><td>V$PROCESS</td><td>processes currently running including scheduled jobs.</td></tr>
+<tr><td>V$TANSPORTABLE_PLATFORM</td><td>list of currently supported platforms and their endiannes to transport data (transportable tablespaces)</td></tr>
+<tr><td>v$parameter2</td><td>View with the parameters of the instance</td></tr>
+<tr><td>v$recovery_file_dest</td><td>View show configuration of fast revery area</td></tr>
+<tr><td>v$recovery_area_usage</td><td>View show usage of fast revery area</td></tr>
+<tr><td>V$ARCHIVE_DEST</td><td>Describe the destination or the log archive</td></tr>
+<tr><td>V$option</td><td>To check if installed Oracle Database Vault, Oracle Label Security and others.</td></tr>
+<tr><td></td><td></td></tr>
 </tbody>
 </table>
+
+
 
 
 <h2>Useful Queries</h2>

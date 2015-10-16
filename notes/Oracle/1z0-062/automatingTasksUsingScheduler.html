@@ -1,0 +1,166 @@
+<h2>Automating Tasks by Using Oracle Scheduler</h2>
+<p>
+The scheduler is a facility to automate the running of jobs. These jobs may be procedures that execute within the database, or operating system commands and scripts. They can run locally or on remote machines and databases, can run according to a schedule, according the results of a previous job or in response to events. The scheduler is integrated with the Resource Manager. Exist an older alternative DBMS_JOB.
+</p>
+<ul>
+	<li>Use Oracle Scheduler to Simplify Management Tasks<br>
+		<p>
+			The scheduler need at a minimum a job, but usually has at least programs and schedules, but really can have job classes, windows and chains. At the instance level, the background processes control the environment and run the jobs.
+		</p>
+		<ul>
+			<li>The Scheduler Architecture<br>
+				In the data dictionary are the table that is the storage point for all Scheduler jobs: DBA_SCHEDULER_JOBS view.<br>
+				The job queue coordinator background process, the CJQo process, monitor this table and when necessary launches job queue processes. The Jnnn processes, to run the jobs. CJQo is launched automatically if there are any defined and active scheduler jobs. The Jnnn processes are launched on demand, although the maximum number is limited by the JOB_QUEUE_PROCESSES instace parameter, wich can have any value from 0 to 1000 (default). If set to zero the Scheduler will not function.<br>
+				The job queue coordinator pick up jobs from the job queue table and passes them to job queue processes for execution. It also launches and terminates the job queue processes on demand. To see processes currently running, V$PROCESS view: <code>select program from v$process where program like '%J%';</code><br>
+				Note: The JOB_QUEUE_PROCESSES instance parameter must be greater than zero or the Scheduler cannot run. It is 1000 by default. The job queue coordinator will always be running if there are any defined and active jobs.<br>
+				Jobs defined as procedures run within the database. Jobs can also be defined as O.S. commands or shell scripts. The triggering factor for a job can be a time or an event. Time-based jobs may run once or repeatedly according to a schedule. Event-based jobs run when certain conditions arise. There are some prconfigured events, or you can use user-defined events. Jobs can be connnected into a chain, using simple rules for branching depending on a job's success or failure.<br>
+				An advanced feature of the Scheduler is to associate it with the Resource Manager. It may be that certain jobs should be run with certain priorities, and this can be achieved by linking a job to a Resource Manager consumer group via a job class. It is also possible to use the Scheduler to activate a Resource Manager plan, rather than having to activate a plan manually by changing the RESOURCE_MANAGER_PLAN instance parameter or with the procedure. The api to administer the Scheduler is the DBMS_SCHEDULER package or also a graphical interface is provided by Enterprise Manager.
+			</li>
+			<li>Scheduler Objects<br>
+				The most basic object in the Scheduler environment is a job. Exists more complex.
+				<ul>
+					<li>Jobs<br>
+						A job specifies what what to do and when. What can be an anonymous PL/SQL block (wich could consist of just a single SQL statement), a PL/SQL stored procedure (wich could invoke a Java stored procedure or an external procedure), or any executable file stored in the server's file system: either a binary or shell script. A particularly powerful capability is the remote external job, wich runs on a separate machine. The when specifies either the timestamp at wich to launch the job and a repeat interval for future runs, or the triggering event.<br>
+						The procedure to create jobs is DBMS_SCHEDULER.CREATE_JOB that is overloaded, it has no less than six forms (use desc DBMS_SCHEDULER.CREATE_JOB to check the first and second form to follow the next explanations). The jobs are schema objects,taken the first form of the procedure, the JOB_TYPE must be one of the following: PLSQL_BLOCK /anonymous PL/SQL block), STORED_PROCEDURE (a named PL/SQL procedure), EXECUTABLE (anything axecutable from an OS prompt), CHAIN (a named job chain object), EXTERNAL_SCRIPT (a script launched by the OS's command interpreter), SQL_SCRIPT (a SQL*Plus script), BACKUP_SCRIPT (a RMAN script). The JOB_ACTION is the command or script or chain to be run, the NUMBER_OF_ARGUMENTS parameter states how many arguments the JOB_ACTION should take, START_DATE (date first execution), REPEAT_INTERVAL defines a repeat frequency, such as daily until END_DATE, JOB_CLASS has to do with priorities and integration of the Scheduler with the Resource Manager, ENABLED determines wheter the job can actually be run (attention, default to false), finally AUTO_DROP controls whether to drop the job definition after the END_TIME (default TRUE). If a job is created with no scheduling information, it will be run as soon as it is enabled and then dropped immediately.<br>
+						In as second form of CREATE_JOB we can create an event-based job. The EVENT_CONDITION is an expression based on the definition of the messages enqueued to the queue table nominated by the QUEUE_SPEC argument. Between the start and end dates, Oracle will monitor the queue and launch the job whenever a message arrives that conforms to the conditions.
+					</li>
+					<li>Programs<br>
+						Programs provide a layer of abstraction between the job and the action it will perform. Created with DBMS_SCHEDULER.CREATE_PROGRAM procedure. Putting the "what" of a job in a program, you can reference the same program in different jobs, and thus to associate it with different schedules and job classes. Program must be ENABLED before it can be used; the default for this is FALSE.
+
+					</li>
+					<li>Schedules<br>
+						A schedule is a specification for when and how frequently a job should run, declare the "When" outside a job. Created with the DBMS_SCHEDULER.CREATE_SCHEDULE procedure (use desc). REPEAT_INTERVAL specifies how frequently the hob should run, until END_DATA. Schedules without a specified END_DATE will run forever. REPEAT_INTERVAL argument can take a wide variety of calendaring expressions, consist of up to three elements: frequency, interval (default 1), and possibly several specifiers. The frequency may be one of these values: YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, MINUTELY AND SECONDLY. The specifiers can be: BYMONTH, BYWEEKNO,BYYEARDAY,BYMOUNTHDAY, BYHOUR, BYMINUTE,BYSECOND. Example: <code>repeat_interval=>'freq=hourly; interval=12'</code> will run the job every 12 hours.<code>repeat_interval=>'freq=yearly; bymounth=jan,mar,may; bymonthday=2'</code> will run the job on te second day of each of the named four months, starting as early in the days as resoureces permit.<code>repeat_interval=>'freq=weekly; interval=2; byday=mon;byhour=6;byminute=10'</code> will run the job at ten past six on alternate mondays.
+						<img src='../../img/scheduling1.png'/>
+					</li>
+					<li>A Self-Contained Job<br>
+						To create and schedule a job with one procedure call, use the CREATE_JOB procedure: <br>
+						<code>
+							begin<br>
+							dbms_scheduler.create_job(job_name=>'hr.refres_sums',<br>
+							job_type=>'stored_procedure',<br>
+							job_action=>'hr.refresh_summaries',<br>
+							start_date=>trunc(sysdate)+23/24,<br>
+							repeat_interval=>'freq=weekly;byday=mon,fri;byhour=23',<br>
+							enabled=>'true',<br>
+							auto_drop=>dalse,<br>
+							comments=>'update summary tables'<br>
+							);
+						</code><br>
+						Will create an enabled job that calls the procedure HR.REFRESH_SUMMARIES at 11 o'clock on Mondays and Fridays, starting today. The job is created in the HR schema.
+					</li>
+				</ul>
+			</li>
+			<li>Use Job Chains to Perform a Series of Related Tasks<br>
+				<p>A chain represents a set of linked programs with execution dependencies based on succes/failure test. Steps:
+					<ol>
+						<li>
+							Create a chain object
+						</li>
+						<li>
+							Define the steps (the individual programs) of the chain
+						</li>
+						<li>
+							Define the rules connectiong the steps.
+						</li>
+						<li>
+							Enable the chain.
+						</li>
+						<li>
+							Create a job to launch the chain.
+						</li>
+					</ol>
+					Example:<br>
+					<code>
+						exec dbms_scheduler.create_chain(chain_name=>'mychain');<br>
+						exec dbms_scheduler.define_chain_step(chain_name=>'mychain',step_name=>'step1',program_name=>'prg1')<br>
+						exec dbms_scheduler.define_chain_step(chain_name=>'mychain',step_name=>'step2',program_name=>'prg2')<br>
+						exec dbms_scheduler.define_chain_step(chain_name=>'mychain',step_name=>'step3',program_name=>'prg3')<br>
+						exec dbms_scheduler.define_chain_rule(chain_name=>'mychain',<br>
+						rule_name=>'rule1',condition0>'step1 succeeded',action=>'start step2');<br>
+						exec dbms_scheduler.define_chain_rule(chain_name=>'mychain',<br>
+						rule_name=>'rule2',condition0>'step1 failed',action=>'start step3');<br>
+						exec dbms_scheduler.enable('mychain');
+					</code><br>
+					To launch the chain, you must create a job:<br>
+					<code>
+						exec dbms_scheduler.create_job( job_name='run_mychain', job_type=>'chain',<br>
+						job_action=>'mychain',<br>
+						start_date=>next_day(last_day(sysdate)-7,'tuesday'),<br>
+						repeat_interva=>'freq=monthly;interval=2',enabled=>true<br>
+						);
+					</code>
+				</p>
+			</li>
+		</ul>
+	</li>
+	<li>Use Scheduler Jobs on Remote Systems<br>
+		<p>
+			It si possible to schedule and run jobs on remote systems. The job definition exists in the calling database, bu the procedure or shell script must reside at the remote site.<br>
+			Every machine on wich a remote job is to run requires a Scheduler Agent. Install this agent from the Oracle Client CD, selecting the Custom Installation option. The agent process will, bu defail, listen on port 1500, although any port can be selected at install time. The protocol between agent and database is HTTP. The database and listener will already be configured to accept HTTP id Database Express has been configured. To confirm the listening port, and set it if ithas not been configured, use procedures in the DBMS_XDB_CONFIG package:<br>
+			<code>
+				orclz> SELECT dbms_xdb_config.gethttpport from dual;<br>
+				orclz> exec dbms_xdb_config.sethttpport(new_port=>5500)
+			</code><br>
+			Once communications have been stablished between database and agent, create jobs that specify the DESTINATION_NAME argument of the CREATE_JOB procedure, giving the network name of the remote machine.
+		</p>
+	</li>
+	<li>Use Advanced Scheduler Features to Prioritize Jobs.<br>
+		<p>
+			Relevant components:<br>
+			<ul>
+				<li>
+					Job classes: Jobs can be assigned a class, and a class can be linked to a Resource Manager consumer group.
+				</li>
+				<li>
+					Consumers groups: Resource Manager consumer groups are restricted in the resources they can use, being limited in, for instance, CPU usage or #active_sessions.
+				</li>
+				<li>
+					Resource plans: A Resource Manager plan defines how to apportion resources to groups. Only one plan is active in the instance at any one time.
+				</li>
+				<li>
+					Windows: A window is a defined (probably recurring) period of time during wich certain jobs will run and a certain plan will be active
+				</li>
+				<li>
+					Windows groups: It is possible to combine windows into window groups, for ease of administration.
+				</li>
+			</ul>
+		</p>
+		<ul>
+			<li>Using Job Classes<br>
+				Create a class with the DBMS_SCHEDULER API. Example: <br>
+				<code>
+					SQL> exec dbms_scheduler.create_job_class(job_class_name=>'daily_reports',<br>
+					resource_consulmer_group=>'dss',<br>
+					logging_level=>dbms_scheduler.logging_full<br>
+					);
+				</code><br>
+				The assign the jobs to the class, either at job creation time specifying the JOB_CLASS attribute or by modifying the job later like this: <br>
+				<code>
+					SQL> exec dbms_scheduler.set_attribute(name=>'reports_jobs',<br>
+					attribute=>'job_class',<br>
+					value=>'daily_reports'<br>
+					);
+				</code><br>
+				If several jobs in the same class are scheduled to be executed at the same time, the job priority determines the order in wich jobs from that class are pickup up for execution by the job coordinator. It can be a value from 1 (first to execute) to 15.<br>
+				Note:It is not possible to assign priorities whe creating jobs with the CREATE_JOB procedures- you must use the SET_ATTRIBUTE procedure of the API subsequently<br>
+				Login levels are controlled by the classe too. Three option: DBMS_SCHEDULER.LOGGING_OFF (no logging), DBMS_SCHEDYLER.LOGGING_RUNS (information is written to the job log regarding each run of each job in the class, including when the run was started and whether the job ran successfully), DBMS_SCHEDULER.LOGGING_FULL (in addition to loggin information about the job runs, the log will also record management operations on the class, such as creating new jobs.). To view loggin information, query the: DBA_SCHEDULER_JOB_LOG view. If you want more detailed information check DBA_SCHEDULER_JOB_RUN_DETAILS. Logging information is cleared by the automatically created PURGE_LOG job. By default, this runs daily according to the preconfigured schedule DAILY_PURGE_SCHEDULE and will remove all logging information more than 30 days old.
+			</li>
+			<li>Using Windows<br>
+				Create windows with the CREATE_WINDOW procedure like: <br>
+				<code>
+					SQL&gt; exec dbms_scheduler.create_window (window_name=&gt;'daily_reporting_windows',<br>
+					resource_plan=&gt;'night_plan',<br>
+					schedule_name=&gt;'weekday_nights',<br>
+					duration=&gt;'0 04:00:00',<br>
+					window_priority=&gt;'low',
+					comments=&gt;'for running regular reports'<br>
+					);
+				</code><br>
+				This window activates a Resource Manager plan called NIGHT_PLAN. It opens according to the schedule WEEKDAY_NIGHTS, wich might be Monday through Friday at 20:00. The window will remain open for four hours; the DURATION argument accepts an INTERVAL DAY TO SECOND value, as does the REPEAT_INTERVAL for a schedule. Setting the priority to LOW means that if this window overlaps with another window, the other window will be allowed to impose its Resource Manager Plan.<br>
+				Note: Even if a job has a priority 1 within its class, it might still only run after a job with priority 5 in another class- If the second job's class is in a consumer group with a higher Resource Manager priority.<br>
+				If two windows with equal priority overlap, the window with the longest duration will open (or remain open). If both windows have the same time to run, the window currently open will remain open (oracle Corporation advises that you should avoid using overlapping windows).
+
+			</li>
+		</ul>
+	</li>
+</ul>

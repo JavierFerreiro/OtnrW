@@ -1,0 +1,67 @@
+<h2>Upgrading Oracle Database Software and Migrating Data</h2>
+<p>
+	This chapter cover the technique for upgrading the DB soft and migrating data froma database of one release to a db of another. From 11.2.x the routine for upgrade is the same wheter one is applying a patchset (to move from, for example, release 12.1.0.1 to release 12.1.0.2) or performing a major release upgrade (from, for example, 11.2.0.3 to 12.1.0.1). In either case, it is necessary to install a new ORACLE_HOME. Before release 11.2.x, a major release required a new Oracle Home, but a parchset was applied to the existing ORACLE HOME. Now, only indivudual patches or patchset updates are applied, in place, to an exsiting home.<br>
+	Having upgraded the database software, you must wither upgrade the database itself or create a new database with the new sowftware and move the data into it. Database upgrade is described in the following chapter. Data migration to a new database using the Data Pump itility is described in this chapter.
+</p>
+<ul>
+	<li>Describe Upgrade Methods.<br>
+		<p>
+			Moving from one release to another involves two distinct processes: upgrading the database software and upgrading the database. The software and the database must always be at the same release level, except for the short period while the database is being upgraded. The software upgrade is accomplished with the Oracle Universal Installer (OUI). Then there are two options for the database upgrade: using the Database Upgrade Assistant/DBUA), wich automates most of the steps or performing all the steps manually.
+		</p>
+		<ul>
+			<li>Software Upgrade<br>
+				Oracle products have multifaceted release number, with five elements:
+				<ul>
+					<li>Major release number</li>
+					<li>Database maintenance release number</li>
+					<li>
+						Application server release number(always zero for a database)
+					</li>
+					<li>Component-specific release number</li>
+					<li>Platform-specific release number</li>
+				</ul>
+			To determine the release of your database, query the V$VERSION view. Within the database, it is possible for some installed components to be at different releases. To determine what is installed at what release, query the DBA_REGISTRY view.<br>
+			Note: It is not necessary to install a base release of the product before installing a patchset. Patchsets are complete installable software images.<br>
+			The method for software upgrade is to use the OUI. A patchset (identified by the fourh element of the release number) of the database is delivered as a self-contained installable image that includes a copy of OUI that is appropriate for the patchset. Launch OUI by running runInstaller.sh script. The software must be installed into a newly created Oracle Home. OUI will prompt for the location. Best practice is to create the new home beneath the Oracle Base directory, next to the existing Oracle Home. To start sugin the newly installed version of the software, adjust your ORACLE_HOME and PATH environment to point to the new home. The create or upgrade a database.<br>
+			Whe using OUI to install an Oracle database home (wheter a base release or a patchset), the OUI will detect all previous installations. It can do this reading the OUI inventory created in the first installation. If OUI detects previous installation, it will prompt for whether any existing databases should be upgraded. Should you answer "yes", following the installation OUi will launch the DBUA to perform these database upgrades. Alternatively, you can answer "no" and run the DBUA later. This approach means that you can separate the tasks of software upgrade and database upgrade. It also means that you can upgrade databases manually, by running scripts, rather than using DBUA.
+			</li>
+			<li>Database Upgrade: DBUA or Manual<br>
+				DBUA can be launched by the OUI or as a standalone tool at any time. It is a graphical interface that guides you through the database upgrade process, although it can also be driven through a command-line interface, in wich case no prompts need be answered. The functionality is as follows: Automates the entire process, supports single-instance and clustered environments, upgrades databases and ASM storage, Checks and (where possible) fixes prerequisites, logs errors and generates an HTML report of the upgrade process. Using DBUA is undoubtedly the easiest way to upgrade, and is less prone to error than a manual technique. But it is not always appropriate. For example, if downtime is critical, it may be faster to upgrade manually. DBUA generally does all steps sequentially, many of them while the database is not available for use: a manual upgrade may be able to perform some steps in parallel, and others either before or after the essential downtime period. A manual upgrade will tipically involce these task: space check of the SYSTEM and SYSAYX tablespaces, adjust newly obsoleted or deprecated parameters, run scripts to upgrade the data dictionary and installed components, recompile all stored code.
+			</li>
+		</ul>
+	</li>
+	<li>Describe Data Migration Methods<br>
+		A database upgrade has two major restrictions. First, it must be performed on the same platform. You cannot move from, for example, windows to aix during upgrade. Second, you cannot carry aout any form of reorganization or implementation of new features during upgrade: after it has completed, nothing has really changed. Data migration gets around both these limitations.<br>
+		A migration is the process of transferring data from one database into another. In the context of upgrade, this means creating a new database of the new release and copying the entire user dataset from the old database into the new. The new database can be configured, in advance, with all the new features enabled that one wishes to use. Then as data is inserted, it will take in the caracteristics of the new release. Furthermore, the new database can be on a different platform. The downside of data migration as an upgrade technique is the necessary downtime. An upgrade of a database with DBUA might involve downtime of less than an hour; a migration could take days, depending on the volume of data to be moved.<br>
+		Note: Many DBAs prefer migration to upgrade because it results in a new, "clean"  data dictionary: no rubbish left behinf by years of (ab)use.<br>
+		Data migration is usually accomplished with the Data Pump export/import utility. Particular advantages are: Data Pump can work across platforms, source and destination character sets need no be the same, the source can be any release from 10.0 upward, it is not necessary to transfer the entire database if only a subset is actually needed, data segments will be reorganized as part og the process. If the migration is from a pre-10g database, it can still be accomplished by using the legacy exp/imp utilities.
+	</li>
+	<li>Describe the Upgrade Process<br>
+		Theorically, an upgrade can do nothing but good, but there is always the possibility that the behavior of the applications using the database will change. Tipically are six steps to perform an upgrade:
+		<ol>
+			<li>
+				Prepare to upgrade: Choose an upgrade method, install the new Oracle Home, develop a test plan, and determine what new features to implement.
+			</li>
+			<li>
+				Upgrade a test database: test the upgrade process on a non-production clone of the database. In particular, note the necessary downtime.
+			</li>
+			<li>
+				Test the upgraded database: Complete the planned tests. In particular, ensure that performance hast not regressed. Iterate steps 2 and 3 as necessary until all issues are resolved.
+			</li>
+			<li>
+				Prepare the production database:Stop all user activity according to an agreed schedule for downtime and then take a full backup.
+			</li>
+			<li>
+				Upgrade the production database. Follow the tried and tested upgrade procedure. Take a full backup after completion. The downtime will now be over.
+			</li>
+			<li>
+				Tune the upgraded database: as the system comes back into use, monitor performance and carry out normal proactive and reactive tuning work.
+			</li>
+		</ol>
+	</li>
+	<li>Migrationg Data by Using Oracle Data Pump<br>
+		Discussed on chapter 17. Data pump can also be used to copy an entire database: all user objects can be read from one database and created in another. Because the objects are represented in a Data Pump dump file logically rather than physically, there is no reason why they cannot be read from a database of one release on one platform and written into a database of another release, possibily on another platform. It is possible to downgrade through the same technique, but only if the objects in the source database do not require any features that are not available in the destination. If run completely on defaults, a full import will create tablespaces, schemas, and objects as they were in the source before inserting data- but they can be pre-created. For example, the tablespaces in the source database migh be using the old storage mechanisms of dictionary-managed extents and freelist-managed segments; the destination tablespaces would be created, in advance, with the current defaults of local extent management and automatic segment space management.<br>
+		One issue with using Data Pump for upgrade is the space requirement. A large database will require a great deal of space for the dump file(s) generated by the export. Furthermore, if the upgrade is to a destination database on a different machine, the dump will have to be copied over to the remote machine- where the same amount of space will be required again. There is also a time penalty: the export must complete before the copy can begin, and the copy must complete before the import can begin. A network mode import avoids both the space and the time issues.<br>
+		To use the network mode of Data Pump, a database link must exist from the destination database tot he source database. This link must connect to a user with the DATAPUMP_EXP_FULL_DATABASE role. Then, running the import on the destination database (as a user with the DATAPUMP_IMP_FULL_DATABASE role) will launch worker process on the source database that read the data and write it through the database link to the destination database, where mor worker processes write the data to the database. This mechanism avoids the need to stage the data on disk as a dump file, and also means that export, the copy and the import all run concurrently.
+	</li>
+</ul>

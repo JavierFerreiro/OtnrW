@@ -1,0 +1,142 @@
+<h2>Using Oracle Restart</h2>
+<p>
+	This chapter details the use of Oracle Restart, wich is the non-clustered version of Grid Infrastructure. It provides the ability to manage a range of Oracle resources: once placed under GI control, They can be started and stopped with the GI utilities, and restarted automatically in the event of failure
+</p>
+<ul>
+	<li>Use Oracle Restart to Manage Components<br>
+		<p>
+			Oracle Restart is a service provided by GI. It consists of a set of processes started and monitored by the O.S. Some of these processes run with root (or Administrator) privileges, and others as the user wich GI was installed. Oracle Restart may be configured to start automatically or manually.<br>
+			A resource is, in this context, something that can be managed by GI. All resources are registered in the Oracle Local Registry(OLR). Once registered , they are under the control of Oracle Restart. Some configurations tools will implicitly register resources if they detect the presence of an Oracle Restart configuration; other will not. Once registered, a resource can be started or stopped either with GI utilities (wich also wil take care of stopping or starting any dependent resources) or with the utilities native to the resource.<br>
+			Of great importance is the high availability capability. GI includes an event-monitoring mechanism that will detect any state change for a registered resource, propagate messages regarding state changes and if necessary attempt an automatic restart of failed resources.
+		</p>
+		<ul>
+			<li>Administering the Oracle Restart Process<br>
+				Following installation of GI, the Oracle Restart processes will be started automatically on booting the server. On linux, the core process is the init.ohasd daemon. This is launched through an rc script, with monitoring and respawn enabled by an entry in the /etc/inittab file. Should the daemon die (or be killed), init will restart it. <br>
+				To control Oracle Restart manually, use the crsctl utility.Example:<br>
+				<code>
+					root@machine&gt;crsctl config has<br>
+					root@machine&gt;crsctl check has<br>
+					root@machine&gt;crsctl stop has
+				</code><br>
+				<table>
+					<thead>
+						<tr><td>Command</td><td>Description</td></tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>crsctl config has</td>
+							<td>
+								Return if Oracle restart is configured or not to start on boop-up.
+							</td>
+						</tr>
+						<tr>
+							<td>crsctl check has</td>
+							<td>
+								Return if Oracle Restart is currently running or not.
+							</td>
+						</tr>
+						<tr>
+							<td>crsctl stop has</td>
+							<td>Stop the Oracle Restart process.</td>
+						</tr>
+						<tr>
+							<td>crsctl start has</td>
+							<td>Start the Oracle Restart process.</td>
+						</tr>
+						<tr>
+							<td>crsctl query softwareversion</td>
+							<td>Return the software that is installed</td>
+						</tr>
+						<tr>
+							<td>crsctl enable crs</td>
+							<td>From now, Oracle Restart will start on boot-up.</td>
+						</tr>
+						<tr>
+							<td>crsctl disable crs</td>
+							<td>From now, Oracle Restat not start on boot-up.</td>
+						</tr>
+					</tbody>
+				</table>
+			</li>
+			<li>Administering Registered Resources<br>
+				Resources must be registered with Oracle Restart if it is to provide a high availability service for them. Some tools will register resources as they are created; others will not. For example, if you create a database with the DBCA utility, it will detect the presence of Oracle Restart and run commands to register the database. You can see these commands in the scripts that DBCA generates. If you create the db with sql*plus, you must register it yourself. If you create the database with SQL*Plus, you must register it yourself. If you create a listener with Net Configuration Assistant, it will be registered. If you create one with the Net Manager, it will not be registered. If GI has been installed after other products, then this products must be explicitly registered.<br>
+				It's possible to register resources with the crsctl utility, but this is a very general-purpose tool and the syntax for adding a resources is awkward. When registering a resources you must to give, at minimum, this information: Exactly how to start, stop, and monitor the resource, what to do if the resource fails, on what other resources it may depend, but the nature of the information needed will be different for different types of resoureces. A much better alternative when working with Oracle resources is to use the srvctl utility. This is preconfigured with commands for working with all the resources that a DBA is likely to need, It is, however, limited to Oracle resources: you cannot use it to (for example) register an Apache web listener as a managed resource. The general sintax is: srvctl &lt;command&gt; &lt;object&gt; &lt;options&gt;. The commonly used &lt;commands&gt; are:
+				<table>
+					<thead>
+						<tr><td>Command</td><td>Description</td></tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>add|remove</td>
+							<td>
+								Register or deregister a resource
+							</td>
+						</tr>
+						<tr>
+							<td>enable|disable</td>
+							<td>
+								Allow or disallow Oracle Restart to manage the resource.
+							</td>
+						</tr>
+						<tr>
+							<td>start|stop</td>
+							<td>
+								Start or stop a registered (and enabled) resource.
+							</td>
+						</tr>
+						<tr>
+							<td>config</td>
+							<td>
+								Show the configuration of the resource.
+							</td>
+						</tr>
+						<tr>
+							<td>modify</td>
+							<td>
+								Adjust the configuration of the resource.
+							</td>
+						</tr>
+						<tr>
+							<td>status</td>
+							<td>
+								Show wether the resource is started or stopped.
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				The most commonly &lt;objects&gt; are:
+				<table>
+					<thead>
+						<tr><td>Object</td><td>Description</td></tr>
+					</thead>
+					<tbody>
+						<tr><td>database</td>
+							<td>
+								A database, including the instance that opens it.
+							</td>
+						</tr>
+						<tr><td>Service</td>
+							<td>A database service.</td>
+						</tr>
+						<tr><td>listener</td><td>A database listener.</td></tr>
+						<tr><td>asm</td><td>The node's ASM instance.</td></tr>
+						<tr><td>diskgroup</td><td>An ASM disk group.</td></tr>
+					</tbody>
+				</table>
+				Note: the srvctl utility has a superb help facility. Run srvctl -help and you will see the full syntax of every command for every resource type. Unfortunately, you can't do this in the exam.<br>
+				To register a database, use a command such as this: <code>srvctl add database -db orclz -oraclehome /u01/db_home1</code>. The first option is the DB_UNIQUE_NAME of the database, wich will(usually) be the DB_NAME. The second option is the Oracle Home off wich the instance that opens the database will run. By default, the database will be configured such that Oracle Restart will start it in OPEN mode automatically. To show the configuration of the database orclz, use this command: <code>srvctl config database -db orclz -all</code>. An here how to start, stop and check the status:<br>
+				<code>
+					srvctl start database -db orclz -startoption open<br>
+					srvctl stop database -db orclz -stopoption immmediate<br>
+					srvctl status database -db orclz<br>
+				</code><br>
+				Note: The srvctl utility is installed in both a database Oracle Home and the GI Oracle Home, and can be run from either. The crsctl utility is available only in the GI Oracle Home.
+			</li>
+			<li>The Restart Capability<br>
+				Whe a resource is placed under the control of Oracle Restart, it will be monitored by GI and restarted in the ecent of failure. A controlled shutdown of the resource (wheter with the srvctl utility or with a tool native to the resource) will not trigger a restart<br>
+				Note: There is no "reality check" when using SRVCTL ADD. The fact that a database is succesfully registered in the OLR does not mean that it actually exists.<br>
+				Restart behavior is determined by the POLICY argument passed to the SRVCTL ADD command, or the SRVTL MODIFY commmand subsequently. The default value is to enable automatic restart: <code>-POLICY AUTOMATIC | MANUAL | NORESTART</code>
+			</li>
+		</ul>
+	</li>
+</ul>

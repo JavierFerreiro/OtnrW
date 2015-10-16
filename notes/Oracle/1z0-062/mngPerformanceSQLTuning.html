@@ -1,0 +1,130 @@
+<h2>Managing Performance: SQL Tuning</h2>
+<p>
+	Generally speaking, the approach toward SQL tuning is to trust the optimizer. Oracle's Cost Based Optimizer (CBO) may well the most complex piece of software with wich you will ever work. The need to supply the CBO with the statistical information it needs to make decisions. Developing execution plans based on statistics is known as cost-based optimization. Two advisors are relevant to SQL performance: the SQL Tuning Advisor, wich looks at how a given statement runs, and the SQL Access Advisor, wich looks at the segment structures against wich the statement runs. Both these advisors are licensed as part of the Tuning Pack, available for Enterprise edition.
+</p>
+<ul>
+
+	<li>Manage Optimizer statistics<br>
+		Any SQL statement may be execute in a number of different ways. The method of executing a statement is known as the execution plan, and the choice of execution plan is criticalfor performance. In Oracle db execution plans are developed dynamically by the optimizer. The optimizer relies heavily on statistics. The chief statistics for optimizer are the object statistics that give details of the tables that the SQL address.
+		<ul>
+			<li>Object Statistics<br>
+				Some of the table statistics are visible in the DBA_TABLES view, the include: # of rows in the table, # of blocks (used and not yet) allocated to the table, Amount of free space in the blocks, average length of each row, # of "chained" rows (rows that cut across two or more blocks, either because they are very long or because of poor storage settings).<br>
+				Apart from statistics regarding the table as a whole, each column of the table is also analyzed. Columns statistics are visible in the DBA_TAB_COLUMNS view, they are: # of distinct values, highest and lowest values, # of nulls, average column length.<br>
+				When a table is analtzed, it's indexes are analyzed implicitly. The statistics on indexes are shown on DBA_INDEXES view that include: depth of the index tree, # of distinct key values, clustering factor (how closely the natural order of the rows follows the order of the keys).<br>
+				These statistics, are stored within the data dictionary. Object statistics are often imperfect, firstly, because they are static that means out of date as a result of DML against the objects, secondly because as a general rule statistics are gathered through a sampling process. If an object is many gigabytes bug, a complete analysis will take much time. Analyzing a sample of the object will usually give statistics that are reprensentative of the whole at a much lower cost.<br>
+				Note: Object statistics are static. They must be regenerated regularly to pick up changes in the state of the data.
+			</li>
+			<li>How the Optimizer USes Statistics.<br>
+				The optimizer bases its decisions on cardinality estimates: using the available statistics, it makes guesses about how many rows and block will be accessed by various execution methods. The accuracy of these guesses is critical for performancem and is generally dependent on th efrequency of gathering statistics and the size of the sample. If the statistics are wrong oracle has two facilities that allow it to correct this: SQL plan directives and adaptive execution plans.<br>
+				During the execution of a statement, the CBO monitors how many rows are returned at each step and compares this figure for actual cardinality, to the estimated cardinality used to derive the execution plan. If the figures deviate sufficiently, the CBO will generate a SQL plan directive for future use. A directive is an instruction to the optimizer to gather additional information regarding the objects through a mechanism know as dynamic sampling. A simple example would be that if the statistics says that one table has one row but really has millions, the first time try to read all the table intead use the index. When is reading a lot of blocks the Oracle generates the directive that in the future will instruct the optimizer to check the size of the table when deciding upon an execution plan. The directives are saved to the AWR in the SYSAUX tablespace and associated with the table to wich they refer.<br>
+				Note:SQL plan directives are tied to tables, not to statements. They are persisted in the AWR.<br>
+				The adaptive execution plan facility affects just one statement, at run time. If a choice has to be made between execution plans that would be more or less efficient depending on the number of rows retrieved, the CBO will determine a crossover point: if there are less than X rows, use plan A; of there are more than X rows, use plan B. Oracle will start to run the statement using the plan determined by the object statistics to be optimal, but if this turns out to be incorrect it will switch to the alternative plan during running. Adaptive execution is possible only if the plans have the same, or very similar, initial operations. Data is buffered until the crossover point is (or is not) reached, and then the final choice of plan is made.<br>
+				Note: the functionality of an adaptive execution plan is limited to swithching between the join methods: either nested loop join or hash join. Both of these can start by scanning, and counting, rows from one table.
+ 			</li>
+ 			<li>Gathering Statistics Manually<br>
+ 				Object statistics are not real time; They are static, wich means that they become out of date as DML operations are applied to the objects. Statistics can be gathered manually by executing procedures in the DBMS_STATS package. Example:<br>
+ 				<code>execute dbms_stats.gather_table_stats('HR','REGIONS',estimate_percent=>100)<br>
+ 				execute dbms_stats.gather_table_stats('HR','REGIONS',estimate_percent=>dbms_stats.auto_sample_size)
+ 				</code><br>
+ 				The first stament oracle analyzed the entire table (estimate_percent=>100), not just a sample of it. The second with a sample estimated by Oracle.<br>
+ 				Note:Objects statistics are not real time; they are static until refreshed by a new analysis. If this is not done with sufficient frequency, they will be seriously out of date, and the optimizer may consequently develop inappropiate execution plans.<br>
+ 				Relevant procedures in the DBMS_STATS:
+ 				<ul>
+ 					<li>gather_database_stats: anayze the entire database</li>
+ 					<li>gather_schema_stats: Analyze all objects in one schema</li>
+ 					<li>gather_table_stats: Analyze one table</li>
+ 					<li>gather_index_stats: Analyze one index</li>
+ 				</ul>
+ 				Example of a complete gather schema stats:<br>
+ 				<code>execute dbms_stats.gather_schema_stats(ownname=>'HR',cascade=>dbms_stats.auto_cascade,estimate_percent=>dbms_stats.auto_sample_size,degree=>dbms_stats.auto_degree,no_invalidate=>dbms_stats.auto_invalidate, granularity=>'auto',method_opt=>'for all columns size auto',options=>'gather')
+ 				</code><br>
+ 				The arguments are:Cascade: analyze indexes as well as tables (the setting of the example lets Oracle decide wich indexes should be analyzed). Estimate_percent: control how much of each table to analyze.DEGREE: specifies wheter to perform the analysis with parallel processing(with the setting of the example Oracle decide the number according to the environment and the size of each table).NO_INVALIDATE: controls whether or not to reparse any SQL with dependencies on the objects analyzed immediately (with the example setting oracle decide).GRANULARITY: refers to how best to analyze objects consisting of a number of subobjects, such as a table that is divided into partitions (setting oracle decide). METHOD_OPT: controls for wich columns to build up histograms, and how many buckets they should have (setting Oracle decide).Options: determines wich objects to analyze (setting given analyze all objects).<br>
+
+ 				An automatic statistic-gathering task will run the command of gathering statistics every day during the maintenance window (22:00-02:00 every weekday and 06:00-02:00next day in saturday and sunday)
+ 			</li>
+		</ul>
+	</li>
+	<li>Use the SQL Tuning Advisor<br>
+		Sql Tuning Advisor analyzes one or more SQL statements and potentially recommends gathering fresh object statistics, creating SQL profile creating additional indexes, or creating a revised SQL statement. You can run the SQL Tuning Advisor manually;however, it is run automatically during every maintenance window on the most resource-intensive SQL statements identified. Optionally, you can specify that the analysys performed during the maintenance window automatically implements recommended SQL profiles.
+		<ul>
+			<li>The Capabilities of the SQL Tuning Advisor<br>
+				Types of Analyses:<br>
+				<ul>
+					<li>
+						Statistics Analysis: Check for stale or missing statistics, and recommend refreshing or creating them.
+					</li>
+					<li>
+						SQL Profiling: Collect auxiliary statistics on a SQL statement along with partial execution statistics and store them in a SQL Profile.
+					</li>
+					<li>
+						Access Path: Analyze the impact of creating new indexes.
+					</li>
+					<li>
+						Structure Analysis: Restructure the SQL statements to see if better execution plans are generated.
+					</li>
+				</ul>
+				When profiling a SQL statement, the optimizer partially runs the statement, experimenting with various execution plans. The execution statistics generated during this process update the profile, and can bu used by the optimizer subsequently. SQL Tuning Advisor considers each SQL statement individually. If it recommends an index for a SELECT statement, it may help the performance of the query but may reduce the performance of DML activity against the table in a heavy OLTP environment. Thus, the SQL Access Advisor, discussed later in this chapter, may be a better tool to analyze all operations against one or more tables in a worload. The sources for the SQL Tuning Advisor are: The SQL statements currently cached in the library cache of the shared pool, a precreated set of statements, statements retrieved from the AWR, An individual ad hoc statement.<br>
+				Note:The Tuning Advisor's segment advice is limited to index creation.<br>
+			</li>
+			<li>The SQL Tunning Advisor API: The DBMS_SQLTUNE Package<br>
+				Database Express has an interface to the results of the SQL Tuning Advisor (Performance tab).<br>
+				For more control or run a specific set of tuning tasks, you can use DBMS_SQLTUNE. For a basic analysis of a SQL statemnt, you will use the following procedures within DBMS_SQLTUNE:<br>
+				<ul>
+					<li>
+						CREATE_TUNNING_TASK: Create a tunning task for a SQL statement or a SQL Tuning Set.
+					</li>
+					<li>
+						EXECUTE_TUNING_TASK: Execute a tunning task created with CREATE_TUNING_TASK
+					</li>
+					<li>
+						REPORT_TUNING_TASK: Show the results and recommendations from the SQL Tunning Advisor.
+					</li>
+				</ul>
+				Or you can use the following data dictionary views to query the name and status of tunning jobs:
+				<ul>
+					<li>
+						DBA_ADVISOR_LOG: Task names,status and execution statistics for all task.
+					</li>
+					<li>
+						DBA_ADVISOR_TASK: More detailed information about advisor tasks, such as advisor name, user-specified description, and execution type for the current user.
+					</li>
+					<li>
+						V$ADVISOR_PROGRESS: More detailed information about the completion status and time remaining for an advisor task.
+					</li>
+				</ul>
+			</li>
+
+		</ul>
+	</li>
+	<li>Use The SQL Acces Advisor to Tune Workload<br>
+		The SQL Access Advisor performs an anlysis of overall SQL performance using a workload specification, concentrating on the segment structures. The tuning advisor may give basic advice on indexes, but the Access Advisor advice is much more comprehensive.
+		<ul>
+			<li>The Capabilities of the SQL Access Advisor<br>
+				The workload specification can be one of the following:a single SQL statement, a SQL statement tuning set, current SQL cache contents or a hypothetical workload imputed from the DDL of a set of objects.<br>
+				A SQL statement tuning set is a stored set of statement. This set can be populated from a variety of sources, such as statements captured by an AWR snapshot or recently executed code currently in the library cache of the shared pool. Statements are looked at individually, but reports will cover the entire set. Recommendation from the SQL Access Advisor include: Indexes(B-tree,bitmap and function based), Materialized views and materialized view logs, partitioning strategies.<br>
+				It's always possible that recommendations that improve some aspect of the workload may have an adverse impact on another. This should be highlighted in the reports.<br>
+				The Tuning advisor has its own API: DBMS_SQLTUNE. The Acces ADvisor does not. To invoke it, use either EM or DBMS_ADVISOR API (generic API for running any of the advisors).
+			</li>
+			<li>Using the SQL Access Advisor with DBMS_ADVISOR<br>
+				Using SQL Access Advisor via DBMS_ADVISOR package can get quite complex. There is, however, one procedure designed to make the job easy.<br>
+				DBMS_ADVISOR.QUICK_TUNE is straightforward and takes as input a single SQL statement to tune. AS a result, it performs much like the SQL Tuning Advisor but can perform a much more in-depth analysis, producing more recommendations than SQL Tuning Advisor, such as materialized vie recommendations. The procedure requires (as a minimum) three arguments: the name of the advisor, the name of the task to be run and the statement. Example:<br>
+				<code>
+					execute dbms_advisor.quick_tune(dbms_advisor.sqlaccess_advisor,'task1','select distinct object_id from object_analysis')
+				</code><br>
+				The results of the tuning effort reside in the data dictionary view USER_ADVISOR_ACTIONS, but the output is not very readable. Therefore, you can use the procedure CREATE_FILE to create the script tou use to implement the recommendations generated by the QUICK_TUNE procedure. That is:<br>
+				<code>
+					SQL>create directory tune_scripts as '/u06/tune_scripts';<br>
+					SQL>begin<br>
+					&nbsp;&nbsp;&nbsp;dbms_advisor.create_file(<br>
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dbms_advisor.get_task_script('task1'),<br>
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'TUNE_SCRIPTS',<br>
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'tune_fts.sql'<br>
+					&nbsp;&nbsp;&nbsp;);<br>
+					end;<br>
+					/<br>
+					)
+				</code>
+			</li>
+		</ul>
+	</li>
+</ul>

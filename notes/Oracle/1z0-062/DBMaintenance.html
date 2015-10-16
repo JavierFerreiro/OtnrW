@@ -1,0 +1,104 @@
+<h2>Performing Database Maintenance</h2>
+
+<ul>Performing Database Maintenance<br>
+	<li>Manage the Automatic Workload Repository (AWR)<br>
+		Oracle collects a vast amount of statistical information regarding performance and activity, that is accumulated in memory and periodically written to disk, specifically in tables of AWR in SYSAUX tablespace. The AWR is no essential for the DB to function.
+		<ul>
+			<li>Gathering AWR Statistics<br>
+				The level of statistics gathered is controlled by the instance parameter STATISTICS_LEVEL (BASIC|TYPICAL(default)|ALL). Typical will force the collection of all the statistics needed for normal tuning, without collectiong any that would adversely impact performance. Basic level will disable virtually all statistics, all performance-tunning advisors, and the server-generated Alert system -with no appreciable run-time performance benefit. All level will colect extremely detailed statistics on SQL statements execution, just in case you are doing advanced SQL statement tunning, because they may cause a slight performance drop.<br>
+				Note: Setting STATISTICS_LEVEL=BASIC will disable all advisors and the serve-generated Alert system.<br>
+				Statistics are accumulated in memory, in data structures within the SGA. Periodically (default every 1 hour), they are flushed to disk, to the AWR. This is know as an AWR snapshot. The flushing to disk is done by a bg process: MMON. This is the key of efficiency of the statistics-collection process. Before 12c the acces to performance-tuning statistics was only possible by running queries against various views (dynamic performance v$ views). Populate these views is an expensiveprocess. This approach is still possible but the AWR approach is far more efficient.<br>
+				The MMON has direct access to the memory structures that make up the SGA and therefore the statistics within them. It can extract data from the SGA without the need to go via a session or execute SQL. The only overhead involved is actually writing the snapshot of the data to the AWR (only one time every hour (by default)).<br>
+				Note:AWR statistics are saved as snapshot to the AWR by the MMON process (by default, every 60min). By default, the snapshots are stored for 8 days before being overwritten.<br>
+				The AWR is a set of tables located in the SYSAUX tablespace. These tables cannot be relocated; the exist in the SYSMAN schema. Oracle does not support access to the AWR tables with SQL*Plus or any tools other than the various APIs (DBMS packages or views).<br>
+				An AWR snapshot can be thought of as a copy of the contents of many V$ views at the time the snapshot was taken (the mechanism is more direct like we say previously). The process that makes the copy is MMON. In addition of the information from the dynamic performance (or V$) views, AWR stores information otherwise visible in the DBA views populated from data dictionary (history of object statistics). Without AWR, the DB would have no long-term record of how objects were changing.
+			</li>
+			<li>Managing the AWR<br>
+				It's possible to mark a pair of snapshots as a baseline, to be kept indefinitely. Baseline snapshots are not automatically purged. As a rough guide for sizing, if the snapshot collection is left on every hour and the retention time is left on eight days, then the AWR may well require between 200MB and 300MB of space in the SYSAUX tablespace.<br>
+				Note: It's important to monitoring the size and growth of the SYSAUX tablespace and the AWR within it. The alert system will assist with the first task, and the view V$SYSAUX_OCCUPANTS should be used for the second.<br>
+				Adjusting the AWR snapshot frequency and retention are done with the PL/SQL API, DBMS_WORKLOAD_REPOSITORY. <br>
+				<code>
+					&gt;select snap_interval,retention from dba_hist_wr_control;<br>
+					&gt;execute dbms_workload_repository.modify_snapshot_settings(retention=>43200,interval=>30)<br>
+					&gt;select snap_interval,retention from dba_hist_wr_control;<br>
+					&gt;execute dbms_workload_repository.create_snapshot
+				</code><br>
+				Note: By default, AWR snapshots are taken every hour and saved for eight days. The AWR is located in the SYSAUX tablespace and cannot be relocated to anywhere else.
+			</li>
+		</ul>
+	</li>
+	<li>Use the Automatic Database Diagnostic Monitor (ADDM)<br>
+		The database comes preconfigured with a set of advisors. First of this is the Automatic Database Diagnostic Monitor or ADDM. The ADDM reports will highlight problems and suggest solutions or run other advisors (much more precise). The ADDM looks at data stored in two AWR snapshots: by comparing them, it can summarize the activity during the period between these snapshots and generate a report. ADDM can identify: CPU bottlenecks, contention issues such as row locking, stress on the I/O system, High-load SQL.<br>
+		Note: ADDM reports are generated on demand as well as whenever a snapshot is gathered. A report requires two snapshots.<br>
+		The ADDM runs automatically whenever an AWR snapshot is generated and it will analyze activity between that snapshot and the preceding snapshot. Therefore, by default, reports are available per hour. It is also possible to generate a report on demand covering the time between any two snapshots. ADDM reports can be retrieved or generated either through DBE (database express) or by running the addmrpt.sql script. This script resides in ORACLE_HOME/rdbms/admin directory. It presents all available snapshots, and prompts for the two over wich the report should be generated.
+	</li>
+	<li>Describe and Use the Advisory Framework.<br>
+		The advisors rely on activity statistics accumulated as snapshots. The ADDM and the SQL Tuning Advisor can accessed through Database Express, on the Performance tab. The other advisors have PL/SQL interfaces or are visible as data dictionary views. Summary description of the advisors:<br>
+		<ul>
+			<li>The memory advisors<br>
+				The memory advisors: predict the effect of varying  the size of memory structures, reporting the estimates in terms of processing time saved (the Shared Pool, Java Pool and Streams Pool advisors), disk activity reduction (Database Buffer Cache advisor) or both (PGA advisor). There is no advisor for Large Pool. The memory advisors are exposed through these views:
+				<ul>
+					<li>V$DB_CACHE_ADVICE: the db Cache advisor</li>
+					<li>V$JAVA_POOL_ADVICE: The Java Pool advisor</li>
+					<li>V$MEMORY_TARGET_ADVICE: The Automatic Memory Management advisor</li>
+					<li>V$PGA_TARGET_ADVICE: The PGA advisor</li>
+					<li>V$SGA_TARGET_ADVICE: The shared Memory Management advisor</li>
+					<li>V$SHARED_POOL_ADVICE: The Shared Pool advisor</li>
+					<li>V$STREAMS_POOL_ADVICE: The Streams Pool advisor</li>
+				</ul>
+			</li>
+			<li>The SQL advisors <br>
+				2 SQL advisors: the SQL acces advisor and the SQL Tunning Advisor. The SQL Access Advisor will observe a workload of SQL statemnest and make recommendations regarding segments so that the workload would run more quickly. The sql can be a hypothtetical worload or it can be derived from the SQL actually executed during certain time frame.<br>
+				The SQL Tunning Advisor can analyze individual statements, as well as recommend schema changes.<br>
+				The SQL advisors are accessed through PL/SQL APIs: DBMS_ADVISORS and DBMS_SQLTUNE. SQL Tuning Advisor is also accessible through Database Express.
+			</li>
+			<li>The Automatic Undo Advisor<br>
+				The undo advisor (v$UNDOSTAT) will observe the rate of undo data generation and the length of queries being run, and it will recommend a minimum size for the undo tablespace, wich will ensure that queries do not fail with a "snapshot too old" and that DML statements do not fail because of insufficient undo space.
+			</li>
+			<li>The Mean Time to Recover (MTTR)<br>
+				If the instance terminates in a disrderly fashion, the next startup is necessary to reinstate all work in progress that had not been written to the datafiles. This will happen automatically, but until it is done, users cannot log on. MTTR advisor (V$INSTANCE_RECOVERY) estimates how log this period of downtime for crash recovery will be, given the current workload.
+			</li>
+			<li>The Data Recovery Advisor<br>
+				If DB has been damaged the DBA needs time to find what is the problem and how solve it (recover all DB, only a datafile, one blocks inside a datafile...). Data Recovery Advisor follows an expert system to advise the DBA on this. Accessed with DBMS_SQLDIAG package invoked from sql*plus or rman.
+			</li>
+			<li>The Segment Advisor<br>
+				Segments grow automatically but do not shrink automatically as data is removed or modified with DELETE and UPDATE. This only happens when the segment is deliberately reorganized. The segment Advisor observes tables and indexes (current state and historical) and recommends appropiate reorganization when necessary. Invoke with DBMS_ADVISOR package.
+			</li>
+			<li>The SQL Repair Advisor<br>
+				Occasionally a SQL statement can fail because internal Oracle error (Ora-600). If the error condition is only encountered for a particular execution plan, it follows that using a different execution plan could avoid the failure. SQL Repair Advisor can investigate this and generate a partch to the statement that will force the optimizer to choose a safe plan.
+			</li>
+		</ul>
+	</li>
+	<li>Set Alert Thresholds<br>
+		The alert system can automate a large amount of work that previously fell into the DBA domain.
+		<ul>
+			<li>Alert Condition Monitoring and Notifications<br>
+				A typical example of humdrum work is space management wich involves monitoring tablespaces to see when they are about to fill up. This could be done with scripts but the scripts are prone to error or misinterpretation (autoextend, etc...). The alert system replaces script, third-parties programs,etc., monitor many conditions that can cause problems and will send notifications by a variety of methods. It is by default configured to raise a warning alert when a tablespace reaches 85-percent full and a critical alert when a tablespace is 97-percent full with account being taken of autoextension and the nature of the contents.<br>
+				Alerts comes in 2 forms: stateful alerts based on conditions that persist and can be fixed. Tablespace space usage is an example. Stateless alerts are based on events: they happen and are gone. A query failing with "snapshot too old" and two transactions deadlocking are axamples.<br>
+				To configure the Alert system, you set thresholds that are stored in the AWR. Then the MMON background process will monitor the database and the instance, in near real time, and compare the current state with the thresholds, if a threshold is crossed, it will raise the alert. The mechanism by wich an alert is raised is simply to put an entry on the alert queue. A queue is a table of messages that other processes can read. The dafault behavior to process this queue is that Enterprise Manager Cloud Control will (if an agent has been installed) dequeue the message and display it on the database home page, but EM can be configured to send e-mails or SMS.<br>
+				Note:Alerts are raised by the MMON process, not by Enterprise Manager. Enterprise Manager reads alerts, as can other event handlers written by you or by third parties.<br>
+				You can view the alerts by querying the view DBA_OUTSTANDING_ALERTS and its possible to write an alert handler in PL/SQL that will dequeu the messages and take any action desired.
+				<li>Setting Thresholds<br>
+					You can set over 200 metrics for thresholds, documented in the view V$METRICNAME. There is an API(DBMS_SERVER_ALERT package) for setting thresholds. Example:<br>
+					<code>
+						execute dbbms_server_alert.set_threshold(metrics_id=>dbms_server_alert.redo_generated_sec, warning_operator=>dbms_server_alert.operator_ge,warning_value=>'1000000', critical_operator=>db,s_server_alert.operator_ge, critical_value=>'2000000', observation_period=>1,consecutive_occurrences=>5, instance_name=>'ORCLZ',object_type=>dbms_server_alert.object_type_system,object_name=>null);
+					</code>
+					When stateful alerts are raised, they are visible as rows in the DBA_OUTSTANDING_ALERTS. They will remain visible until they are cleared. When an alert is cleared, it is removed from the DBA_OUTSTANDING_ALERTS view and written to the DBA_ALERT_HISTORY view.Stateless alerts go stright to the history view. A space usage warning will be raised when a tablespace is 85-percent full and a critical warning when it is 97 percent full.
+				</li>
+			</li>
+		</ul>
+	</li>
+	<li>Use Automated Task<br>
+		The autotask system is a mechanism whereby certain maintenance jobs run automatically. these are jobs that Oracle recommends should be run regularly on all databases.<br>
+		<ul>
+			<li>The autotasks<br>
+				There are three autotask: Gathering optimizer statistics, Running the SQL Tuning Advisor and Running the Segment Advisor.<br>
+				Optimizer statistics are needed if the optimizer is to generate efficient plans for executing SQL statements. These statistics include information such as how big tables are, and the number of distinct values in columns. The autotask that gathers statistics will do this. By default, any fresh statistics are made available for use immediately.<br>
+				The SQL Tuning Advisor autotask identifies high-load SQL that have been run, using information written to the AWR by snapshots, and attempts to tune them. The result of the tuning are stored in a profile wich is additional information on how best to run the statementthat can be used vy the optimizer the next time the statement is executed. By default, profiles are generated but are not actually brought into use. To see the profiles, query the DBA_SQL_PROFILES view
+			</li>
+			<li>Controlling the Autotasks<br>
+				A prerequisite for running the autotask is that the STATISTICS_LEVEL parameter should be set to either TYPICAL or ALL. The autotasks are launched by a background process: the ABP0. The tasks, if enabled, run within defined windows. The timing of the windows is to open at 22:00 on weekdays and remain open for four hours, and at 06:00 on weekend days and remain open for 20 hours. These windows are managed by the Scheduler. The DBA_AUTOTASK_CLIENT view will show ehter the task are enable and the DBMS_AUTO_TASK_ADMIN package has procedures to enable and disable them.
+			</li>
+		</ul>
+	</li>
+</ul>
