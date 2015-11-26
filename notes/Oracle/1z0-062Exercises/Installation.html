@@ -1,0 +1,201 @@
+<h2>Exercises Of Managing Space</h2>
+<p>
+1-Generate the script that install an Oracle Engine (not a database) in a OFA 
+style.
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<code>
+		Previous:
+		<ul>
+			<li>
+				It's not necessary create the directory ORACLE_HOME and ORACLE_BASE, but you 
+				should to create the user oracle(groups dba,oinstall optional), and the groups:
+				 osdba,osdgdba,oskmdba,osbackupdba.
+			</li>
+			<li>
+				It's nice to create the $ORACLE_BASE, and the group oinstall, but not mandatory.
+			</li>
+			<li>
+				Install all the packages neccesaries (check documentation). <br>
+				 yum install binutils compat-libcap1 compat-libstdc++ compat-libstdc++ 
+					gcc gcc-c++ glibc glibc-devel kshlibgcc libgcc libstdc++ libstdc++ 
+					libstdc++-devel libstdc++-devel libaio libaio libaio-devel 
+					libaio-devel libXext libXtst libX11 libXau libxcb libXi make sysstat
+			</li>	
+			<li>
+				Check the ulimits: <br>
+				Edit the file /etc/security/limits.d/96-oracle.conf<br>
+			  	<code>
+					# Default limits for Oracle user <br>
+					oracle soft nofile 1024<br>
+					oracle hard nofile 65536<br>
+					oracle soft nproc 2047 <br>
+					oracle hard nproc 65536 <br>
+					oracle soft stack 10240 <br>
+					oracle hard stack 10240<br>
+					oracle soft memlock 3145728<br>
+					oracle hard memlock 3145728<br>
+				</code> 	
+			</li>
+			<li>
+				Disable transparent huge pages and if the instance will be a very big 
+				(memory) instance and with a lot of connections, then reserve huge pages 
+				(not the transparent).<br>
+				vim /etc/default/grub and add in GRUB_CMDLINE_LINUX: "transparent_hugepage=never"<br>
+				grub2-mkconfig > /boot/efi/EFI/fedora/grub.cfg<br>
+			</li>
+			<li>
+				Check the hostname and the use of tempfs	
+			</li>
+		</ul>
+		Steps:
+		<ol>
+			<li>
+				Uncompress the software package with unzip, cpio or whatever.
+			</li><br>
+			<li>
+				Copy the file ./database/response/db_install.rsp to a directory (whatever):<br>
+				cp ./database/response/db_install.rsp /home/oracle/install/db_install_01.rsp<br>
+				Run: ./runInstaller -ignoreSysPrereqs -responseFile /var/opt/oracleSoft/database/response/db_install_xavi.rsp -silent<br>
+				Attention: runInstaller does not support relative path :(
+			</li>
+			<li>
+				Modify the file: vim /home/oracle/install/db_install_01.rsp like this:<br>
+				<code>
+#-------------------------------------------------------------------------------<br>
+# Do not change the following system generated value. <br>
+#-------------------------------------------------------------------------------<br>
+oracle.install.responseFileVersion=/oracle/install/rspfmt_dbinstall_response_schema_v12.1.0<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the installation option.<br>
+# It can be one of the following:<br>
+#   - INSTALL_DB_SWONLY<br>
+#   - INSTALL_DB_AND_CONFIG<br>
+#   - UPGRADE_DB<br>
+#-------------------------------------------------------------------------------<br>
+oracle.install.option=INSTALL_DB_SWONLY<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the hostname of the system as set during the install. It can be used<br>
+# to force the installation to use an alternative hostname rather than using the<br>
+# first hostname found on the system. (e.g., for systems with multiple hostnames <br>
+# and network interfaces)<br>
+#-------------------------------------------------------------------------------<br>
+ORACLE_HOSTNAME=technode1.sede.corp.intesasanpaolo.com<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the Unix group to be set for the inventory directory.  <br>
+#-------------------------------------------------------------------------------<br>
+UNIX_GROUP_NAME=oinstall<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the location which holds the inventory files.<br>
+# This is an optional parameter if installing on<br>
+# Windows based Operating System.<br>
+#-------------------------------------------------------------------------------<br>
+INVENTORY_LOCATION=/u01/app/oraInventory<br>
+#-------------------------------------------------------------------------------<br>
+#-------------------------------------------------------------------------------<br>
+SELECTED_LANGUAGES=en,it<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the complete path of the Oracle Home. <br>
+#-------------------------------------------------------------------------------<br>
+ORACLE_HOME=/u01/app/oracle/product/12.1.0.2/dbhome_01<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the complete path of the Oracle Base. <br>
+#-------------------------------------------------------------------------------<br>
+ORACLE_BASE=/u01/app/oracle<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the installation edition of the component.                     <br>
+#                                                             <br>
+# The value should contain only one of these choices.  <br>
+#   - EE     : Enterprise Edition <br>
+<br>
+#-------------------------------------------------------------------------------<br>
+oracle.install.db.InstallEdition=EE<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+SELECTED_LANGUAGES=en,it<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the complete path of the Oracle Home. <br>
+#-------------------------------------------------------------------------------<br>
+ORACLE_HOME=/u01/app/oracle/product/12.1.0.2/dbhome_01<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the complete path of the Oracle Base. <br>
+#-------------------------------------------------------------------------------<br>
+ORACLE_BASE=/u01/app/oracle<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the installation edition of the component.                     <br>
+#                                                             <br>
+# The value should contain only one of these choices.  <br>
+#   - EE     : Enterprise Edition <br>
+<br>
+#-------------------------------------------------------------------------------<br>
+oracle.install.db.InstallEdition=EE<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+SELECTED_LANGUAGES=en,it<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the complete path of the Oracle Home. <br>
+#-------------------------------------------------------------------------------<br>
+ORACLE_HOME=/u01/app/oracle/product/12.1.0.2/dbhome_01<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the complete path of the Oracle Base. <br>
+#-------------------------------------------------------------------------------<br>
+ORACLE_BASE=/u01/app/oracle<br>
+<br>
+#-------------------------------------------------------------------------------<br>
+# Specify the installation edition of the component.                     <br>
+#                                                             <br>
+# The value should contain only one of these choices.  <br>
+#   - EE     : Enterprise Edition <br>
+<br>
+#-------------------------------------------------------------------------------<br>
+oracle.install.db.InstallEdition=EE<br>
+<br>
+#------------------------------------------------------------------------------<br>
+# Specify whether user doesn't want to configure Security Updates.<br>
+# The value for this variable should be true if you don't want to configure<br>
+# Security Updates, false otherwise.<br>
+#<br>
+# The value can be either true or false. If left blank it will be assumed<br>
+# to be false.<br>
+#<br>
+# Example    : DECLINE_SECURITY_UPDATES=false<br>
+#------------------------------------------------------------------------------<br>
+DECLINE_SECURITY_UPDATES=true<br>
+
+Finally run: ./runInstaller.sh 
+				</code>
+			</li>
+		</ol>
+	</code>
+</div><br>
+2-
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer">
+	<code>
+	</code>
+</div><br>
+3-
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer">
+	<code>
+	</code>
+</div>
+
+</p>
+<h3>Officials</h3>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
+
