@@ -1,0 +1,173 @@
+<h2>Exercises Of Managing Space</h2>
+<h3>Officials</h3>
+<p>
+1-Create a DB with DBCA
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<code>
+	<ol>
+		<li>	
+		export DISPLAY=:0.0 #or ip:0.0 or whatever<br>
+		export ORACLE_HOME=/u01/app/oracle/product/12.1.0.2/dbhome_01	
+		</li>
+		<li>
+		./dbca
+		</li>
+	</ol>
+	</code>
+</div>
+2-Create a template with DBCA using the db of the first exercise.
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<code>
+	1-Equal than the first but choose to generate only the scripts.<br>
+	2-Finally release the creation scripts in: 
+	/u01/app/oracle/admin/&lt;sid&gt;/scripts<br>
+	3-Execute:./&lt;sid&gt;.sh<br>
+	</code>
+</div>
+
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+1-Create a DB totally manually.
+<button type="button" onclick="$('#AnswerXavi1').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi1" class="hidden answer container-fluid" >
+Create a Database manually<br>
+1-set environment variables<br>
+<button type="button" onclick="$('#AnswerXavi11').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi11" class="hidden answer container-fluid" >
+Create a Database manually<br>
+export ORACLE_SID=orclhand<br>
+export ORACLE_HOME=/u01/app/oracle/product12.1.0.2/dbhome_1
+</div>
+<br>
+2- create a password file (not mandatory if use OS user authentication, recommended).<br>
+<button type="button" onclick="$('#AnswerXavi12').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi12" class="hidden answer container-fluid" >
+orapwd file=/u01/app/oracle/product/12.1.0.2/dbhome_1/dbs/orapworcl
+</div>
+<br>
+3- Create the initialization Parameter File<br>
+<button type="button" onclick="$('#AnswerXavi13').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi13" class="hidden answer container-fluid" >
+Copy of somewhere like :https://docs.oracle.com/cd/B28359_01/server.111/b28310/create005.htm#CIAGFFIE<br>
+and put in $ORACLE_HOME/dbs/init.ora (for convenience)<br>
+EXAMPLE:<br>
+##############################################################################<br>
+# Example INIT.ORA file<br>
+#<br>
+# This file is provided by Oracle Corporation to help you start by providing<br>
+# a starting point to customize your RDBMS installation for your site. <br>
+# <br>
+# NOTE: The values that are used in this file are only intended to be used<br>
+# as a starting point. You may want to adjust/tune those values to your<br>
+# specific hardware and needs. You may also consider using Database<br>
+# Configuration Assistant tool (DBCA) to create INIT file and to size your<br>
+# initial set of tablespaces based on the user input.<br>
+###############################################################################<br>
+ <br>
+# Change '<ORACLE_BASE>' to point to the oracle base (the one you specify at<br>
+# install time)<br>
+ <br>
+db_name='ORCL'<br>
+memory_target=1G<br>
+processes = 150<br>
+audit_file_dest='<ORACLE_BASE>/admin/orcl/adump'<br>
+audit_trail ='db'<br>
+db_block_size=8192<br>
+db_domain=''<br>
+db_recovery_file_dest='<ORACLE_BASE>/flash_recovery_area'<br>
+db_recovery_file_dest_size=2G<br>
+diagnostic_dest='<ORACLE_BASE>'<br>
+dispatchers='(PROTOCOL=TCP) (SERVICE=ORCLXDB)'<br>
+open_cursors=300 <br>
+remote_login_passwordfile='EXCLUSIVE'<br>
+undo_tablespace='UNDOTBS1'<br>
+# You may want to ensure that control files are created on separate physical<br>
+# devices<br>
+control_files = (ora_control1, ora_control2)<br>
+compatible ='11.1.0'
+</div><br>
+4-Connect to the instance<br>
+<button type="button" onclick="$('#AnswerXavi14').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi14" class="hidden answer container-fluid" >
+If OS authentication: <br>
+sqlplus /nolog<br>
+connect / as sysdba<br>
+If password file authentication:<br>
+connect sys as sysdba
+</div><br>
+5-Create a server parameter file (not mandatory)<br>
+<button type="button" onclick="$('#AnswerXavi15').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi15" class="hidden answer container-fluid" >
+create spfile from pfile;
+</div><br>
+6-Start the instance in the appropiate state for create the Database<br>
+<button type="button" onclick="$('#AnswerXavi16').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi16" class="hidden answer container-fluid" >
+startup nomount;
+</div>
+<br>
+7-Create the directory per oradata<br>
+<button type="button" onclick="$('#AnswerXavi17').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi17" class="hidden answer container-fluid" >
+mkdir /u01/app/oracle/oradata<br>
+chown oracle:oinstall /u01/app/oracle/oradata
+</div>
+<br>
+8-create the Database:<br>
+<button type="button" onclick="$('#AnswerXavi18').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi18" class="hidden answer container-fluid" >
+create database orclhand<br>
+	user sys identified by oracle<br>
+	user system identified by oracle<br>
+logfile group 1('/u01/app/oracle/oradata/orclhand/redo01.log') size 100M,<br>
+	group 2('/u01/app/oracle/oradata/orclhand/redo02.log') size 100M,<br>
+	group 3('/u01/app/oracle/oradata/orclhand/redo03.log') size 100M<br>
+maxlogfiles 5<br>
+maxlogmembers 5<br>
+maxloghistory 1 <br>
+maxdatafiles 100<br>
+character set al32utf8<br>
+national character set al16utf16<br>
+extent management local<br>
+datafile '/u01/app/oracle/oradata/orclhand/system01.dbf' size 325M reuse<br>
+sysaux datafile '/u01/app/oracle/oradata/orclhand/sysaux01.dbf' size 325M reuse<br>
+default tablespace users<br>
+ datafile '/u01/app/oracle/oradata/orclhand/users01.dbf' size 250M reuse autoextend on    maxsize 500M<br>
+default temporary tablespace tempts1<br>
+ tempfile '/u01/app/oracle/oradata/orclhand/temp01.dbf' size 100M reuse<br>
+undo tablespace undotbs1<br>
+ datafile '/u01/app/oracle/oradata/orclhand/undo01.dbf' size 200M reuse autoextend on maxsize 500M<br>
+;
+</div><br>
+
+9-Run scripts to generate views:<br>
+<button type="button" onclick="$('#AnswerXavi19').toggleClass('hidden');">Answer</button>
+<div id="AnswerXavi19" class="hidden answer container-fluid" >
+@?/rdbms/admin/catalog.sql<br>
+-- catalog.sql -Creates the views of the data dictionary tables, the dynamic<br>
+-- performance views, and public synonyms for many of the views. <br>
+-- Grants PUBLIC access to the synonyms.<br>
+@?/rdbms/admin/catproc.sql <br>
+--catproc.sql - Runs all scripts required for or used with PL/SQL.
+@?/sqlplus/admin/pupbld.sql<br>
+--pupbld.sql - Required for SQL*Plus. Enables SQL*Plus to disable commands <br>
+-- by user. <br>
+notes:
+@Indicate execute script<br>
+? indicate $ORACLE_HOME<br>
+</div>
+<br>
+11-Install Additional options...<br>
+like Enterprise Manager....<br>
+<br>
+12-Enable Automatic Instance Startup<br>
+
+</div>
+	
+
+
+</p>
+
