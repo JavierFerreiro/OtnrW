@@ -1,0 +1,180 @@
+/u01/
+└── app
+    ├── oracle
+    │   ├── admin
+    │   │   └── orcl
+    │   │       ├── adump
+    │   │       │   └── orcl_ora_8811_20151112090820410910143795.aud
+    │   │       ├── dpdump
+    │   │       │   └── dp.log
+    │   │       ├── pfile
+    │   │       │   ├── init.ora.1012201575627
+    │   │       │   └── init.ora.1012201585740
+    │   │       ├── scripts
+    │   │       │   ├── cloneDBCreation.sql
+    │   │       │   ├── CloneRmanRestore.sql
+    │   │       │   ├── init.ora
+    │   │       │   ├── initorclTempOMF.ora
+    │   │       │   ├── initorclTemp.ora
+    │   │       │   ├── lockAccount.sql
+    │   │       │   ├── orcl.log
+    │   │       │   ├── orcl.sh
+    │   │       │   ├── orcl.sql
+    │   │       │   ├── postDBCreation.sql
+    │   │       │   ├── postScripts.sql
+    │   │       │   ├── rmanRestoreDatafiles.sql
+    │   │       │   └── tempControl.ctl
+    │   │       └── xdb_wallet
+    │   │           ├── cwallet.sso
+    │   │           └── ewallet.p12
+    │   ├── audit
+    │   │   └── orcl
+    │   │       ├── ora_audit_10.bin
+    │   ├── cfgtoollogs
+    │   │   └── dbca
+    │   │       ├── dbcaui.log
+    │   │       ├── orcl
+    │   │       │   ├── initorclTempOMF.ora.101220158043
+    │   │       │   ├── lockAccount.log
+    │   │       │   ├── OraDB12Home1_orcl_creation_checkpoint.xml
+    │   │       │   ├── rmanDeleteFiles.sql
+    │   │       │   ├── rmanUtil
+    │   │       │   ├── tempControl.ctl
+    │   ├── checkpoints
+    │   │   └── dbca
+    │   │       └── index.xml
+    │   ├── diag
+    │   │   ├── afdboot
+    │   │   ├── apx
+    │   │   ├── asm
+    │   │   ├── asmtool
+    │   │   ├── clients
+    │   │   ├── crs
+    │   │   ├── diagtool
+    │   │   ├── dps
+    │   │   ├── em
+    │   │   ├── gsm
+    │   │   ├── ios
+    │   │   ├── lsnrctl
+    │   │   ├── netcman
+    │   │   ├── ofm
+    │   │   ├── plsqlapp
+    │   │   ├── rdbms
+    │   │   │   └── orcl
+    │   │   │       ├── i_1.mif
+    │   │   │       └── orcl
+    │   │   │           ├── alert
+    │   │   │           │   └── log.xml
+    │   │   │           ├── cdump
+    │   │   │           ├── hm
+    │   │   │           ├── incident
+    │   │   │           ├── incpkg
+    │   │   │           ├── ir
+    │   │   │           ├── lck
+    │   │   │           ├── log
+    │   │   │           │   ├── ddl
+    │   │   │           │   ├── debug
+    │   │   │           │   ├── imdb
+    │   │   │           │   └── test
+    │   │   │           ├── metadata
+    │   │   │           │   ├── ADR_CONTROL.ams
+    │   │   │           ├── stage
+    │   │   │           ├── sweep
+    │   │   │           └── trace
+    │   │   │               ├── alert_orcl.log
+    │   │   │               ├── orcl_w005_16891.trc
+    │   │   │               └── orcl_w005_16891.trm
+    │   │   └── tnslsnr
+    │   │       └── technode1
+    │   │           └── listener
+    │   │               ├── alert
+    │   │               │   └── log.xml
+    │   │               ├── cdump
+    │   │               ├── incident
+    │   │               ├── incpkg
+    │   │               ├── lck
+    │   │               ├── log
+    │   │               │   ├── debug
+    │   │               │   └── test
+    │   │               ├── metadata
+    │   │               ├── metadata_dgif
+    │   │               ├── metadata_pv
+    │   │               ├── stage
+    │   │               ├── sweep
+    │   │               └── trace
+    │   │                   └── listener.log
+    │   ├── fast_recovery_area
+    │   │   └── ORCL
+    │   │       └── archivelog
+    │   │           └── 2015_11_11
+    │   │               └── o1_mf_1_61_c46p10my_.arc
+    │   ├── flash_recovery_area
+    │   │   ├── orcl
+    │   │   │   └── control02.ctl
+    │   │   └── ORCL
+    │   │       ├── archivelog
+    │   │       │   └── 2015_11_12
+    │   │       └── onlinelog
+    │   ├── oradata
+    │   │   └── orcl
+    │   │       ├── control01.ctl
+    │   │       ├── example01.dbf
+    │   │       ├── redo01.log
+    │   │       ├── redo02.log
+    │   │       ├── redo03.log
+    │   │       ├── sysaux01.dbf
+    │   │       ├── system01.dbf
+    │   │       ├── temp01.dbf
+    │   │       ├── undotbs01.dbf
+    │   │       └── users01.dbf
+    │   └── product
+    │       └── 12.1.0.2
+    │           └── dbhome_01
+    │               ├── addnode
+    │               │   ├── addnode_oraparam.ini
+    │               │   ├── addnode_oraparam.ini.sbs
+    │               │   └── addnode.sh
+    │               ├── admin
+    │               │   └── orcl
+    │               │       └── xdb_wallet
+    │               │           ├── cwallet.sso
+    │               │           └── ewallet.p12
+    │               ├── apex
+    │               ├── sqlj
+    │               ├── sqlpatch
+    │               ├── sqlplus
+    │               ├── srvm
+    │               │   ├── admin
+    │               │   │   ├── clustdb.sql
+    │               │   │   ├── getcrshome
+    │               │   │   ├── getcrshome0
+    │               │   │   ├── init.ora
+    │               │   │   ├── ocrlog.ini
+    │               │   │   └── ractrans
+    │               │   ├── auth
+    │               │   ├── config
+    │               │   ├── jlib
+    │               │   ├── log
+    │               │   └── mesg
+    │               ├── suptools
+    │               │   ├── orachk
+    │               │   └── tfa
+    │               ├── sysman
+    │               ├── ucp
+    │               ├── usm
+    │               ├── utl
+    │               ├── wwg
+    │               └── xdk
+    └── oraInventory
+        ├── ContentsXML
+        │   ├── comps.xml
+        │   ├── inventory.xml
+        │   └── libs.xml
+        ├── logs
+        │   ├── installActions2015-11-11_12-11-26PM.log
+        │   ├── oraInstall2015-11-11_12-11-26PM.err
+        │   ├── oraInstall2015-11-11_12-11-26PM.out
+        │   ├── silentInstall2015-11-11_12-11-26PM.log
+        │   └── time2015-11-11_12-11-26PM.log
+        └── oui
+            └── srcs.lst

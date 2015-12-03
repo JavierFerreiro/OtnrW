@@ -1,0 +1,165 @@
+<h2>Exercises Of Architecture</h2>
+<h3>Officials</h3>
+<p>
+1-Identify the components of a database
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Determine if the instance is part of a RAC database.
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					select parallel from v$instance;
+				</code>
+			</div>
+		</li>
+		<li>Determine if the instance is protected by dataguard
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					select protection_level,from v$database;<br>
+					--If return UNPROTECTED database is not protected by dataguard (not open).<br>
+					--If return other... check other parameters of the dataguard 
+				</code>
+			</div>
+		</li>
+		<li>Determine wheter Streams has been configured in the Database.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer co3tainer-fluid" >
+				<code>
+					select * from dba_streams_administrator;<br>
+					--If return no line, then streams is not configured.<br>
+				</code>
+			</div>
+		</li>
+		<li>Identify the physical structures of the database
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					select name,bytes from dba_temp_files; <br>
+					select name,bytes from dba_data_files; <br>
+					select member from v$logfile;<br>
+					select * from v$controfile;
+				</code>
+			</div>
+		</li>
+		<li>Identify the process and the process structures
+			<button type="button" onclick="$('#Answer15').toggleClass('hidden');">Answer</button>
+			<div id="Answer15" class="hidden answer container-fluid" >
+				<code>
+					ipcs -m<br>
+					ps -ef| grep ora_<br>
+				</code>
+				Proposed by Xavi:
+				<code>
+					select pid,pname from v$process;<br>
+				</code>
+		</li>
+	</ol><br>
+</div>
+2-Investigate the memory structures of the instance:
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Display summarize information about the SGA.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					show sga
+				</code>
+			</div>
+		</li>
+		<li>Show the current maximum and minimum size of the SGA components that 
+			can be dinamically resized.
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					select component, current_size,min_size, max_size from v$sga_dynamic_components;<br>
+				</code>
+			</div>
+		</li>
+		<li>Determine how much memory has been and is currently, allocated to PGA
+			can be dinamically resized.
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					select name,value from v$pgastat where name in ('maximum PGA allocated',
+					'total PGA allocated');<br>
+				</code>
+			</div>
+		</li>
+	</ol>
+</div><br>
+3-Investigate the process running in your instance.
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<ol>
+		<li>Determinate what process are running and how many of each
+			<button type="button" onclick="$('#Answer31').toggleClass('hidden');">Answer</button>
+			<div id="Answer31" class="hidden answer container-fluid" >
+				<code>
+					select program,paddr from V$session order by program;<br>
+					select program,addr from V$process order by program;<br>
+					--results are similar, in v$session we can see the user 
+					--session too
+				</code>
+			</div>
+		</li>
+		<li>Investigate how many process could be running.
+			<button type="button" onclick="$('#Answer32').toggleClass('hidden');">Answer</button>
+			<div id="Answer32" class="hidden answer container-fluid" >
+				<code>
+					select name,description,paddr from v$bgprocess order by paddr;
+					--Xavi's Solution
+					show parameter process;
+				</code>
+			</div>
+		</li>
+	</ol>
+</div><br>
+4-Investigate the storage structures in your database
+<button type="button" onclick="$('#Answer4').toggleClass('hidden');">Answer</button>
+<div id="Answer4" class="hidden answer container-fluid" >
+	<ol>
+		<li>Create a table without nominating a tablespace
+			<button type="button" onclick="$('#Answer41').toggleClass('hidden');">Answer</button>
+			<div id="Answer41" class="hidden answer container-fluid" >
+				<code>
+					create table tab34 (c1 varchar2(10)) segment creation immediate;
+				</code>
+			</div>
+		</li>
+		<li>Identify the tablespace in wich the table reside, the size of the
+				extent, the file number and the block of the block the extent start.
+			<button type="button" onclick="$('#Answer42').toggleClass('hidden');">Answer</button>
+			<div id="Answer42" class="hidden answer container-fluid" >
+				<code>
+					select tablespace_name, extent_id,bytes,file_id,block_id <br>
+					from dba_extents <br>
+					where owner='XAVI' and segment_name='TAB34'; <br>
+				</code>
+			</div>
+		</li>
+		<li>Identify the file by name(use the file_id from previous exercises).
+			<button type="button" onclick="$('#Answer43').toggleClass('hidden');">Answer</button>
+			<div id="Answer43" class="hidden answer container-fluid" >
+				<code>
+					select file_name from dba_data_files where file_id=6;
+				</code>
+			</div>
+		</li>
+		<li>Work out precisely where in the file the extent is, in term of how many bytes into  
+			the file it begins.
+			<button type="button" onclick="$('#Answer44').toggleClass('hidden');">Answer</button>
+			<div id="Answer44" class="hidden answer container-fluid" >
+				<code>
+					select block_size*&block_id from dba_tablespaces where tablespace_name='&tablespace_name';
+				</code>
+			</div>
+		</li>
+	</ol>
+</div>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
