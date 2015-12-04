@@ -1,0 +1,97 @@
+<h2>Exercises Of Managing the Database Instance</h2>
+<h3>Officials</h3>
+<p>
+1-Configure Oracle Net
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Create a directory to be used for Oracle Net only for this test.
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					mkdir /home/oracle/netTest<br>
+					export TNS_ADMIN=/home/oracle/netTest<br>
+					--To check if all is correct:<br>
+					tnsping orclscripts
+				</code>
+			</div>	
+		</li>
+		<li>Start the net manager and create a new listener
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					netmgr<br>
+					#Be sure that in the title of the app the path are the previously defined in TNS_ADMIN<br>	
+					#Listener name: NEWLIST<br>
+					#Port Listener: 2521<br>
+					#IP:127.0.0.1
+				</code>
+			</div>	
+		</li>
+		<li>Create a new service name
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					#Service name: SERV1<br>
+					#Port Listener: 2521<br>
+					#IP:127.0.0.1<br>
+				</code>
+			</div>	
+		</li>
+		<li>Start the new listener
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					lsnrctl start newlist
+				</code>
+			</div>	
+		</li>
+		<li>Set the DB to use the new listener/service
+			<button type="button" onclick="$('#Answer15').toggleClass('hidden');">Answer</button>
+			<div id="Answer15" class="hidden answer container-fluid" >
+				<code>
+					<ol>
+						<li>sqlplus / as sysdba</li>
+						<li>alter system set service_name=serv1 scope=memory;</li>
+						<li>alter system set local_listener=new scope=memory;</li>
+						<li>alter system register;</li>
+					</ol>
+				</code>
+			</div>	
+		</li>
+		<li>Check from the OS that the service are register in the listener and connect to them.
+			<button type="button" onclick="$('#Answer16').toggleClass('hidden');">Answer</button>
+			<div id="Answer16" class="hidden answer container-fluid" >
+				<code>
+					<ol>
+						<li>lsnrctl status newlist</li>
+						<li>sqlplus system@new</li>	
+					</ol>
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div>
+2-Create and use a database link
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>The database link connect to the self db.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					create database link dblink1 connnect to system identified by oracle using 'orclscripts';	<br>
+					--to check it<br>
+					select username from dba_users@dblink1;<br>
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div>
+
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
+
