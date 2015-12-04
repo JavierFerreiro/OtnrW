@@ -1,119 +1,119 @@
 <h2>Backup and Recovery: Concepts and Configuration</h2>
 <p>
-/u01/
-└── app
-    ├── oracle
-    │   ├── admin
-    │   │   └── orcl
-    │   │       ├── adump
-    │   │       ├── dpdump
-    │   │       ├── pfile
-    │   │       ├── scripts
-    │   │       └── xdb_wallet
-    │   ├── audit
-    │   │   └── orcl
-    │   ├── cfgtoollogs
-    │   │   └── dbca
-    │   │       ├── orcl
-    │   ├── checkpoints
-    │   │   └── dbca
-    │   ├── diag
-    │   │   ├── afdboot
-    │   │   ├── apx
-    │   │   ├── asm
-    │   │   ├── asmtool
-    │   │   ├── clients
-    │   │   ├── crs
-    │   │   ├── diagtool
-    │   │   ├── dps
-    │   │   ├── em
-    │   │   ├── gsm
-    │   │   ├── ios
-    │   │   ├── lsnrctl
-    │   │   ├── netcman
-    │   │   ├── ofm
-    │   │   ├── plsqlapp
-    │   │   ├── rdbms
-    │   │   │   └── orcl
-    │   │   │       └── orcl
-    │   │   │           ├── alert
-    │   │   │           ├── cdump
-    │   │   │           ├── hm
-    │   │   │           ├── incident
-    │   │   │           ├── incpkg
-    │   │   │           ├── ir
-    │   │   │           ├── lck
-    │   │   │           ├── log
-    │   │   │           ├── sweep
-    │   │   │           └── trace
-    │   │   └── tnslsnr
-    │   │       └── technode1
-    │   │           └── listener
-    │   │               ├── alert
-    │   │               ├── cdump
-    │   │               ├── incident
-    │   │               ├── incpkg
-    │   │               ├── lck
-    │   │               ├── log
-    │   │               ├── metadata
-    │   │               ├── metadata_dgif
-    │   │               ├── metadata_pv
-    │   │               ├── stage
-    │   │               ├── sweep
-    │   │               └── trace
-    │   ├── fast_recovery_area
-    │   │   └── ORCL
-    │   │       └── archivelog
-    │   ├── flash_recovery_area
-    │   │   ├── orcl
-    │   │   │   └── control02.ctl
-    │   │   └── ORCL
-    │   │       ├── archivelog
-    │   │       └── onlinelog
-    │   ├── oradata
-    │   │   └── orcl
-    │   │       ├── control01.ctl
-    │   │       ├── example01.dbf
-    │   │       ├── redo01.log
-    │   │       ├── redo02.log
-    │   │       ├── redo03.log
-    │   │       ├── sysaux01.dbf
-    │   │       ├── system01.dbf
-    │   │       ├── temp01.dbf
-    │   │       ├── undotbs01.dbf
-    │   │       └── users01.dbf
-    │   └── product
-    │       └── 12.1.0.2
-    │           └── dbhome_01
-    │               ├── addnode
-    │               ├── admin
-    │               │   └── orcl
-    │               │       └── xdb_wallet
-    │               ├── apex
-    │               ├── sqlj
-    │               ├── sqlpatch
-    │               ├── sqlplus
-    │               ├── srvm
-    │               │   ├── admin
-    │               │   ├── auth
-    │               │   ├── config
-    │               │   ├── jlib
-    │               │   ├── log
-    │               │   └── mesg
-    │               ├── suptools
-    │               │   ├── orachk
-    │               │   └── tfa
-    │               ├── sysman
-    │               ├── ucp
-    │               ├── usm
-    │               ├── utl
-    │               ├── wwg
-    │               └── xdk
-    └── oraInventory
-        ├── ContentsXML
-        │   ├── comps.xml
-        │   ├── inventory.xml
-        │   └── libs.xml
-        ├── logs
-        └── oui
+/u01/<br>
+└── app<br>
+    ├── oracle<br>
+    │   ├── admin<br>
+    │   │   └── orcl<br>
+    │   │       ├── adump<br>
+    │   │       ├── dpdump<br>
+    │   │       ├── pfile<br>
+    │   │       ├── scripts<br>
+    │   │       └── xdb_wallet<br>
+    │   ├── audit<br>
+    │   │   └── orcl<br>
+    │   ├── cfgtoollogs<br>
+    │   │   └── dbca<br>
+    │   │       ├── orcl<br>
+    │   ├── checkpoints<br>
+    │   │   └── dbca<br>
+    │   ├── diag<br>
+    │   │   ├── afdboot<br>
+    │   │   ├── apx<br>
+    │   │   ├── asm<br>
+    │   │   ├── asmtool<br>
+    │   │   ├── clients<br>
+    │   │   ├── crs<br>
+    │   │   ├── diagtool<br>
+    │   │   ├── dps<br>
+    │   │   ├── em<br>
+    │   │   ├── gsm<br>
+    │   │   ├── ios<br>
+    │   │   ├── lsnrctl<br>
+    │   │   ├── netcman<br>
+    │   │   ├── ofm<br>
+    │   │   ├── plsqlapp<br>
+    │   │   ├── rdbms<br>
+    │   │   │   └── orcl<br>
+    │   │   │       └── orcl<br>
+    │   │   │           ├── alert<br>
+    │   │   │           ├── cdump<br>
+    │   │   │           ├── hm<br>
+    │   │   │           ├── incident<br>
+    │   │   │           ├── incpkg<br>
+    │   │   │           ├── ir<br>
+    │   │   │           ├── lck<br>
+    │   │   │           ├── log<br>
+    │   │   │           ├── sweep<br>
+    │   │   │           └── trace<br>
+    │   │   └── tnslsnr<br>
+    │   │       └── technode1<br>
+    │   │           └── listener<br>
+    │   │               ├── alert<br>
+    │   │               ├── cdump<br>
+    │   │               ├── incident<br>
+    │   │               ├── incpkg<br>
+    │   │               ├── lck<br>
+    │   │               ├── log<br>
+    │   │               ├── metadata<br>
+    │   │               ├── metadata_dgif<br>
+    │   │               ├── metadata_pv<br>
+    │   │               ├── stage<br>
+    │   │               ├── sweep<br>
+    │   │               └── trace<br>
+    │   ├── fast_recovery_area<br>
+    │   │   └── ORCL<br>
+    │   │       └── archivelog<br>
+    │   ├── flash_recovery_area<br>
+    │   │   ├── orcl<br>
+    │   │   │   └── control02.ctl<br>
+    │   │   └── ORCL<br>
+    │   │       ├── archivelog<br>
+    │   │       └── onlinelog<br>
+    │   ├── oradata<br>
+    │   │   └── orcl<br>
+    │   │       ├── control01.ctl<br>
+    │   │       ├── example01.dbf<br>
+    │   │       ├── redo01.log<br>
+    │   │       ├── redo02.log<br>
+    │   │       ├── redo03.log<br>
+    │   │       ├── sysaux01.dbf<br>
+    │   │       ├── system01.dbf<br>
+    │   │       ├── temp01.dbf<br>
+    │   │       ├── undotbs01.dbf<br>
+    │   │       └── users01.dbf<br>
+    │   └── product<br>
+    │       └── 12.1.0.2<br>
+    │           └── dbhome_01<br>
+    │               ├── addnode<br>
+    │               ├── admin<br>
+    │               │   └── orcl<br>
+    │               │       └── xdb_wallet<br>
+    │               ├── apex<br>
+    │               ├── sqlj<br>
+    │               ├── sqlpatch<br>
+    │               ├── sqlplus<br>
+    │               ├── srvm<br>
+    │               │   ├── admin<br>
+    │               │   ├── auth<br>
+    │               │   ├── config<br>
+    │               │   ├── jlib<br>
+    │               │   ├── log<br>
+    │               │   └── mesg<br>
+    │               ├── suptools<br>
+    │               │   ├── orachk<br>
+    │               │   └── tfa<br>
+    │               ├── sysman<br>
+    │               ├── ucp<br>
+    │               ├── usm<br>
+    │               ├── utl<br>
+    │               ├── wwg<br>
+    │               └── xdk<br>
+    └── oraInventory<br>
+        ├── ContentsXML<br>
+        │   ├── comps.xml<br>
+        │   ├── inventory.xml<br>
+        │   └── libs.xml<br>
+        ├── logs<br>
+        └── oui<br>
 </p>

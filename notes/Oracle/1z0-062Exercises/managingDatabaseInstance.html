@@ -1,0 +1,191 @@
+<h2>Exercises Of Managing the Database Instance</h2>
+<h3>Officials</h3>
+<p>
+1-Use database management tools(SQL*Plus and Database Express)
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>In the OS confirm that your account is in the DBA group.
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					id<br>
+				</code>
+			</div>
+		</li>
+	</ol>
+	<ol>
+		<li>Set the necessary environment variables.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					export ORACLE_HOME=/u01/app/oracle/prodcut/12.1.0.2/dbhome_01 <br>
+					#Best if defined like this (but not necessary define ORACLE_BASE,add to the <br>
+					#PATH the bin for ORACLE and SID only if is local connection with OS permissions):<br>
+					export ORACLE_BASE=/u01/app/oracle<br>
+					export ORACLE_HOME=$ORACLE_BASE/product/12.1.0.2/dbhome_01<br>
+					export ORACLE_SID=orcl<br>
+				</code>
+			</div>
+		<li>Launch sql*plus and connect as a privileged user using OS authentication:
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					sqlplus /nolog<br>
+					connect / as sysdba
+				</code>
+			</div>
+		</li>
+		<li>Connect to the Database Express.
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+					In the browser put: http://localhost:5500/em<br>
+					Comments by Xavi:<br>
+					If not works check the port configuration in Oracle:<br>
+					<code>
+						select dbms_xdb.getHttpPort() from dual;<br>
+						select dbms_xdb_config.getHttpsPort() from dual;<br>
+						--To set it <br>
+						exec dbms_xdb_config.setHttpPort(5500);<br>
+						exec dbms_xdb_config.setHttpsPort(5501);<br>
+					</code>
+			</div>
+		</li>
+	</ol>
+</div>
+2-Query and set initialization parameters.
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Display all the basic parameters checking wheter they have all been set or are still at their default.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					select name,value,isdefault from v$parameter where isbasic='TRUE' order by name;<br>
+				</code>
+			</div>
+		</li>
+		<li>Change the processes parameter to 200
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					alter system set processes=200 scope=spfile;<br>
+					startup force;
+					--sessions is derived from processes: each session<br>
+					--need a process. Exist process without session<br>
+					--internal process<br>
+				</code>
+			</div>
+		</li>
+		<li>Change the value for your session of the NLS_LANGUAGE (whatever you want).
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					alter session set nls_language=Spanish;
+				</code>
+			</div>
+		</li>
+		<li>Change the value of the optimizer (rule) only for the running instance (no persistent)
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					alter system set optimizer_mode=rule scope=memory;<br>
+					--Confirm that is only in memory:<br>
+					select value from v$parameter where name='optimizer_mode'<br>
+					union<br>
+					select value from v$spparameter where name='optimizer_mode';<br>
+					--To return at normal mode (rule is deprecated)<br>
+					alter system set optimizer_mode=all_rows scope=both;<br>
+				</code>
+			</div>
+		</li>
+
+	</ol>
+</div><br>
+3-Start Up and shut down an Oracle Database Instance
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect to an instance and step by step open the database from shutdown.
+			<button type="button" onclick="$('#Answer31').toggleClass('hidden');">Answer</button>
+			<div id="Answer31" class="hidden answer container-fluid" >
+				<code>
+					<ol>
+						<li>startup nomount;</li>
+						<li>alter database mount;</li>
+						<li>alter database open</li>
+						<li>--to confirm<br>select open_mode from v$database;</li>
+					</ol>		
+				</code>
+			</div>
+		</li>
+	</ol>
+</div><br>
+4-Use the alert log and dynamic performance views.
+<button type="button" onclick="$('#Answer4').toggleClass('hidden');">Answer</button>
+<div id="Answer4" class="hidden answer container-fluid" >
+	<ol>
+		<li>Display the values that you neeed to know the location of the log.
+			<button type="button" onclick="$('#Answer41').toggleClass('hidden');">Answer</button>
+			<div id="Answer41" class="hidden answer container-fluid" >
+				<code>
+					select value from v$paramater where name='instance_name';<br>
+					select value from v$parameter where name='db_name';<br>
+					select value from v$parameter where name='diagnostic_dest';<br>	
+					select value from v$parameter where name='background_dump_dest';
+				</code>
+			</div>
+		</li>
+		<li>In the OS open the alert_&lt;SID&gt;.log
+			<button type="button" onclick="$('#Answer42').toggleClass('hidden');">Answer</button>
+			<div id="Answer42" class="hidden answer container-fluid" >
+				<code>
+					tail -f /u01/app/oracle/diag/rdbms/orcl/orcl/trace/alert_orcl.log
+				</code>
+			</div>
+		</li>
+		<li>Using dynamic views and dictionary views determine what datafiles and <br>
+		tablespaces make up the database:
+			<button type="button" onclick="$('#Answer43').toggleClass('hidden');">Answer</button>
+			<div id="Answer43" class="hidden answer container-fluid" >
+				<code>
+					--With dynamic views<br>
+					select t.name,d.name,d.bytes <br>
+					from v$tablespace t join v$datafile d <br>
+						on t.ts#=d.ts#<br>
+					order by t.name;<br>
+					--With data dictionary views<br>
+					select t.tablespace_name,d.file_name,d.bytes <br>
+					from dba_tablespaces t join dba_data_files <br>
+						on t.tablespace_name=d.tablespace_name <br>
+					order by tablespace_name <br>
+				</code>
+			</div>
+		</li>
+		<li>Determine the location of the control files copies in two ways:
+			<button type="button" onclick="$('#Answer44').toggleClass('hidden');">Answer</button>
+			<div id="Answer44" class="hidden answer container-fluid" >
+				<code>
+					select * from v$controlfile;<br>
+					select value from v$paramater where name='control_files';<br>
+				</code>
+			</div>
+		</li>
+		<li>Determine the location of the online redo log as well as their size.
+			<button type="button" onclick="$('#Answer45').toggleClass('hidden');">Answer</button>
+			<div id="Answer45" class="hidden answer container-fluid" >
+				<code>
+					select m.group#,m.member,g.bytes <br>
+					from v$log g join v$logfile m on m.group#=g.group#<br>
+					order by m.group#,m.member;<br>
+				</code>
+			</div>
+		</li>
+	</ol>
+</div>
+
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
+
