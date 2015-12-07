@@ -1,0 +1,162 @@
+<h2>Managing Database Storage Structures</h2>
+<h3>Officials</h3>
+<p>
+1-Investigate Storage Structures
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Determine the physical sctructures of your database.
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					--Controfile<br>
+					select name from v$controlfile;<br>
+					--Logfile<br>
+					select member, bytes <br>
+					from v$logfile union v$log  using (group#);<br>
+					select<br>
+					--datafile & Tempfile
+					select t.name, d.name, d.bytes <br>
+					from v$tablespace t join v$datafile d using(ts#)<br>
+					union all<br>
+					select t.name, d.name, d.bytes <br>
+					from v$tablespace t join v$tempfile d using (ts#);<br>
+					select tablespace_name,t.contents,d.file_name,d.bytes<br>
+					from dba_tablespaces t join dba_data_files d using (tablespace_name) <br>
+					union all<br>
+					select tablespace_name,t.contents,d.file_name,d.bytes <br>
+					from dba_tablespaces t join dba_temp_files d using (tablespace_name); <br>
+				</code>
+			</div>	
+		</li>
+		<li>Create a table and determine where is stored.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					create table t1 as select * from all_objects ;<br>	
+					select tablespace_name from dba_segments where segment_name='T1';
+					select file_name,extent_id, block_id 
+						from dba_data_files join dba_extents using (file_id)
+						where owner='XAVI' and segment_name='T1';
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div>
+2-Create, alter, drop tablespaces
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Create a tablespaces in a suitable directory
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+				create smallfile tablespace X1 datafile <br>
+				'/u01/app/oracle/oradata/ORCLSCRIPTS/datafile/x1.dbf' size 100M <br>
+				extent management local autoallocate<br>
+				segment space management auto;<br>
+				</code>
+			</div>
+		</li>
+		<li>Create a table in the new tablespace and determine the size of the first extent
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+				create table t1(c1 varchar2(10)) segment creation immediate tablespace X1; <br>
+				select * from dba_extents where segment_name='T1';<br>
+				</code>
+			</div>
+		</li>
+		<li>Add extents manually and observe the size of each new extent.
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+				alter table T1 allocate extent;<br>
+				select * from dba_extents where segment_name='T1';<br>
+				--If you repeat this 2 steps, discover that the first 16 extents are equal (8 blocks).<br>
+				--The 17 extent is 128 blocks.<br>
+				</code>
+			</div>
+		</li>
+		<li>Take the tablespace offline and after it read only and observe the effect and bring it back online:
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					alter tablespace X1 offline;<br>
+					delete table t1; --No work <br>
+					drop table t1; --No work <br>
+					alter tablespace X1 read only;<br>
+					delete table t1; --No work <br>
+					drop table t1; --WORK! <br>
+					--In a read only tablespace will be prevent to delete or create or insert<br>
+					--but not drop<br>
+					alter tablespace X1 online;<br>
+				</code>
+			</div>
+		</li>
+		<li>tidy up:
+			<button type="button" onclick="$('#Answer25').toggleClass('hidden');">Answer</button>
+			<div id="Answer25" class="hidden answer container-fluid" >
+				<code>
+					drop tablespace X1 including contents and datafiles;<br>
+				</code>
+			</div>
+		</li>
+
+	</ol>
+</div><br><br>
+3-Change tablespace characteristics
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<ol>
+		<li>Enable OMF (if not yet):
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					alter system set db_create_file_dest='/u01/app/oracle/oradata';<br>
+				</code>
+			</div>
+		</li>
+		<li>Create a tablespace using the minimum syntax possible
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					create tablespace X1;<br>
+				</code>
+			</div>
+		</li>
+		<li>Determine the characteristics of the OMF file:
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					select * from dba_data_files where tablespace_name='X1';<br>
+				</code>
+			</div>
+		</li>
+		<li>Adjust the OMF file to have 500M of size and autoextent max 2g with 100M increments.
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					alter database datafile '/u01/app/oracle/oradata/ORCLSCRIPTS/datafile/o1_mf_x1_c6c5sdd3_.dbf' resize 200M;<br>
+					alter database datafile '/u01/app/oracle/oradata/ORCLSCRIPTS/datafile/o1_mf_x1_c6c5sdd3_.dbf' <br>
+						autoextent on next 100m maxsize 2g;
+				</code>
+			</div>
+		</li>
+		<li>Drop the tablespace and confirm in the OS that the file is canceled.
+			<button type="button" onclick="$('#Answer25').toggleClass('hidden');">Answer</button>
+			<div id="Answer25" class="hidden answer container-fluid" >
+				<code>
+					drop tablespace X1 including contents and datafiles;
+				</code>
+			</div>
+		</li>
+
+
+	</ol>
+</div>
+
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>

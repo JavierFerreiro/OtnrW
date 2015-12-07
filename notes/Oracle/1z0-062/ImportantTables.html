@@ -216,3 +216,41 @@
 	</ol>
 </p>
 <p>The default in linux for CONTROL_FILES parameter is the same as the init param file $ORACLE_HOME/dbs
+<h2>Storage structurtures comparation</h2>
+<table>
+	<tr>
+		--To know the default tablespaces in the system:
+		select *<br>
+		from database_properties<br>
+		where property_name like 'DEFAULT%TABLESPACE';<br>
+	</tr>
+	<tr>
+		<td>show parameter control_files <br>or<br>select name,value from v$parameter</td>
+		<td>select * V$controlfile</td>
+	</tr>
+	<tr>
+		<td>show parameter undo_tablespace; --show the tablespaces used in this moment by the system<td>
+		<td>select t.tablespace_name,df.file_name<br>
+			from dba_tablespaces t, dba_data_files df<br>
+			where t.contents='UNDO' and t.tablespace_name=df.tablespace_name;<br>
+		<td>
+		<td>select * frmo v$datafile;</td>
+	</tr>
+	<tr>
+		<td>select t.tablespace_name,dtf.file_name
+         from dba_tablespaces t, dba_temp_files dtf
+         where t.contents='TEMPORARY' and t.tablespace_name=dtf.tablespace_name;
+		</td>
+		<td>select * from v$tempfile</td>
+		<td>If want to know the default temporary tablespaces of a user: <br>
+			begin<br>
+				dbms_output.put_line(dbms_metadata.get_ddl('USER','SCOOT'));<br>
+			end;<br>
+		</td>
+	</tr>
+	<tr>
+		<td>---</td>
+		<td>select * from v$logfile;<br>select * frmo v$logfile;</td>
+		<td></td>
+	</tr>
+</table>
