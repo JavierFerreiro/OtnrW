@@ -1,145 +1,204 @@
-<h2>Exercises Of Managing Space</h2>
+<h2>Managing Space</h2>
 <h3>Officials</h3>
+<p>
+1-Segment Space Management
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as sys and create a schema to work in for this exercises.
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					create user ex7 identified by 'ex7';<br>
+					grant connect to user ex7;<br>
+					--In the book does not appear but need the permissions:
+					grant create to ex7;
+					alter user ex7 quota unlimited on USERS;
+				</code>
+			</div>	
+		</li>
+		<li>Check that deferred_segment creation=TRUE, if not set to true.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					show parameter deferred_segment_creation;<br>
+					--If not TRUE<br>
+					alter session set deferred_segment_creation=true;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Create tables and indexes as follow:
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					--tables<br>
+					create table ex7a (c1 varchar2(10));<br>
+					create table ex7b (c1 varchar2(10)) segment creation deferred;<br>
+					create table ex7c (c1 varchar2(10)) segment creation immediate;<br>
+					--indexes<br>
+					create index ex7ai on ex7a(c1);<br>
+					create index ex7bi on ex7b(c1);<br>
+					create index ex7ci on ex7c(c1);<br>
+				</code>
+			</div>	
+		</li>
+	<li>Determine what segments have been created insert a row in ex7a and ex7b and run the queries another time.
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					select segment_name from user_segments;
+					insert into ex7a values('a');
+					insert into ex7b values('b');
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div><br>
+2-Investigate compression
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Adjust a table (whatever) to use compresion
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					create table com1 (c1 varchar2(10));<br>
+					alter table com1 compress basic;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Insert into the table 100,000 rows using direct load and compare 
+			doing the same with a no compress table.
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					create table nocom1 (c1 varchar2(10));<br>
+					insert /*+ append */ all<br> 
+					into com1 values ('1111111111') into nocom1 values ('1111111111')<br>
+					select * from dual connect by level &gt;= 100000;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Analyze the tables and note the number of blocks used;
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					dbms_stats.gather_stats_schema(user);<br>
+					select table_name, blocks from user_tables;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Update the rows and rerun the previous code.
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					update com1 set values='2222222222';<br>
+					update nocom1 set values='222222222';<br>
+					dbms_stats.gather_stats_schema(user);<br>
+					select table_name, blocks from user_tables;<br>
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div><br>
+3-Use resumable space allocation.
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<ol>
+		<li>Create a tablespace for this exercize
+			<button type="button" onclick="$('#Answer31').toggleClass('hidden');">Answer</button>
+			<div id="Answer31" class="hidden answer container-fluid" >
+				<code>
+					create tablespace small datafile '/u01/app/oracle/oradata/ORCLSCRIPTS/datafile/ts_small_1.dbf' size 2M;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Create a table into the tablespace with fixed-length rows. It will be impossible to insert 2,000 rows
+			without filling the tablespace.
+			<button type="button" onclick="$('#Answer32').toggleClass('hidden');">Answer</button>
+			<div id="Answer32" class="hidden answer container-fluid" >
+				<code>
+					create table toobig(c1 char(1000)) tablespace small;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Run this query to force the error:
+			<button type="button" onclick="$('#Answer33').toggleClass('hidden');">Answer</button>
+			<div id="Answer33" class="hidden answer container-fluid" >
+				<code>
+					insert into toobig select 'a' from dual connect by level &lt;2000;<br>
+				</code>
+			</div>	
+		</li>
+		<li>alter the session to enable resumable space allocation and rerun the insert (the session will hang):
+			<button type="button" onclick="$('#Answer34').toggleClass('hidden');">Answer</button>
+			<div id="Answer34" class="hidden answer container-fluid" >
+				<code>
+					alter session enable resumable name 'exercise 3';<br>
+					insert into toobig select 'a' from dual connect by level &lt;2000;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Start another session with sqlplus and check what session are in a resumable state:
+			<button type="button" onclick="$('#Answer35').toggleClass('hidden');">Answer</button>
+			<div id="Answer35" class="hidden answer container-fluid" >
+				<code>
+					select session_id, suspend_time, sql_text, error_number from dba_resumable;
+				</code>
+			</div>	
+		</li>
+		<li>Fix the problem from the second session (add datafile) and check that the first session finish the insert.
+			<button type="button" onclick="$('#Answer36').toggleClass('hidden');">Answer</button>
+			<div id="Answer36" class="hidden answer container-fluid" >
+				<code>
+					alter tablespace small add datafile '/u01/app/oracle/oradata/ORCLSCRIPTS/datafile/ts_small_2.dbf' size 4M;
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div>
+
+</p>
 <h3>Xavi's propossed</h3>
 <p>
-1-Create a user with basic permissions (connect, create table) and a own data 
-tablespace of 200MB.
-<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
-  <div id="Answer1" class="hidden answer">
-		<code>
-    create smallfile tablespace test_ts <br>
-		&nbsp;&nbsp;datafile '/u01/app/oracle/oradata/orcl/test_ts_1.dbf' size 200M;<br>
-		create user test identified by test<br> 
-		&nbsp;&nbsp;default tablespace test_ts temporary tablespace temp quota unlimited on test_ts<br>
-		&nbsp;&nbsp;account unlock;<br>
-		grant connect to test;<br>
-		grant create table to test;<br>
-		</code>
-  </div>
-2-Create a table with only one column that accepts numbers. Fill it with 
-consecutives numbers enough to fill 25MB (aprox).
-<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
-<div id="Answer2" class="hidden answer">
-	<code>
-  create table t1 (c1 number(7));<br>
-  begin<br>
-	&nbsp;&nbsp;for i in 1..3000000<br>
-	&nbsp;&nbsp;loop<br>
-	&nbsp;&nbsp;&nbsp;&nbsp;insert into t1 values (i);<br>
-	&nbsp;&nbsp;end loop;<br>
-	end;<br>
-	/<br> 
-	commit;<br>
-	</code>
-</div><br>
-3-Calculate the free space of the tablespace.
-<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
-<div id="Answer3" class="hidden answer">
-	<code>
-		select sum(bytes)/1024/1024 from dba_free_space where tablespace_name='TEST_TS';<br>
-	</code>
-</div><br>
+1-Alter a table to pass from no compression to all the other compression methods.
+<button type="button" onclick="$('#AnswerX1').toggleClass('hidden');">Answer</button>
+<div id="AnswerX1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Pass to basic table compression.
+			<button type="button" onclick="$('#AnswerX11').toggleClass('hidden');">Answer</button>
+			<div id="AnswerX11" class="hidden answer container-fluid" >
+				<code>
+					alter table com1 row store compress;
+				</code>
+			</div>	
+		</li>
+		<li>Pass to Advanced row compression  compression.
+			<button type="button" onclick="$('#AnswerX12').toggleClass('hidden');">Answer</button>
+			<div id="AnswerX12" class="hidden answer container-fluid" >
+				<code>
+					alter table com1 row store compress advanced;
+				</code>
+			</div>	
+		</li>
+		<li>Pass to WareHouse Compression (HCC: hybrid columnar compression).
+			<button type="button" onclick="$('#AnswerX13').toggleClass('hidden');">Answer</button>
+			<div id="AnswerX13" class="hidden answer container-fluid" >
+				<code>
+					alter table com1 column store compress for query [low/high];
+					--Only works on Exadata?
+				</code>
+			</div>	
+		</li>
+		<li>Pass to Archive Compression (HCC: hybrid columnar compression).
+			<button type="button" onclick="$('#AnswerX14').toggleClass('hidden');">Answer</button>
+			<div id="AnswerX14" class="hidden answer container-fluid" >
+				<code>
+					alter table com1 column store compress for archive [low/high];
+					--Only works on Exadata?
+				</code>
+			</div>	
+		</li>
 
-4-Delete the odd values of the column.
-<button type="button" onclick="$('#Answer4').toggleClass('hidden');">Answer</button>
-<div id="Answer4" class="hidden answer">
-	<code>
-		delete from t1 where mod(c1,2)=0;<br>
-		commit;<br>
-  </code>
-</div><br>
-5-Check that the free space is not changed (repeat step 3).<br>
-6-Try to obtain a advice from the Segment Advisor with a manual running.
-<button type="button" onclick="$('#Answer6').toggleClass('hidden');">Answer</button>
-<div id="Answer6" class="hidden answer">
-	<code>
-		declare<br>
-			name varchar2(100);<br>
-			descr varchar2(200);<br>
-			obj_id number;<br>
-		begin<br>
-			name := 'Manual_T1';<br>
-			descr :=	'Segment Advisor task for test.t1';<br>
-			dbms_advisor.create_task(<br>
-				advisor_name => 'Segment Advisor',<br>
-				task_id => obj_id,<br>
-				task_name => name,<br>
-				task_desc => descr);<br>
-			dbms_advisor.create_object(<br>
-				task_name => name,<br>
-				object_type => 'TABLE',<br>
-				attr1 => 'TEST',<br>
-				attr2 => 'T1',<br>
-				attr3 => NULL,<br>
-				attr4 => NULL,<br>
-				attr5 => NULL,<br>
-				object_id => obj_id);<br>
-			dbms_advisor.set_task_parameter(<br>
-				task_name => name,<br>
-				parameter => 'recommend_all',<br>
-				value => 'TRUE');<br>
-			dbms_advisor.execute_task(name);<br>
-		end;<br>
-		/<br>
-		select tablespace_name,segment_name,segment_type,partition_name,<br>
-					 recommendations, c1<br>
-		from table(dbms_space.asa_recommendations('TRUE','TRUE','FALSE'));<br>
-	</code>
-</div><br>
-7-shrink the table.
-<button type="button" onclick="$('#Answer7').toggleClass('hidden');">Answer</button>
-<div id="Answer7" class="hidden answer">
-	<code>
-		alter table test.t1 enable row movement;<br>
-		alter table test.t1 shrink space;<br>
-	</code>
-</div><br>
-8-Alternative, you can do a redefinition that hasn't (almost) lock time (but 
-need more than 2x space).
-<button type="button" onclick="$('#Answer8').toggleClass('hidden');">Answer</button>
-<div id="Answer8" class="hidden answer">
-	<code>
-		create table test.t2 as <br>
-			(select * from test.t1 where c1<>c1); --Use dbms_metada for more complex<br>
-																						-- tables<br>
-			begin<br>
-				dbms_redefinition.start_redef_table('TEST','T1','T2',NULL,<br>
-																					dbms_redefinition.cons_use_rowid);<br>
-			end;<br>
-			/<br>
-			begin<br>
-				dbms_redefinition.finish_redef_table('TEST','T1','T2');<br>
-			end;<br>
-			/<br>
-			drop table test.t2 purge;<br>
-			--Be awere of constraints, dependencies...<br>
-	</code>
-</div><br>
-Other Support code:
-<button type="button" onclick="$('#Answer9').toggleClass('hidden');">Answer</button>
-<div id="Answer9" class="hidden answer">
-	<code>
-    declare<br>
-			name varchar2(100);<br>
-		begin<br>
-  		name:='Manual_T1';<br>
-  		dbms_advisor.cancel_task(name);<br>
-		end;<br>
-		/<br>
-		declare<br>
-  		name varchar2(100);<br>
-		begin<br>
-  		name:='Manual_T1';<br>
-  		dbms_advisor.delete_task(name);<br>
-		end;<br>
-		/<br>
-	begin<br>
-  	dbms_redefinition.abort_redef_table('PROVA','T1','T2');<br>
-	end;<br>
-	/<br>
-  drop user prova cascade;<br>
-	drop tablespace prova_ts including contents and datafiles;<br>
-	</code>
-</div>
 </p>
-
