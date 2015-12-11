@@ -1,0 +1,6 @@
+Errori libri
+--------------
+Chapter 8
+Exercises 4-8
+say: alter user alois identified by oracle;
+must say: alter user alois identified by oracle replace oracle;

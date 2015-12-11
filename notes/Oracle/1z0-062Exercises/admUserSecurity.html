@@ -1,21 +1,253 @@
 <h2>Administering User Security</h2>
 <h3>Officials</h3>
 <p>
-1-XXX
+1-Create users that will be used after. It's is assumed that there is a 
+permanent tablespace called EXAMPLE<br> and a temporary tablespace called TEMP.
 <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
 <div id="Answer1" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Create the previous TS and the user alois, afra, anja (password=name)
 			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
 			<div id="Answer11" class="hidden answer container-fluid" >
 				<code>
-					zzz
+					--The tablespace EXAMPLE exist previously, it's not invent of the book.<br>
+					--Normally it's used by the OE user. In my example has 24 MB free of 1GB.If not:<br>
+					create tablespace example datafile '/u01/app/oracle/oradata/ORCLSCRIPTS/datafile/example_ts.dbf' size 100m;<br>
+					--The temporary tablespace TEMP exist too.<br>
+					--Create the users.	<br>
+					create user alois identified by alois default tablespace example password expire;<br>
+					create user afra identified by oracle default tablespace example quota unlimited on example;<br>
+					create user anja identified by oracle;<br>
 				</code>
 			</div>	
 		</li>
 	</ol>
 </div><br>
+2-Grant direct Privileges
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and then grant create session to user alois, connect as alois and create a table.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					grant create session to alois;<br>
+					connect alois/oracle;<br>
+					create table t1(c1 date);<br>
+					--It will return an error ORA-01031<br>
+				</code>
+			</div>	
+		</li>
+		<li>As system user grant alois the create table privilege, connect as alois and create the table again.
+			(with segment creation immediate).
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					grant create table to alois;<br>
+					connect alois/oracle;<br>
+					create table t1 (c1 date) segment creation immediate;<br>
+					--It will return an error ORA-01950
+				</code>
+			</div>	
+		</li>
+		<li>connect as system give alois quota on example, connect as alois and try again to create the table
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					alter user alois grant quota 1m on example;<br>
+					connect alois/oracle;<br>
+					create table t1 (c1 date) segment creation immediate;<br>
+					--Now return an OK.
+				</code>
+			</div>	
+		</li>
+		<li>As alois grant objects privileges on the new table (all to afra, select to anja):
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					connect alois/oracle;<br>
+					grant all on t1 to afra;<br>
+					grant select on t1 to anja;<br>	
+				</code>
+			</div>	
+		</li>
+		<li>Retrieve information regarding these grants.
+			<button type="button" onclick="$('#Answer25').toggleClass('hidden');">Answer</button>
+			<div id="Answer25" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle;<br>
+					select grantee,privilege,grantor,grantable from dba_tab_privs where owner='ALOIS' and table_name='T1';<br>
+					select * from dba_sys_privs where grantee='ALOIS';
+				</code>
+			</div>	
+		</li>
+		<li>Revoke the privileges granted to AFRA and ANJA
+			<button type="button" onclick="$('#Answer26').toggleClass('hidden');">Answer</button>
+			<div id="Answer26" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle;<br>
+					revoke all on alois.t1 from afra;<br>
+					revoke select on alois.t1 from anja;<br>
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div><br>
+3-Create and grant roles
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect sa system and create two roles: user_role and mgr_role:
+			<button type="button" onclick="$('#Answer31').toggleClass('hidden');">Answer</button>
+			<div id="Answer31" class="hidden answer container-fluid" >
+				<code>
+				create role user_role;<br>
+				create role mgr_role;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Grant some privileges (create session, select on alois.t1 --> usr_role, all on alois.t1 -->mgr_role) and after it 
+			grant user_role to mgr_role with admin option
+			<button type="button" onclick="$('#Answer32').toggleClass('hidden');">Answer</button>
+			<div id="Answer32" class="hidden answer container-fluid" >
+				<code>
+					grant create session to user_role;<br>
+					grant select on alois.t1 to user_role;<br>
+					grant all on alois.t1 to mgr_role;<br>
+					grant user_role to mgr_role with admin option;<br>
+				</code>
+			</div>	
+		</li>
+		<li>As system grant the roles to AFRA (mgr_role), connect as AFRA and grant the USR_ROLE to ANJA and then 
+			insert a row as ALOIS.T1
+			<button type="button" onclick="$('#Answer33').toggleClass('hidden');">Answer</button>
+			<div id="Answer33" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle;<br>
+					grant mgr_role to afra;<br>	
+					connect afra/oracle<br>
+					grant usr_role to anja<br>
+					insert into alois.t1 values (sysdate);<br>
+					commit;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Confirm Anja can connect and query alois.t1 but do nothing else:
+			<button type="button" onclick="$('#Answer34').toggleClass('hidden');">Answer</button>
+			<div id="Answer34" class="hidden answer container-fluid" >
+				<code>
+					connect anja/oracle<br>
+					select * from alois.t1;<br>
+					insert into alois.t1 values (sysdate);<br>
+					--The last statement fail<br>
+				</code>
+			</div>	
+		</li>
+		<li>As system adjust anja so that by default she can log on but do nothing else:
+			<button type="button" onclick="$('#Answer35').toggleClass('hidden');">Answer</button>
+			<div id="Answer35" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					grant connect to anja;<br>
+					alter user anja default role connect;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Demostrate the enabling/disabling of roles
+			<button type="button" onclick="$('#Answer36').toggleClass('hidden');">Answer</button>
+			<div id="Answer36" class="hidden answer container-fluid" >
+				<code>
+					connect anja/oracle<br>
+					select * from alois.t1;<br>
+					set role usr_role;<br>
+					select * from alois.t1;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Query the data dictionary to identify their role usage
+			<button type="button" onclick="$('#Answer37').toggleClass('hidden');">Answer</button>
+			<div id="Answer37" class="hidden answer container-fluid" >
+				<code>
+					connect system/orace<br>
+					select * from dba_role_privs where granted_role in ('USER_ROLE','MGR_ROLE');<br>
+					select grantee,owner,table_name,privilege,grantable <br>
+					from dba_tab_privs where grantee in ('USER_ROLE','MGR_ROLE')<br>
+					union<br>
+					select grantee,to_char(null),to_char(null),privilege,admin_option<br>
+					from dba_sys_privs where grantee in ('USER_ROLE','MGR_ROLE')<br>
+					order by grantee;
+				</code>
+			</div>	
+		</li>
 
+	</ol>
+</div><br>
+4-Create and use profiles
+<button type="button" onclick="$('#Answer4').toggleClass('hidden');">Answer</button>
+<div id="Answer4" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as sys and execute then execute the script that will create the supplied verification functions and then<br>
+			apply to the default profile. Confirm that the function has been created and applied. 
+			<button type="button" onclick="$('#Answer41').toggleClass('hidden');">Answer</button>
+			<div id="Answer41" class="hidden answer container-fluid" >
+				<code>
+					@?/rdbms/admin/utlpwdmg.sql<br>
+					describe sys.ora12c_verify_function<br>
+					select * from dba_profiles where resource_name='PASSWORD_VERIFY_FUNCTION'<br>
+				</code>
+			</div>	
+		</li>
+		<li>Create a profile that will lock accounts after two wrongs password for 10 minutes and assign to alois
+			<button type="button" onclick="$('#Answer42').toggleClass('hidden');">Answer</button>
+			<div id="Answer42" class="hidden answer container-fluid" >
+				<code>
+					create profile two_wrong limit failed_login_attempts 2 password_lock_time 10/1440;<br>	
+					alter user alois profile two_wrongs;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Deliberate enter the password of alois 2 times wrong and as system,
+			 check the status of the alois account and unlock it
+			<button type="button" onclick="$('#Answer43').toggleClass('hidden');">Answer</button>
+			<div id="Answer43" class="hidden answer container-fluid" >
+				<code>
+					connect alois/foo<br>
+					connect alois/bar<br>
+					select account_status from dba_users where username='ALOIS';<br>
+					alter user alois account unlock;<br>
+					select account_status from dba_users where username='ALOIS';<br>
+				</code>
+			</div>	
+		</li>
+		<li>Connect as ALOIS, test the verification password trying to change the password
+			<button type="button" onclick="$('#Answer44').toggleClass('hidden');">Answer</button>
+			<div id="Answer44" class="hidden answer container-fluid" >
+				<code>
+					connect alois/oracle<br>
+					alter user alois identified by oracle replace oracle;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Tidy up by dropping the profile, the roles and the users.
+			<button type="button" onclick="$('#Answer45').toggleClass('hidden');">Answer</button>
+			<div id="Answer45" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					drop profile two_wrong cascade;<br>
+					alter profile default limit password_verify_function null;<br>
+					drop role user_role;<br>
+					drop role mgr_role;<br>
+					drop user alois cascade;<br>
+					drop user anja;<br>
+					drop user afra;<br>
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div><br>
+3
 </p>
 <h3>Xavi's propossed</h3>
 <p>
