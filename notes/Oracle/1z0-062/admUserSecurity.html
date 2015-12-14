@@ -43,7 +43,8 @@
 									<td>Startup and shutdown, nothing else. No privileges on users or data</td>
 								</tr>
 								<tr>
-									<td>SYSASM</td><td>OSASM</td>No relevant to an RDBMS instance.ASM only</td>
+									<td>SYSASM</td><td>OSASM</td>
+									<td>No relevant to an RDBMS instance.ASM only</td>
 								</tr>
 								<tr>
 									<td>SYSBACKUP</td><td>OSBACKUPDBA</td>
@@ -68,7 +69,9 @@
 						if the database is not open. Following database creation the only user with these privileges 
 						is SYS. It also allows the instance to authenticate users by checking whether the O.S. user 
 						attempting the connection is a member of the operationg system group mapped to the 
-						oracle group name. On linux the O.S. groups must be specified when installing the Oracle Home.<br>
+						oracle group name. On linux the O.S. groups must be specified when installing the Oracle Home.
+						If you want to know what are this groups in a linux machine, you can view the file 
+						$ORACLE_HOME/rdbms/lib/general.c<br>
 						Ro use password file authentication, the user can connect with this syntax with SQL*Plus: 
 						<code>
 							connect username/password [@db_alias] AS [SYSOPER|SYSDBA];
@@ -88,7 +91,7 @@
 						
 						Password Authentication<br>
 						The syntax for a connection with password authentication using SQL*Plus is:
-						<code>connect username/password [@db_alias]</code><br>
+						<code>connect username/[password] [@db_alias]</code><br>
 						When user connects with password authentication, the instance will validate the 
 						password given against the password hash stored in data dictionary (therefore database 
 						OPEN). The user SYS is not permitted to connect with password authentication, only 

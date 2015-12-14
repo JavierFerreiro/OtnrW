@@ -1,20 +1,156 @@
 <h2>Administering User Security</h2>
 <h3>Officials</h3>
 <p>
-1-XXX
+1-Use undo data
 <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
 <div id="Answer1" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Connect as system and determine if the db is using undo segments or rollbacks segments
 			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
 			<div id="Answer11" class="hidden answer container-fluid" >
 				<code>
-					zzz
+					select value from v$parameter where name='undo_management';<br>
+					--AUTO is the correct value if not:<br>
+					alter system set undo_management=auto scope=spfile;<br>
+					--restart the instance
+				</code>
+			</div>	
+		</li>
+		<li>Determine what undo tablespace have been created and wich one is being used.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					select tablespace_name from dba_tablespace where contents='UNDO';<br>
+					show parameter undo_tablespace;<br>
+					--or select value from v$parameter where name='undo_tablespace';<br>
+				</code>
+			</div>	
+		</li>
+		<li>Determine what undo segments are in use in the database and how big they are:
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					select tablespace_name,segment_name,segment_id,status from dba_rollback_segs;<br>
+					select usn,rssize from v$rollstat;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Find out how much undo data was being generated in your db in the recent past:
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					alter session set nls_date_format='dd-mm-yy hh24:mi:ss';<br>
+					select begin_time,end_time, <br>
+					(undoblks* (select value from v$parameter where name='db_block_size')) undo_bytes<br> 
+					from v$undostat;<br>
 				</code>
 			</div>	
 		</li>
 	</ol>
 </div><br>
+2-Work with Undo tablespaces
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and create an undo tablespace and check with a query that is created.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					connect sys as sysdba<br>
+					create undo tablespace undo2 datafile '/u01/app/oracle/oradata/ORCLSRIPTS/datafile/undo_ts1.dbf' size 100m;<br>
+					select tablespace_name,contents,retention from dba_tablespaces;<br>
+					select tablespace_name,segment_name,status from dba_rollback_segs;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Adjust your instance to use the new undo tablespace (use scope to ensure that the change will not be permanent):
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					alter system set undo_tablespace='UNDO2' scope=memory;<br>
+					select tablespace_name,segment_name,status from dba_rollback_segs;<br>
+				</code>
+			</div>	
+		</li>
+
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					connect sys as sysdba<br>
+					create undo tablespace undo2 datafile '/u01/app/oracle/oradata/ORCLSRIPTS/datafile/undo_ts1.dbf' size 100m;<br>
+					select tablespace_name,contents,retention from dba_tablespaces;<br>
+					select tablespace_name,segment_name,status from dba_rollback_segs;
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div><br>
+3-Work with transactions and flashback query
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect to HR schema with two sessions concurrently and execute like the list (s1=session1;s2=session2)
+			<button type="button" onclick="$('#Answer31').toggleClass('hidden');">Answer</button>
+			<div id="Answer31" class="hidden answer container-fluid" >
+				<code>
+					<ol>
+						<li>
+							s1: select * from regions<br>
+							s2: select * from regions<br>
+						</li>
+						<li>
+							s1: insert into regions values (100,'UK');<br>
+							s2: insert into regions values (101,'GB');<br>
+						</li>
+						<li>
+							s1: select * from regions;<br>
+							s2: select * from regions;<br>
+						</li>
+						<li>
+							s1: commit;	
+						</li>
+						<li>
+							s1: select * from regions;<br>
+							s2: select * from regions;<br>
+						</li>
+						<li>
+							s1: rollback;<br>
+							s2: rollback;<br>
+						</li>
+						<li>
+							s1: select * from regions;<br>
+							s2: select * from regions;<br>
+						</li>
+					</ol>
+				</code>
+			</div>	
+		</li>
+		<li>Demonstrate the use of flashback query using one session connected as user HR
+			<button type="button" onclick="$('#Answer32').toggleClass('hidden');">Answer</button>
+			<div id="Answer32" class="hidden answer container-fluid" >
+				<code>
+					<ol>
+						<li>
+							alter system set nls_date_format='dd-mm-yy hh24:mi:ss';<br>
+						</li>
+						<li>
+							select sysdate from dual;<br>
+						</li>	
+						<li>
+							delete from regions where region_id=100;<br>
+							commit;<br>
+						</li>
+						<li>
+							select * from regions as of timestamp to_timestamp('time from step 2','dd-mm-yy hh24:mi:ss');
+						</li>
+					</ol>
+				</code>
+			</div>
+		</li>
+
+	</ol>
+</div><br>
+
 </p>
 <h3>Xavi's propossed</h3>
 <p>
