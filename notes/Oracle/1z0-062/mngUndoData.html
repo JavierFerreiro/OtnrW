@@ -267,9 +267,19 @@
 						Nominates a tablespace, wich must have been created as undo tablespace, as the active 
 						undo tablespace.
 					</li>
-					<li>UNDO_RETENTION
+					<li>UNDO_RETENTION<br>
+						Only used with an autoextent undo tablespace, if not autoextent, then ignored. If undo 
+						ts is autoextent the db attempts to honor the minimum retention period specified: when space 
+						is low in undo tablespace, instead of overwrite unexpired undo information the tablespace is 
+						autoextended. If maxsize clause is specified for an auto-extending undo tablespace, when the 
+						maximum size is reached, the database may begin to overwrite unexpired undo information.
 					</li>
-					<li>TEMP_UNDO_ENABLED
+					<li>TEMP_UNDO_ENABLED<br>
+						With values TRUE/FALSE determines wheter transactions within a particular session can have 
+						a temporary undo log. If TRUE lets a transaction split its undo log into temporary undo log 
+						 (for changes on temporary objects) and permanent undo log (for changes on persistent objects).
+						Splitting the undo stream a DB can provide separate storage and retention model for these with a 
+						reduction in the size of undo log and redo log.
 					</li>
 				</ul>
 			</li>

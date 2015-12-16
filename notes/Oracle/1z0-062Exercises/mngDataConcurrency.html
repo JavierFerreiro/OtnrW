@@ -1,0 +1,100 @@
+<h2>Managing Data Concurrency</h2>
+<h3>Officials</h3>
+<p>
+1-Monitor and resolve locking conflicts
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system with three sessions.In the first create a table:
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					create table lockdemo as select * from all_users;<br>
+				</code>
+			</div>	
+		</li>
+		<li>in the second session update a row. After it, repeat the statement in the third session.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					update lockdemo set user_id=99 where username='SYS';<br>
+				</code>
+			</div>	
+		</li>
+		<li>In the first session run this query to identify wich session is blocked. After it, run a query
+			to retrieve the necessary details of the blocking session.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					select username,sid,blocking_session from v$session where blocking_session is not null;<br>
+					select username,sid,serial# from v$session where sid=&blocking_session;<br>
+				</code>
+			</div>	
+		</li>
+		<li>In the first session kill the blocking session.
+			to retrieve the necessary details of the blocking session.
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					alter system kill session '&sid,&serial';<br>
+				</code>
+			</div>	
+		</li>
+		<li>In the second session if you try do something, you receive a error message (killed session), and the 
+				other session has update the row succesfully.
+		</li>
+	</ol>
+</div><br>
+2-Demonstrate the deadlocks
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>In the first session update la row. After it the third session update a second row.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					--First session
+					update lockdemo set user_id=99 where username='SYS';	
+					--Second session
+					update lockdemo set user_id=99 where username='SYSTEM';	
+				</code>
+			</div>	
+		</li>
+		<li>In the first session attempt to update the second row
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					--First session
+					update lockdemo set user_id=99 where username='SYSTEM';	
+				</code>
+			</div>	
+		</li>
+		<li>In the third session update the third session (This complete the deadlock).
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					--Third session
+					update lockdemo set user_id=99 where username='SYS';	
+				</code>
+			</div>	
+		</li>
+		<li>Retrieve information about the deadlock from the alert log and trace files.
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					--The location of the alert log could be retrive like this:
+					select value from v$diag_info where name='Diag Trace';<br>
+					SQL>host<br>
+					less $ORACLE_BASE/diag/rdbms/&lt;sid&gt;/&lt;sid&gt;/alert_&lt;sid&gt;.log
+					#Find Deadlock word
+				</code>
+			</div>	
+		</li>
+
+</ol>
+</div><br>
+
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
