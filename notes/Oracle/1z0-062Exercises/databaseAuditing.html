@@ -1,18 +1,85 @@
 <h2>Database Auditing</h2>
 <h3>Officials</h3>
 <p>
-1-XXXX
+1-Use unified auditing
 <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
 <div id="Answer1" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYYY
+		<li>Connect as sysdba and determine wheter unified auditing is enabled.
 			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
 			<div id="Answer11" class="hidden answer container-fluid" >
 				<code>
-					ZZZ
+					select value from V$option where parameter='Unified Auditing';	
+					--Following a standard installation this will return false.
 				</code>
 			</div>	
 		</li>
+		<li>Shut down the oracle service (listener,DB)</li>
+		<li>Enable unified auditing
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					#In linux you need to relink the exacutables to include the unified auditing libraries:
+					cd $ORACLE_HOME/rdbms/lib <br>
+					make -f ins_rdbms.mk uniaud_on ioracle ORACLE_HOME=$ORACLE_HOME
+				</code>
+			</div>	
+		</li>
+		<li>Confirm that unified auditing is now enable.Rerun the query from step 1
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					select value from V$option where parameter='Unified Auditing';	
+				</code>
+			</div>	
+		</li>
+		<li>Enable a pre-suplied audit policy and then create and enable your own:
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					audit policy ora_account_mgmt;<br>
+					create audit policy aud_dba_role roles dba;<br>
+					audit policy aud_dba_role by system;<br>
+					--To confirm that has been configured<br>
+					select policy_name, enabled_opt, user_name from audit_unified_enabled_policies;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Confirm that unified records are generated.
+			<button type="button" onclick="$('#Answer15').toggleClass('hidden');">Answer</button>
+			<div id="Answer15" class="hidden answer container-fluid" >
+				<code>
+					create user x identified by x;<br>
+					alter system set open_cursors=300 scope=memory;<br>
+					--This 2 actions should be audited, query yo check:<br>
+					exec dbms_audit_mgmt.flush_unified_audit_trail;<br>
+					select dbusername,sql_text from unified_audit_trail;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Attemp to tamper with the audit trail
+			<button type="button" onclick="$('#Answer16').toggleClass('hidden');">Answer</button>
+			<div id="Answer16" class="hidden answer container-fluid" >
+				<code>
+					connect sys as sysdba<br>
+					select table_name from dba_tables where owner='AUDSYS';<br>
+					delete from audsys."&audit_table_name";
+					truncate table audsys."&audit_table_name";	
+				</code>
+			</div>	
+		</li>
+		<li>Clean the audit trail
+			<button type="button" onclick="$('#Answer17').toggleClass('hidden');">Answer</button>
+			<div id="Answer17" class="hidden answer container-fluid" >
+				<code>
+					connect sys as sysdba<br>
+					select count(*) from unified_audit_trail;<br>
+					execute dbms_audit_mgmt.clean_audit_trail(dbms_audit_mgmt.audit_trail_all,false);<br>
+					select count(*) from unified_audit_trail;<br>
+				</code>
+			</div>	
+		</li>
+
 	</ol>
 </div><br>
 

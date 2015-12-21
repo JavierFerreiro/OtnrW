@@ -1,4 +1,4 @@
-<h2>Managing Undo Data</h2>
+<h2>Database Auditing</h2>
 
 <ul>
 	<li>Explain DBA Responsabilities for Security and Auditing<br>
@@ -149,5 +149,221 @@
 				</code>
 			</li>
 		</ul>
+	</li>
+	<li>
+	<p>Summary table added by Xavi:</p>
+		<table class="table table-striped table-hover table-condensed">
+			<thead>
+				<tr>
+					<td>Audit Method</td>
+					<td>How to enable</td>
+					<td>Modes</td>
+					<td>where write</td>
+					<td>How to configure what/how audit</td>
+					<td>Where query the audits created</td>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						Mandatory Audit
+					</td>
+					<td>
+						Enabled by default (it couldn't be disable... mandatory...)
+					</td>
+					<td>
+						No modes	
+					</td>
+					<td>
+						In the SO audit trail (AUDIT_FILE_DEST parameter) that is $ORACLE_BASE/admin/&lt;db_unique_name&gt;/adump 
+						and if this does not exist $ORACLE_HOME/rdbms/audit.
+					</td>
+					<td>
+						No configuration	
+					</td>
+					<td>
+						Files in the audit_file_dest
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Standard DB auditing
+					</td>
+					<td>
+						parameter-&gt;AUDIT_TRAIL--values--&gt;none(default)|os|db[,extended]|xml[,extended]
+					</td>
+					<td>
+						<ul>
+							<li>
+								none-&gt;No write
+							</li>
+							<li>
+								os-&gt;Direct all audit records to OS file.(Recommended for ultra-secure DB)
+							</li>
+							<li>
+								db-&gt;DB audit trail (sys.aud$) except for records that are always written to the O.S (start,shutdown...)<br>
+							</li>
+							<li>
+								db,extended-&gt;equal db but also populates the SQL bind and SQL text CLOB-type<br>
+							</li>
+							<li>
+								xml-&gt;Write to the OS audit trail file in xml format<br>
+							</li>
+							<li>
+								xml,extended-%gt;The same as xml but with the sql_text and sql_bind populates<br>
+							</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>none-&gt;none</li>
+							<li>os-&gt,xml or xml,extended;parameter audit_file_dest (default $ORACLE_BASE/admin/DB_UNIQUE_NAME/adump 
+								if not exist then $ORACLE_HOME/rdbms/audit)
+							</li>
+							<li>
+								db or db,extended -&gt; SYS.AUD$</li>
+							</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>Audit statements, privileges and objects.</li>
+							<li>privilege-&gt; audit select any table;</li>
+							<li>statement-&gt; audit select table</li>
+							<li>object-&gt; audit select on scott.salary;</li>
+						</ul>	
+					</td>
+					<td>
+						<ul>
+							<li>dba_stmt_audit_opts: current statements being audit across the system.</li>
+							<li>dba_priv_audit_opts: current system privileges being audit across the system.</li>
+							<li>dba_obj_audit_opts: auditing options for all objects</li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Fine Grained auditing<br>
+						Add to the standard audit clause conditions to audit like standard audit but only with certain conditions<br>
+						(like salary=1000) and with elements that standard does not use (like columns).
+					</td>
+					<td>
+						To activate the FGA just include the policies with the dbms package and automatically works.	
+					</td>
+					<td>
+						No modes
+					</td>
+					<td>
+						SYS.FGA$ and DBA_FGA_AUDIT_TRAIL
+					</td>
+					<td>
+						dbms_fga.add_policy(object_schema,object_name,policy_name,
+						(audit_column|audit_condition|statement_types|handler_schema,handler_module)+<br>
+						dbms_fga.drop_policy<br>
+						dbms_fga.disable_policy<br>
+						dbms_fga.enable_policy	
+					</td>
+					<td>
+						DBA_AUDIT_POLICES
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Unified auditing<br>
+						New technique that replaces standard auditing (although the two can work concurrently)	
+					</td>
+					<td>
+						SQL&gt;shutdown immediate;<br>
+						lsnrctl stop<br>
+						cd $ORACLE_HOME/rdbms/lib<br>
+						make -f ins_rdbms.mk uniaud_on ioracle ORACLE_HOME=$ORACLE_HOME<br>
+						lsnrctl start<br>
+						SQL&gt;grant role audit_admin to xavi;<br>
+						SQL&gt;grant role audit_viewer to xavi;<br>
+						--xavi now is authorized to use unified auditing and the system is ready<br>
+						--then you can define the policies.
+					</td>
+					<td>
+						no modes	
+					</td>
+					<td>
+						table: unified_audit_trail	
+					</td>
+					<td>
+						You can define polices with one or more polices about one of the three categories: <br>
+						privileges (system or object privileges), actions (one or more sql commands), roles.examples:<br>
+						<code>
+							create audit policy privpol privileges select any table, create trigger;<br>	
+							create audit policy actpol actions drop table,alter trigger;<br>
+							create audit policy rolepol roles dba;<br>
+							--or mixed<br>
+							create audit policy mixedpool <br>
+							  privileges select any table, create trigger<br>
+							  actions drop table,alter trigger<br>
+							  roles dba;<br>
+							--or <br>
+							create audit policy emppol actions insert, update, delete on scott.emp;<br>
+							--Now activate the policy<br>
+							audit policy privpol;<br>
+							--By default audit record is generated independently if the result of the privilege,action,role is met<br>
+							audit policy actpol whenever succesful;<br>
+							audit policy rolepool by scoot,system<br>
+							audit policy mixedpol whenever not succesful;<br>
+							noaudit policy actpol;<br>
+							--When audit records are generated:<br>
+							exec dbms_audit_mgmt.flush_unified_audit_trail;<br>
+						</code>
+					</td>
+					<td>
+					table: audit_enabled_policies;					
+					</td>
+
+				</tr>
+				<tr>
+					<td>
+						Value-Base auditing<br>
+						Declarative techniques(standard,FGA and unified auditing) does not capture the data, they capture: <br>
+						who, what, when and with wich privilege, then the statement captured has not the values of the variables. If <br>
+						this is necessary, you need to active value-base auditing.
+					</td>
+					<td>
+						Implemented with triggers, then create triggers and enabled it.	
+					</td>
+					<td>
+						No modes
+					</td>
+					<td>
+						Where you specified in the trigger.
+					</td>
+					<td>
+						create or replace trigger emp_val_audit<br>
+						after update or insert or delete on emp<br>
+						for each row<br>
+						begin
+						case
+						when updating then insert into sec.emp_aud 
+								values (user,sysdate,:new.empno,:old.sal,:new.sal);
+						when inserting then insert into sec.emp_aud 
+								values (user,sysdate,:new.empno,null,:new.sal);
+						when deleting then insert into sec.emp_aud 
+								values (user,sysdate,:new.empno,:old.sal,null);
+						end case;
+						end;
+	
+					</td>
+				</tr>
+				<tr>
+					<td>Vault</td>
+				</tr>
+			</tbody>
+		</table>
+	</li>
+	<li>
+		--If is has been linked in into the kernel, unlink it:
+		cd $ORACLE_HOME/rdbms/lib
+		make -f ins_rdbms.mk uniaud_off ioracle ORACLE_HOME=$ORACLE_HOME
+		--Disable the two default policies - this will turn off any Unified Auditing features:
+		noaudit policy ORA_SECURECONFIG;
+		noaudit policy ORA_LOGON_FAILURES;
 	</li>
 </ul>
