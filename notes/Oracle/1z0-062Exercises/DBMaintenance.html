@@ -1,20 +1,117 @@
 <h2>Performing Database Maintenance</h2>
 <h3>Officials</h3>
 <p>
-1-XXX
+1-Monitor the automatic workload repository determining the size of the AWR and monitor its growth as it stores snapshots
 <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
 <div id="Answer1" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Connect as system and show the size occupied by the AWR.
 			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
 			<div id="Answer11" class="hidden answer container-fluid" >
 				<code>
-					ZZZ
+					connect system/oracle<br>
+					select occuppant_desc, space_usage_kbytes from v$sysaux_occupants where occupant_name='SM/AWR';<br>
+					--Note the size returned.<br>
+				</code>
+			</div>	
+		</li>
+		<li>Gather an AWR snapshot and rerun the previous query to know if the usage of AWR is increased.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					exec dbms_workload_repository.create_snapshot<br>
+				</code>
+			</div>	
+		</li>
+		<li>Find out how many snapshots there are as well as what date range they cover.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					select min(begin_interval_time),max(begin_interval_time), count(snap_id) from dba_hist_snapshot;<br>
 				</code>
 			</div>	
 		</li>
 	</ol>
 </div><br>
+2-Generate an ADDM Report
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>1-Connect as system and generate the report.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					@?/rdbms/admin/addmrpt.sql
+					--Study the report...
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div><br>
+3-Configure Alerts: enable an alert for the commit rate
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system an create a small tablespace
+			<button type="button" onclick="$('#Answer31').toggleClass('hidden');">Answer</button>
+			<div id="Answer31" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					create tablespace small datafiles 'small.dbf' size 1m uniform size 128k;
+				</code>
+			</div>	
+		</li>
+		<li>Set a space usage alert that will raise a warning when the TS is half full and a critical warning when 3/4 and confirm that is working.
+			<button type="button" onclick="$('#Answer32').toggleClass('hidden');">Answer</button>
+			<div id="Answer32" class="hidden answer container-fluid" >
+				<code>
+					execute  dbms_server_alert.set_threshold(<br>
+  						metrics_id =&gt; DBMS_SERVER_ALERT.TABLESPACE_PCT_FULL,<br>
+  						warning_operator =&gt; DBMS_SERVER_ALERT.OPERATOR_GT,<br>
+  						warning_value =&gt; '50',<br>
+  						critical_operator =&gt; DBMS_SERVER_ALERT.OPERATOR_GT,<br>
+  						critical_value =&gt; '75',<br>
+  						observation_period =&gt; 1,<br>
+  						consecutive_occurrences =&gt; 1,<br>
+  						instance_name =&gt; NULL,<br>
+  						object_type =&gt; DBMS_SERVER_ALERT.OBJECT_TYPE_TABLESPACE,<br>
+  						object_name =&gt; 'SMALL'<br>
+  						);<br>
+						select * from dba_thresholds where object_name='SMALL';<br>
+				</code>
+			</div>	
+		</li>
+		<li>Create a table and fill the tablespace:
+			<button type="button" onclick="$('#Answer33').toggleClass('hidden');">Answer</button>
+			<div id="Answer33" class="hidden answer container-fluid" >
+				<code>
+					create table big (c1 date) tablespace small;	<br>
+					alter table big allocatte extent; --Repeat up to fill the TS<br>
+				</code>
+			</div>	
+		</li>
+		<li>Query to view the alerts (Attention notification can take up to 10 minutes).
+			<button type="button" onclick="$('#Answer34').toggleClass('hidden');">Answer</button>
+			<div id="Answer34" class="hidden answer container-fluid" >
+				<code>
+					select * from dba_outstanding_alerts;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Resolve the problem adding space to the tablespace and confirm the alert dissapear of outstanding table (can take 10 minutes)
+			<button type="button" onclick="$('#Answer35').toggleClass('hidden');">Answer</button>
+			<div id="Answer35" class="hidden answer container-fluid" >
+				<code>
+					alter tablespace small add datafile 'small2.dbf' size 1m;<br>
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div><br>
+
+
 </p>
 <h3>Xavi's propossed</h3>
 <p>

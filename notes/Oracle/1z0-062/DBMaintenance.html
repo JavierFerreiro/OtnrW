@@ -81,7 +81,11 @@
 				<li>Setting Thresholds<br>
 					You can set over 200 metrics for thresholds, documented in the view V$METRICNAME. There is an API(DBMS_SERVER_ALERT package) for setting thresholds. Example:<br>
 					<code>
-						execute dbbms_server_alert.set_threshold(metrics_id=>dbms_server_alert.redo_generated_sec, warning_operator=>dbms_server_alert.operator_ge,warning_value=>'1000000', critical_operator=>db,s_server_alert.operator_ge, critical_value=>'2000000', observation_period=>1,consecutive_occurrences=>5, instance_name=>'ORCLZ',object_type=>dbms_server_alert.object_type_system,object_name=>null);
+						execute dbbms_server_alert.set_threshold(metrics_id=>dbms_server_alert.redo_generated_sec,<br>
+						 warning_operator=>dbms_server_alert.operator_ge,warning_value=>'1000000', <br>
+						critical_operator=>dbms_server_alert.operator_ge, critical_value=>'2000000', <br>
+						observation_period=>1,consecutive_occurrences=>5, instance_name=>'ORCLZ',<br>
+						object_type=>dbms_server_alert.object_type_system,object_name=>null);<br>
 					</code>
 					When stateful alerts are raised, they are visible as rows in the DBA_OUTSTANDING_ALERTS. They will remain visible until they are cleared. When an alert is cleared, it is removed from the DBA_OUTSTANDING_ALERTS view and written to the DBA_ALERT_HISTORY view.Stateless alerts go stright to the history view. A space usage warning will be raised when a tablespace is 85-percent full and a critical warning when it is 97 percent full.
 				</li>
