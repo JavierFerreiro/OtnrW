@@ -1,0 +1,122 @@
+<h2>Managing Performance</h2>
+<h3>Officials</h3>
+<p>
+1-Use enterprise manager to monitor activity. We generate a worload and inspect it with enterprise manager.
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and check (and enable if not) the ports of database express
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					select dbms_xdb_config.gethttpport() from dual;<br>	
+					select dbms_xdb_config.gethttpsport() from dual;<br>	
+					--if return zero (not configured)<br>
+					exec dbms_xdb_config.sethttpport(5500)<br>
+					exec dbms_xdb_config.sethttpsport(5501)<br>
+					--Check if the listener now are listening on 5500 and 5501<br>
+					lsnrctl status<br>
+				</code>
+			</div>	
+		</li>
+		<li>Connect to Database express as system and launch in sqlplus long-running query to be controled in dbe
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					http://localhost:5500/em<br>
+					SQL&gt;select count(*) from (select a.*,b.* from all_objects a, all_objects b);<br>
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div><br>
+2-Set the memory management parameters, disabling AMM and setting PGA,SGA manually.
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and ensure that none of the parameters for managing dynamic SGA are manually set.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					show parameter db_cache_size;<br>
+					show parameter shared_pool_size;<br>
+					show parameter large_pool_size;<br>
+					show parameter java_pool_size;<br>
+					--if someone is set then:<br>
+					alter system set xxx=0 scope=memory;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Disable automatic memory management (AMM)
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					alter system set memory_target=0 scope=memory;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Set the PGA and SGA parameters independently to a very low values.
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					alter system set pga_aggregate_target=10m scope=memory;<br>
+					alter system set sga_target=256m scope=memory;<br>
+					--The second command could take few minutes. If return error try with a larger value.<br>
+				</code>
+			</div>	
+		</li>
+		<li>Determine the actual size of the PGAs by summing up the value for the statistic "session pga memory" across all sessions.
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					select sum(value) from v$sesstat natural join v$statname where name='session pga memory';<br>
+					--Remember that pga_aggregate_target is only a soft limit, in this case so small that Oracle<br>
+					-- can't use it and surpass it.<br>
+				</code>
+			</div>	
+		</li>
+		<li>Determine the actual size of the SGA.
+			<button type="button" onclick="$('#Answer25').toggleClass('hidden');">Answer</button>
+			<div id="Answer25" class="hidden answer container-fluid" >
+				<code>
+					select sum(bytes) from v$sgastat;<br>
+					--surpassed by oracle the target<br>
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div><br>
+3-Use the memory advisors. You will gather advices about memory (need that the previous exercise has been completed).
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and run a query to see the results of sga_advisor.
+			<button type="button" onclick="$('#Answer31').toggleClass('hidden');">Answer</button>
+			<div id="Answer31" class="hidden answer container-fluid" >
+				<code>
+					connect system<br>
+					select sga_size,sga_size_factor,estd_db_time,estd_physical_reads from v$sga_target_advice;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Run a query to see the results of the PGA advisor.
+			<button type="button" onclick="$('#Answer32').toggleClass('hidden');">Answer</button>
+			<div id="Answer32" class="hidden answer container-fluid" >
+				<code>
+					select pga_target_for_stimate, pga_target_factor, estd_extra_bytes_rw, estd_pga_cache_hit_percentage,estd_overalloc_count
+					from v$pga_target_advice;<br>
+					--reboot the instance to set the parameters like the initial time.
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div><br>
+
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
