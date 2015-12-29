@@ -1,0 +1,116 @@
+<h2>Managing Performance:SQL tuning</h2>
+<h3>Officials</h3>
+<p>
+1-Gather Optimizer Statistics
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and create a table and an index and set you session date like this:
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					create table st as select * from all_users;<br>
+					create index sti on st(username);<br>
+					alter session set nls_date_format='dd-mm-yy hh24:mi:ss';<br>	
+				</code>
+			</div>	
+		</li>
+		<li>Investigate the statistics on the table and indexes:
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					select count(*) from st;<br>	
+					select num_rows,last_analyzed from user_tables where table_name='ST';<br>
+					select distinct_keys, last_analyzed from user_indexes where index_name='STI';<br>
+					--The table statistics are wrong because never was analyzed, the index statistics <br>
+					--Are correct because indexes are automatically analyzed on creation.<br>
+				</code>
+			</div>	
+		</li>
+		<li>Analyze the table and rerun the queries from the previous step.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					exec dbms_stats.gather_table_stats('SYSTEM','ST')<br>	
+				</code>
+			</div>	
+		</li>
+		<li>Insert some more rows into the table and rerun the queries from step 2.
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					insert into system.st select * from all_users<br>
+					--Now the index statistics are wrong too.<br>
+				</code>
+			</div>	
+		</li>
+		<li>Analyze the system schema relying on defaults and rerun the select from step 2.
+			<button type="button" onclick="$('#Answer15').toggleClass('hidden');">Answer</button>
+			<div id="Answer15" class="hidden answer container-fluid" >
+				<code>
+					exec dbms_stats.gather_schema_stats('SYSTEM');<br>
+				</code>
+			</div>	
+		</li>
+		<li>Tidy up as follows:
+			<button type="button" onclick="$('#Answer16').toggleClass('hidden');">Answer</button>
+			<div id="Answer16" class="hidden answer container-fluid" >
+				<code>
+					drop table system.st;<br>
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div><br>
+2-Run the SQL Tuning Advisor for a SQL Statement
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system, create an schema and a table to be used in this exercise
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					create user user13 identified by user13;<br>
+					grant dba to user13;<br>
+					connect user13/user13<br>
+					create table object_analysis as select * from all_objects;<br>
+				</code>
+			</div>	
+		</li>
+		<li>create a task to tune 'select max(object_id) from object_analysis', store the name in a string and execute it:
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					variable vtask varchar2(100);<br>
+					execute :vtask := dbms_sqltune.create_tuning_task(sql_text=gt;'select max(object_id) from object_analysis')<br>
+					execute dbms_sqltune.execute_tuning_task(:vtask);<br>
+				</code>
+			</div>	
+		</li>
+		<li>Retrieve the recommendations from the tuning task.
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					set long 10000<br>
+					set longchunksize 10000<br>
+					select dbms_sqltune.report_tuning_task(:vtask) from dual;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Tidy up
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					drop user user13 cascade;<br>
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>

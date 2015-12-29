@@ -36,7 +36,10 @@
  					<li>gather_index_stats: Analyze one index</li>
  				</ul>
  				Example of a complete gather schema stats:<br>
- 				<code>execute dbms_stats.gather_schema_stats(ownname=>'HR',cascade=>dbms_stats.auto_cascade,estimate_percent=>dbms_stats.auto_sample_size,degree=>dbms_stats.auto_degree,no_invalidate=>dbms_stats.auto_invalidate, granularity=>'auto',method_opt=>'for all columns size auto',options=>'gather')
+ 				<code>execute dbms_stats.gather_schema_stats(ownname=>'HR',cascade=>dbms_stats.auto_cascade,<br>
+					estimate_percent=>dbms_stats.auto_sample_size,degree=>dbms_stats.auto_degree,<br>
+					no_invalidate=>dbms_stats.auto_invalidate, granularity=>'auto'<br>
+					,method_opt=>'for all columns size auto',options=>'gather')
  				</code><br>
  				The arguments are:Cascade: analyze indexes as well as tables (the setting of the example lets Oracle decide wich indexes should be analyzed). Estimate_percent: control how much of each table to analyze.DEGREE: specifies wheter to perform the analysis with parallel processing(with the setting of the example Oracle decide the number according to the environment and the size of each table).NO_INVALIDATE: controls whether or not to reparse any SQL with dependencies on the objects analyzed immediately (with the example setting oracle decide).GRANULARITY: refers to how best to analyze objects consisting of a number of subobjects, such as a table that is divided into partitions (setting oracle decide). METHOD_OPT: controls for wich columns to build up histograms, and how many buckets they should have (setting Oracle decide).Options: determines wich objects to analyze (setting given analyze all objects).<br>
 
