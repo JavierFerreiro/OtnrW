@@ -1,0 +1,130 @@
+<h2>Managing Resource using database resource manager</h2>
+<h3>Officials</h3>
+<p>
+1-Create and implement a resource manager plan using create_simple_plan.
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>connect as system, create some user and grant connect role to all of them.
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					create user clerk identified by clerk;<br>
+					grant connect to clerk identified by clerk;<br>
+					create user acct identified by acct ;<br>
+					grant connect to acct  identified by acct;<br>
+					create user batch identified by batch ;<br>
+					grant connect to batch identified by batch;<br>
+					create user mgr identified by mgr;<br>
+					grant connect to mgr identified by mgr;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Create two consumers groups (if necessary create a pendign area).
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					--Creating pending area<br>
+					execute dbms_resource_manager.create_pending_area<br>
+					--Creating consumers groups<br>
+					execute dbms_resource_manager.create_consumer_group('OLTP')<br>
+					execute dbms_resource_manager.create_consumer_group('DSS')<br>
+					execute dbms_resource_manager.submit_pending_area;<br>
+					--Assing the users to groups<br>
+					execute dbms_resource_manager_privs.grant_switch_consumer_group('CLERK','OLTP',false)<br>
+					execute dbms_resource_manager_privs.grant_switch_consumer_group('MGR','OLTP',false)<br>
+					execute dbms_resource_manager_privs.grant_switch_consumer_group('ACCT','DSS',false)<br>
+					execute dbms_resource_manager_privs.grant_switch_consumer_group('BATCH','DSS',false)<br>
+					--Set the initial consumer group of the user<br>
+					execute dbms_resource_manager.set_initial_consumer_group('CLERK','OLTP')<br>
+					execute dbms_resource_manager.set_initial_consumer_group('MGR','OLTP')<br>
+					execute dbms_resource_manager.set_initial_consumer_group('ACCT','DSS')<br>
+					execute dbms_resource_manager.set_initial_consumer_group('BATCH','DSS')<br>
+				</code>
+			</div>	
+		</li>
+		<li>Create the plan and activate it.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					--creating...<br>
+					execute dbms_resource_manager.create_simple_plan(<br>
+					 simple_plan=&gt;'my_plan',<br>
+					 consumer_group1=&gt;'OLTP',<br>
+					 group1_percent=&gt;80,<br>
+					 consumer_group2=&gt;'DSS',<br>
+					 group1_percent=&gt;20)<br>
+					--Activating...<br>
+					alter system set resource_manager_plan=my_plan scope=memory;<br>
+				</code>
+			</div>	
+		</li>
+	</ol>
+</div><br>
+2-Test and Monitor the Resource Manager Plan of the previous exercises.
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and restrict the instance to using only one cpu core, to ensure contention when<br>
+			multiple sessions work concurrently.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					alter system set cpu_count=1 scope=memory;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Open two new session and connect as acct and clerk. Then in the system session confirm the group memberships of your sessions.
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					sqlplus acct/acct --Second session (the first is system)<br>
+					sqlplus clerk/clerk --Third session<br>
+					--Confirm the group membership<br>
+					select username,resource_consumer_group from v$session where username is not null;<br>
+				</code>
+			</div>	
+		</li>
+		<li>In the system session run a query to show the CPU usage by each group so far:
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					select name,active_sessions,consumed_cpu_time from v$rsrc_consumer_group;
+				</code>
+			</div>	
+		</li>
+		<li>In the clerk and acct sessions execute a huge select and repeat the previous qry to see the cpu distribution.
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					select count(*) from all_objects,all_objects;<br> 
+				</code>
+			</div>	
+		</li>
+		<li>Run a query to see the wait time in sessions caused by the Resource Manager.
+			<button type="button" onclick="$('#Answer25').toggleClass('hidden');">Answer</button>
+			<div id="Answer25" class="hidden answer container-fluid" >
+				<code>
+					select s.username,e.event,e.time_waited from v$session_event e join v$session s using (sid) where e.event like '%resmgr:cpu%';<br>
+				</code>
+			</div>	
+		</li>
+		<li>Tidy up: drop the users and restart the database to return to the default resource manager plan.
+			<button type="button" onclick="$('#Answer26').toggleClass('hidden');">Answer</button>
+			<div id="Answer26" class="hidden answer container-fluid" >
+				<code>
+					drop user clerk cascade;<br>
+					drop user acct cascade;<br>
+					drop user batch cascade;<br>
+					drop user mgr cascade;<br>
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
