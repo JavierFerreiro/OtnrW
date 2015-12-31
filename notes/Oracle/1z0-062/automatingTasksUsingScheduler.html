@@ -21,7 +21,7 @@ The scheduler is a facility to automate the running of jobs. These jobs may be p
 				<ul>
 					<li>Jobs<br>
 						A job specifies what what to do and when. What can be an anonymous PL/SQL block (wich could consist of just a single SQL statement), a PL/SQL stored procedure (wich could invoke a Java stored procedure or an external procedure), or any executable file stored in the server's file system: either a binary or shell script. A particularly powerful capability is the remote external job, wich runs on a separate machine. The when specifies either the timestamp at wich to launch the job and a repeat interval for future runs, or the triggering event.<br>
-						The procedure to create jobs is DBMS_SCHEDULER.CREATE_JOB that is overloaded, it has no less than six forms (use desc DBMS_SCHEDULER.CREATE_JOB to check the first and second form to follow the next explanations). The jobs are schema objects,taken the first form of the procedure, the JOB_TYPE must be one of the following: PLSQL_BLOCK /anonymous PL/SQL block), STORED_PROCEDURE (a named PL/SQL procedure), EXECUTABLE (anything axecutable from an OS prompt), CHAIN (a named job chain object), EXTERNAL_SCRIPT (a script launched by the OS's command interpreter), SQL_SCRIPT (a SQL*Plus script), BACKUP_SCRIPT (a RMAN script). The JOB_ACTION is the command or script or chain to be run, the NUMBER_OF_ARGUMENTS parameter states how many arguments the JOB_ACTION should take, START_DATE (date first execution), REPEAT_INTERVAL defines a repeat frequency, such as daily until END_DATE, JOB_CLASS has to do with priorities and integration of the Scheduler with the Resource Manager, ENABLED determines wheter the job can actually be run (attention, default to false), finally AUTO_DROP controls whether to drop the job definition after the END_TIME (default TRUE). If a job is created with no scheduling information, it will be run as soon as it is enabled and then dropped immediately.<br>
+						The procedure to create jobs is DBMS_SCHEDULER.CREATE_JOB that is overloaded, it has no less than six forms (use desc DBMS_SCHEDULER to check the first and second form to follow the next explanations). The jobs are schema objects,taken the first form of the procedure, the JOB_TYPE must be one of the following: PLSQL_BLOCK (anonymous PL/SQL block), STORED_PROCEDURE (a named PL/SQL procedure), EXECUTABLE (anything axecutable from an OS prompt), CHAIN (a named job chain object), EXTERNAL_SCRIPT (a script launched by the OS's command interpreter), SQL_SCRIPT (a SQL*Plus script), BACKUP_SCRIPT (a RMAN script). The JOB_ACTION is the command or script or chain to be run, the NUMBER_OF_ARGUMENTS parameter states how many arguments the JOB_ACTION should take, START_DATE (date first execution), REPEAT_INTERVAL defines a repeat frequency, such as daily until END_DATE, JOB_CLASS has to do with priorities and integration of the Scheduler with the Resource Manager, ENABLED determines wheter the job can actually be run (attention, default to false), finally AUTO_DROP controls whether to drop the job definition after the END_TIME (default TRUE). If a job is created with no scheduling information, it will be run as soon as it is enabled and then dropped immediately.<br>
 						In as second form of CREATE_JOB we can create an event-based job. The EVENT_CONDITION is an expression based on the definition of the messages enqueued to the queue table nominated by the QUEUE_SPEC argument. Between the start and end dates, Oracle will monitor the queue and launch the job whenever a message arrives that conforms to the conditions.
 					</li>
 					<li>Programs<br>
@@ -29,20 +29,21 @@ The scheduler is a facility to automate the running of jobs. These jobs may be p
 
 					</li>
 					<li>Schedules<br>
-						A schedule is a specification for when and how frequently a job should run, declare the "When" outside a job. Created with the DBMS_SCHEDULER.CREATE_SCHEDULE procedure (use desc). REPEAT_INTERVAL specifies how frequently the hob should run, until END_DATA. Schedules without a specified END_DATE will run forever. REPEAT_INTERVAL argument can take a wide variety of calendaring expressions, consist of up to three elements: frequency, interval (default 1), and possibly several specifiers. The frequency may be one of these values: YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, MINUTELY AND SECONDLY. The specifiers can be: BYMONTH, BYWEEKNO,BYYEARDAY,BYMOUNTHDAY, BYHOUR, BYMINUTE,BYSECOND. Example: <code>repeat_interval=>'freq=hourly; interval=12'</code> will run the job every 12 hours.<code>repeat_interval=>'freq=yearly; bymounth=jan,mar,may; bymonthday=2'</code> will run the job on te second day of each of the named four months, starting as early in the days as resoureces permit.<code>repeat_interval=>'freq=weekly; interval=2; byday=mon;byhour=6;byminute=10'</code> will run the job at ten past six on alternate mondays.
-						<img src='../../img/scheduling1.png'/>
+						A schedule is a specification for when and how frequently a job should run, declare the "When" outside a job. Created with the DBMS_SCHEDULER.CREATE_SCHEDULE procedure (use desc). REPEAT_INTERVAL specifies how frequently the hob should run, until END_DATA. Schedules without a specified END_DATE will run forever. REPEAT_INTERVAL argument can take a wide variety of calendaring expressions, consist of up to three elements: frequency, interval (default 1), and possibly several specifiers. The frequency may be one of these values: YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, MINUTELY AND SECONDLY. The specifiers can be: BYMONTH, BYWEEKNO,BYYEARDAY,BYMOUNTHDAY, BYHOUR, BYMINUTE,BYSECOND. Example: <code>repeat_interval=>'freq=hourly; interval=12'</code> will run the job every 12 hours.<code>repeat_interval=>'freq=yearly; bymounth=jan,mar,may; bymonthday=2'</code> will run the job on te second day of each of the named four months, starting as early in the days as resoureces permit.<code>repeat_interval=>'freq=weekly; interval=2; byday=mon;byhour=6;byminute=10'</code> will run the job at ten past six on alternate mondays.<br>
+
+						<img src='img/scheduling1.png'/>
 					</li>
 					<li>A Self-Contained Job<br>
 						To create and schedule a job with one procedure call, use the CREATE_JOB procedure: <br>
 						<code>
 							begin<br>
-							dbms_scheduler.create_job(job_name=>'hr.refres_sums',<br>
-							job_type=>'stored_procedure',<br>
-							job_action=>'hr.refresh_summaries',<br>
-							start_date=>trunc(sysdate)+23/24,<br>
-							repeat_interval=>'freq=weekly;byday=mon,fri;byhour=23',<br>
-							enabled=>'true',<br>
-							auto_drop=>dalse,<br>
+							dbms_scheduler.create_job(job_name=&gt;'hr.refres_sums',<br>
+							job_type=&gt;'stored_procedure',<br>
+							job_action=&gt;'hr.refresh_summaries',<br>
+							start_date=&gt;trunc(sysdate)+23/24,<br>
+							repeat_interval=&gt;'freq=weekly;byday=mon,fri;byhour=23',<br>
+							enabled=&gt;'true',<br>
+							auto_drop=>false,<br>
 							comments=>'update summary tables'<br>
 							);
 						</code><br>

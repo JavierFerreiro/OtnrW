@@ -1,0 +1,124 @@
+<h2>Automating Tasks Using Scheduler</h2>
+<h3>Officials</h3>
+<p>
+1-Creating a job with the scheduler API
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and create a table to store times and set your date format to show date and time.
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					create table time (c1 date)<br>
+					alter system set nls_date_format='dd-mm-yy hh24:mi:ss	';<br>
+				</code>
+			</div>	
+		</li>
+		<li>Create a job to insert the current time into the table every minute.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					execute dbms_scheduler.create_job(job_name=&gt;'savedate',-<br>
+					 job_type=&gt;'plsql_block',-<br>
+					 job_action=&gt;'insert into times values(sysdate);',-<br>
+					 start_date=&gt;sysdate,-<br>
+					 repeat_interval=&gt;'freq=minutely;interval=1',-<br>
+					 enabled=&gt;true,-<br>
+					 auto_drop=&gt;false)
+				</code>
+			</div>	
+		</li>
+		<li>Query to confirm the job is schedule and working.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					select job_name,enabled,to_char(next_run_date,'dd-mm-yy hh24:mi:ss'),run_count from user_scheduler_jobs;<br>
+					select * from times;
+				</code>
+			</div>	
+		</li>
+		<li>Disable the job and check that no more insert are executed, then drop the job.
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					exec dbms_scheduler.disable('savedate')<br>
+					exec dbms_scheduler.drop_job('savedate')<br>
+				</code>
+			</div>	
+		</li>
+
+
+			</ol>
+</div><br>
+2-Use scheduler windows to control resource manager.
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and run a query to whether a window is currently open and what resource manager plan (if someone delete it).
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					connect system/oracle<br>
+					select window_name,active from dba_scheduler_windows;<br>	
+					select * from v$rsrc_plan;<br>
+					--Shows the internal_plan that is a plan that runs when no other resource_manager_plan is defined.<br>
+					alter system set resource_manager_plan='' scope='memory'<br>
+				</code>
+			</div>	
+		</li>
+		<li>Execute the procedure to create a window named MY_WINDOW that will active MY_PLAN plan.
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					execute dbms_scheduler.create_window(-<br>
+					 window_name=&gt;'daytime',-<br>
+					 resource_plan=&gt;'my_plan',-<br>
+					 start_date=&gt;trunc(systimestamp) + 6/24,-<br>
+					 repeat_interval=&gt;'freq=daily',-<br>
+					 duration=&gt;'0 12:00:00',-<br>
+					 comments=&gt;'daily at 6AM');
+				</code>
+			</div>	
+		</li>
+		<li>Force the DB to open the new window immediatly:
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+				 exec dbms_scheduler.open_window(-<br>
+					window_name=&gt;'daytime',-<br>
+					duration=&gt;'0 00:05:00',-<br>
+					force=&gt;true);<br>
+				</code>
+			</div>	
+		</li>
+		<li>Rerun queries to confirm that the daytime window is open and the my_plan is active and after 5 minutes rerun another time to confirm<br>
+			that is not running.
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					select sysdate from dual<br>
+					select window_name,active from dba_scheduler_windows;<br>	
+					select * from v$rsrc_plan;<br>
+					--After 5 minutes
+					select sysdate from dual<br>
+					select window_name,active from dba_scheduler_windows;<br>	
+					select * from v$rsrc_plan;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Tidy up:
+			<button type="button" onclick="$('#Answer25').toggleClass('hidden');">Answer</button>
+			<div id="Answer25" class="hidden answer container-fluid" >
+				<code>
+					exec dbms_scheduler.drop_window('daytime');<br>		
+				</code>
+			</div>	
+		</li>
+		
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
