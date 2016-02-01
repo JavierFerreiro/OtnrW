@@ -1,0 +1,148 @@
+<h2>Moving Data</h2>
+<h3>Officials</h3>
+<p>
+1-Use directories,SQL*Loader, and External Tables
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and create the table names
+			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+			<div id="Answer11" class="hidden answer container-fluid" >
+				<code>
+					sqlplus system/oracle<br>
+					create table names (first varchar2(10),last varchar2(10));<br>
+				</code>
+			</div>	
+		</li>
+		<li>Using an editor create a text plain file to fill the table names.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					vim names.txt
+					John,Watson
+					Roopesh,Ramklass
+					Sam,Alapati
+				</code>
+			</div>	
+		</li>
+		<li>Using vim create a controfile called names.ctl 
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					load data<br>
+					infile 'names.txt'<br>
+					badfile 'names.bad'<br>
+					truncate<br>
+					into table names<br>
+					fields terminated by ','<br>
+					trailing nullcols<br>
+					(first,last)
+				</code>
+			</div>	
+		</li>
+		<li>From OS load the txt file with sqlldr and control the log file
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					sqlldr system/oracle control=names.ctl
+				</code>
+			</div>	
+		</li>
+		<li>To load the data, but like an external table, you can obtain the sql from sqlldr:
+			<button type="button" onclick="$('#Answer15').toggleClass('hidden');">Answer</button>
+			<div id="Answer15" class="hidden answer container-fluid" >
+				<code>
+					sqlldr system/oracle control=names.ctl external_table=generate_only
+				</code>
+			</div>	
+		</li>
+		<li>Modify the sql of the previous point (use normal names) and generate the external table
+			<button type="button" onclick="$('#Answer16').toggleClass('hidden');">Answer</button>
+			<div id="Answer16" class="hidden answer container-fluid" >
+				<code>
+					create directory system_dmp as '/home/oracle';<br>
+					drop table names purge;<br>
+					CREATE TABLE names<br>
+					("FIRST" VARCHAR2(10),<br>
+  					"LAST" VARCHAR2(10)<br>
+					)<br>
+					ORGANIZATION external<br>
+					(<br>
+  					TYPE oracle_loader<br>
+  					DEFAULT DIRECTORY system_dmp<br>
+  					ACCESS PARAMETERS<br>
+  					(<br>
+    					RECORDS DELIMITED BY NEWLINE CHARACTERSET US7ASCII<br>
+    					BADFILE 'SYSTEM_DMP':'names.bad'<br>
+    					LOGFILE 'names.log_xt'<br>
+    					READSIZE 1048576<br>
+    					FIELDS TERMINATED BY "," LDRTRIM<br>
+    					MISSING FIELD VALUES ARE NULL<br>
+    					REJECT ROWS WITH ALL NULL FIELDS<br>
+    					(<br>
+      					"FIRST" CHAR(255)<br>
+        					TERMINATED BY ",",<br>
+      					"LAST" CHAR(255)<br>
+        					TERMINATED BY ","<br>
+    					)<br>
+  					)<br>
+ 					 location<br>
+  					(<br>
+    				'names.txt'<br>
+  					)<br>
+					)REJECT LIMIT UNLIMITED
+				</code>
+			</div>	
+		</li>
+
+
+	</ol>
+</div><br>
+2-Use data pump export/import: copy a table to one schema to other.
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<ol>
+		<li>Connect as system and create two new schemas: artem and ivana. In artem create a table and an index.
+			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
+			<div id="Answer21" class="hidden answer container-fluid" >
+				<code>
+					sqlplus system/oracle<br>
+					create user artem identified by artem;<br>
+					create user ivana identified by ivana;<br>
+					alter user artem quota unlimited on users;<br>
+					create table artem.users as select * from all_users;<br>
+					create index artem.ui on artem.users(user_id);<br>
+				</code>
+			</div>	
+		</li>
+		<li>Check if the default data pump directory exists
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					select directory_path from dba_directories where directory_name='DATA_PUMP_DIR';<br>
+				</code>
+			</div>	
+		</li>
+		<li>export the artem schema with expdp
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					expdp system/oracle schemas=artem dumpfile=artem.dmp;<br>
+				</code>
+			</div>	
+		</li>
+		<li>import the artem schema into ivana schema
+			<button type="button" onclick="$('#Answer24').toggleClass('hidden');">Answer</button>
+			<div id="Answer24" class="hidden answer container-fluid" >
+				<code>
+					impdp system/oracle remap_schema=artem:ivana dumpfile=artem.dmp;<br>
+				</code>
+			</div>	
+		</li>
+
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
