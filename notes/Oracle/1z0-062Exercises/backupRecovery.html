@@ -1,32 +1,77 @@
 <h2>Backup and recovery: concepts and configuration</h2>
 <h3>Officials</h3>
 <p>
-1-XXX
+1-Investigate and adjust the redo log configuration
 <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
 <div id="Answer1" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Connect as system and document the configuration of the redo log with a query
 			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
 			<div id="Answer11" class="hidden answer container-fluid" >
 				<code>
-					ZZZ
+					select * from v$log join v$logfile using (group#);
 				</code>
 			</div>	
 		</li>
+		<li>Determine the archivelog mode of the DB and wheter ARCn is running.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					select log_mode from v$database;<br>
+					select archiver from v$instance;<br>
+					--or, by Xavi<br>
+					archive log list;
+				</code>
+			</div>	
+		</li>
+		<li>Add another member to each of the online logfile groups. Choose any directory and put it in a valid state.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					alter database add logfile member '/u01/app/oracle/oradata/orcl/redo011.log' to group 1;<br>
+					alter database add logfile member '/u01/app/oracle/oradata/orcl/redo021.log' to group 2;<br>
+					alter database add logfile member '/u01/app/oracle/oradata/orcl/redo031.log' to group 3:<br>
+					select * from v$logfile;--No valid state<br>
+					alter system switch logfile;--repeat 3 times<br>
+					select * from v$logfile;--Valid state<br>
+				</code>
+			</div>	
+		</li>
+
 	</ol>
 </div><br>
-2-XXX
+2-Enable Archive log mode
 <button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
 <div id="Answer2" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Connect as sys (you need to stop/start the instance) and put the db in archive log mode.
 			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
 			<div id="Answer21" class="hidden answer container-fluid" >
 				<code>
-					ZZZ
+					shutdown immediate;<br>
+					startup mount;<br>
+					alter database archivelog;<br>
+					alter database open;
 				</code>
 			</div>	
 		</li>
+		<li>Confirm that archiving is working by forcing a log switch and an archive.
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					alter system archive log current;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Confirm that the archive log file has been generated in the fast recovery area.
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					select name,is_recovery_dest_file from v$archived_log;
+				</code>
+			</div>	
+		</li>
+
 	</ol>
 </div><br>
 </p>
