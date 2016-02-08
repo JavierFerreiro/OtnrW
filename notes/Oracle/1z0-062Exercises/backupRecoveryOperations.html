@@ -1,46 +1,117 @@
 <h2>Backup and recovery operations</h2>
 <h3>Officials</h3>
 <p>
-1-xxxx
+1-Consistent Server-Managed Backup. Perform a full offline backup using RMAN.
 <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
 <div id="Answer1" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Set the environment variables, ORACLE_SID, ORACLE_HOME and PATH and launch rman and connect using O.S authentication.
 			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
 			<div id="Answer11" class="hidden answer container-fluid" >
 				<code>
-					zzz
+					export ORACLE_SID=orcl<br>
+					export ORACLE_HOME=/u01/app/oracle/product/12.1.0.2/dbhome_01<br>
+					export PATH=$PATH:$ORACLE_HOME/bin<br>
+					rman target /<br>
 				</code>
 			</div>	
 		</li>
+		<li>Shut down the DB and mount it and perform a full backup and study the feedback.
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					shutdown immediate;<br>
+					backup database;<br>
+				</code>
+			</div>	
+		</li>
+		<li>Open the database.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					alter database open;<br>
+					exit;<br>
+				</code>
+			</div>	
+		</li>
+
 	</ol>
 </div><br>
-2-XXX
+2-Perform Server-Managed Open Backups (hot backup)
 <button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
 <div id="Answer2" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Connect to rman
 			<button type="button" onclick="$('#Answer21').toggleClass('hidden');">Answer</button>
 			<div id="Answer21" class="hidden answer container-fluid" >
 				<code>
-					ZZZ
+					rman target /
+				</code>
+			</div>	
+		</li>
+		<li>Back up a tablespace using defaults.
+			<button type="button" onclick="$('#Answer22').toggleClass('hidden');">Answer</button>
+			<div id="Answer22" class="hidden answer container-fluid" >
+				<code>
+					backup tablespace sysaux;
+				</code>
+			</div>	
+		</li>
+		<li>Back up your archive logsfiles, againg using defaults.
+			<button type="button" onclick="$('#Answer23').toggleClass('hidden');">Answer</button>
+			<div id="Answer23" class="hidden answer container-fluid" >
+				<code>
+					backup archivelog all;
 				</code>
 			</div>	
 		</li>
 	</ol>
 </div><br>
-3-XXX
+3-Use the DRA to diagnose and repair a problem. First, we will cause a problem and then use DRA to fix it.
 <button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
 <div id="Answer3" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Connect to DB wit rman and confirm that exist a backup of the sysaux tablespace.
 			<button type="button" onclick="$('#Answer31').toggleClass('hidden');">Answer</button>
 			<div id="Answer31" class="hidden answer container-fluid" >
 				<code>
-					ZZZ
+					rman target /<br>
+					list backup of tablespace sysaux;	
 				</code>
 			</div>	
 		</li>
+		<li>Shutdown the instance and in the O.S. delete the datafile for SYSAUX tablespace.
+			<button type="button" onclick="$('#Answer32').toggleClass('hidden');">Answer</button>
+			<div id="Answer32" class="hidden answer container-fluid" >
+				<code>
+					shutdown immediate;<br>
+					exit;<br>
+					rm /u01/app/oracle/oradata/orcl/sysaux01.dbf
+				</code>
+			</div>	
+		</li>
+		<li>Connect with sqlplus and try to startup the instance (stop in mount mode). Then connect with rman
+			<button type="button" onclick="$('#Answer33').toggleClass('hidden');">Answer</button>
+			<div id="Answer33" class="hidden answer container-fluid" >
+				<code>
+					sqlplus / as sysdba<br>
+					startup<br>
+					exit;<br>
+					rman target /
+				</code>
+			</div>	
+		</li>
+		<li>Diagnose the problem, generate an advice and repair the failure
+			<button type="button" onclick="$('#Answer34').toggleClass('hidden');">Answer</button>
+			<div id="Answer34" class="hidden answer container-fluid" >
+				<code>
+					list failure;<br>
+					advise failure;<br>
+					repair failure;<br>
+				</code>
+			</div>	
+		</li>
+
 	</ol>
 </div><br>
 
