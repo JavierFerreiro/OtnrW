@@ -1,21 +1,47 @@
 <h2>Installing Oracle Grid Infrastructure for a standalone server</h2>
 <h3>Officials</h3>
 <p>
-1-XXX
+1-Install the GI software and configure it for use.
 <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
 <div id="Answer1" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>Download the GI, unzip it and run it.
 			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
 			<div id="Answer11" class="hidden answer container-fluid" >
 				<code>
-					ZZZ
+					##Only if you has a noon oficial distribution like fedora 22<br>
+					 ln -s /usr/lib64/libcap.so.2.24 /usr/lib64/libcap.so.1
+					##
+					mkdir /var/opt/oracleSoft/grid/12102<br>
+					unzip *<br>
+					export DISPLAY=:0<br>
+					./runIstaller	
+				</code>
+			</div>	
+		</li>
+		<li>With the GUI answer the questions
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					Use the dba group for a simply installation (production installation should has a group per duty (osasm...)<br>
+					Use the default installation path ($ORACLE_BASE/../12.1.0.2/grid<br>
+					Execute the script when the installar instruct of do it: #/u01/app/12.1.0.2/grid/root.sh<br>
+					Execute the perl script that say the root.sh script (standalone version)
+				</code>
+			</div>	
+		</li>
+		<li>Confirm the successful installation.
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					cd /u01/app/12.1.0.2/bin<br>
+					./crsctl config has<br>
+					./crsctl status resource<br>
 				</code>
 			</div>	
 		</li>
 	</ol>
 </div><br>
-
 </p>
 <h3>Xavi's propossed</h3>
 <p>
