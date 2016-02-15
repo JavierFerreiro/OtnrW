@@ -1,18 +1,71 @@
 <h2>Using Oracle restart</h2>
 <h3>Officials</h3>
 <p>
-1-XXX
+1-Register a DB with Oracle Restart (must: complete previous exercises 20-1)
 <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
 <div id="Answer1" class="hidden answer container-fluid" >
 	<ol>
-		<li>YYY
+		<li>From O.S. with root user check HAS is configured and running:
 			<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
 			<div id="Answer11" class="hidden answer container-fluid" >
 				<code>
-					ZZZ
+					export PATH=$PATH:/u01/app/12.1.0/grid/bin<br>
+					crsctl config has
+					crsctl check has	
 				</code>
 			</div>	
 		</li>
+		<li>Demonstrate that the GI process that implements Oracle Restart is itself protected against failure:
+			<button type="button" onclick="$('#Answer12').toggleClass('hidden');">Answer</button>
+			<div id="Answer12" class="hidden answer container-fluid" >
+				<code>
+					ps -ef|grep init.ohasd<br>
+					root      1148     1  0 08:48 ?        00:00:00 /bin/sh /etc/init.d/init.ohasd run &gt;/dev/null 2&gt;&1 &lt;/dev/null<br>
+					kill -9 1148<br>
+					ps -ef|grep init.ohasd<br>
+				</code>
+			</div>	
+		</li>
+		<li>Use srvctl to register your DB with Oracle Restart
+			<button type="button" onclick="$('#Answer13').toggleClass('hidden');">Answer</button>
+			<div id="Answer13" class="hidden answer container-fluid" >
+				<code>
+					srvctl add database -d orcl -oraclehome $ORACLE_HOME<br>
+				</code>
+			</div>	
+		</li>
+		<li>Confirm that the database has benn succesfully registered and check its status
+			<button type="button" onclick="$('#Answer14').toggleClass('hidden');">Answer</button>
+			<div id="Answer14" class="hidden answer container-fluid" >
+				<code>
+					srvctl config database -d orcl<br>
+					srvctl status database -d orcl<br> 
+				</code>
+			</div>	
+		</li>
+		<li>Force GI to perform a reality check by issuing a start command and then check the status again:
+			<button type="button" onclick="$('#Answer15').toggleClass('hidden');">Answer</button>
+			<div id="Answer15" class="hidden answer container-fluid" >
+				<code>
+					srvctl start database -db orcl<br>
+					srvctl status database -db orcl<br>
+				</code>
+			</div>	
+		</li>
+		<li>While the db is running demonstrate the restart capability:
+			<button type="button" onclick="$('#Answer16').toggleClass('hidden');">Answer</button>
+			<div id="Answer16" class="hidden answer container-fluid" >
+				<code>
+					ps -ef| grep smon<br>
+					oracle    6312     1  0 13:02 ?        00:00:00 ora_smon_orcl<br>
+					kill -9 6312<br>
+					srvctl status database -db orcl<br>
+					srvctl status database -db orcl<br>
+				</code>
+			</div>	
+		</li>
+
+
 	</ol>
 </div><br>
 </p>
