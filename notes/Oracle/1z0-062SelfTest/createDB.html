@@ -1,0 +1,155 @@
+<h2>Self Test Of Creating database</h2>
+<p>
+Result 8/12
+</p>
+<p>
+1-Wich of these operations can be accomplished with the dbca?(Choose all the correct answers.) <br>
+&nbsp;&nbsp;A-Create a database.<br>
+&nbsp;&nbsp;B-Remove a database.<br>
+&nbsp;&nbsp;C-Upgrade a database.<br>
+&nbsp;&nbsp;D-Add database options.<br>
+&nbsp;&nbsp;E-Remove database options.<br>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<code>
+		xavi: A,B,C<br>
+		Correct: A,B,D<br>
+	</code> 	
+</div>
+2-To create a database, in what mode must the instance be?(Choose the best answer.)<br>
+&nbsp;&nbsp;A- Not started.<br>
+&nbsp;&nbsp;B- Started in NOMOUNT mode.<br>
+&nbsp;&nbsp;C- Started in MOUNT mode.<br>
+&nbsp;&nbsp;D- Started in OPEN mode.<br>
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<code>
+		Xavi: B<br>
+		Correct: B<br>
+	</code> 	
+</div><br>
+3-Several actions are necessary to create a database. Place these in the correct order:<br>
+&nbsp;1-Create the data dictionary views.<br>
+&nbsp;2-Create the parameter file.<br>
+&nbsp;3-Create the password file.<br>
+&nbsp;4-Issue the CREATE DATABASE command.<br>
+&nbsp;5-Issue the STARTUP command.<br>
+(Choose the best answer.)<br>
+&nbsp;&nbsp;A-2,3,5,4,1<br>
+&nbsp;&nbsp;B-3,5,2,4,1<br>
+&nbsp;&nbsp;C-5,3,4,2,1<br>
+&nbsp;&nbsp;D-2,3,1,4,5<br>
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A<br>
+		Correct: A<br>
+	</code> 	
+</div><br>
+4-What instance parameter cannot be changed after database creation? (Choose the best answer.)<br>
+&nbsp;&nbsp;A- All instance parameters can be changed after database creation.<br>
+&nbsp;&nbsp;B- All instance parameters can be changed after database creation, if it is done while the instance is in MOUNT mode.<br>
+&nbsp;&nbsp;C- CONTROL_FILES.<br>
+&nbsp;&nbsp;D- DB_BLOCK_SIZE.<br>
+<button type="button" onclick="$('#Answer4').toggleClass('hidden');">Answer</button>
+<div id="Answer4" class="hidden answer container-fluid" >
+	<code>
+		Xavi: D<br>
+		Correct: D<br>
+	</code> 	
+</div><br>
+5-What files are created by the CREATE DATABASE command? (Choose all the correct answers.)<br>
+&nbsp;&nbsp;A- The controlfile.<br>
+&nbsp;&nbsp;B- The server parameter file.<br>
+&nbsp;&nbsp;C- The online redo log files.<br>
+&nbsp;&nbsp;D- The password file<br>
+&nbsp;&nbsp;E- The static initialization parameter file<br>
+&nbsp;&nbsp;F- The SYSAUX tablespace datafile<br>
+&nbsp;&nbsp;G- The SYSTEM tablespace datafile<br>
+<button type="button" onclick="$('#Answer5').toggleClass('hidden');">Answer</button>
+<div id="Answer5" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A,C,F,G<br>
+		Correct: A,C,F,G<br>
+	</code> 	
+</div><br>
+6- What will happen if you do not run the CATALOG.SQL and CATPROC.SQL scripts after creating a database? (Choose the best answer.)<br>
+&nbsp;&nbsp;A-It will not be possible to open the database.<br>
+&nbsp;&nbsp;B-It will not be possible to create any user tables.<br>
+&nbsp;&nbsp;C-It will not be possible to use PL/SQL.<br>
+&nbsp;&nbsp;D-It will not be possible to query the data dictionary views.<br>
+&nbsp;&nbsp;E-It will not be possible to connect as any user other than SYS.<br>
+<button type="button" onclick="$('#Answer6').toggleClass('hidden');">Answer</button>
+<div id="Answer6" class="hidden answer container-fluid" >
+	<code>
+		xavi: C,D<br>
+		Correct: D<br>
+	</code> 	
+</div><br>
+7-What tools can be used to manage templates? (Choose all correct answers.)<br>
+&nbsp;&nbsp;A- The database configuration assistant.<br>
+&nbsp;&nbsp;B- The database upgrade assistant.<br>
+&nbsp;&nbsp;C- SQL*Plus.<br>
+&nbsp;&nbsp;D- Database Express.<br>
+&nbsp;&nbsp;E- The Oracle Universal Installer.<br>
+<button type="button" onclick="$('#Answer7').toggleClass('hidden');">Answer</button>
+<div id="Answer7" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A<br>
+		Correct: A<br>
+	</code> 	
+</div><br>
+8- At what point can you not choose or change the database character set? (Choose the best answer.)<br>
+&nbsp;&nbsp;A- At database creation time, if you are using a DBCA template.<br>
+&nbsp;&nbsp;B- At database creation time,if you are using a DBCA template that includes datafiles.<br>
+&nbsp;&nbsp;C- At database creation time, if you are not using a DBCA template.<br>
+&nbsp;&nbsp;D- After database creation, using DBCA to install options.<br>
+<button type="button" onclick="$('#Answer8').toggleClass('hidden');">Answer</button>
+<div id="Answer8" class="hidden answer container-fluid" >
+	<code>
+		Xavi: D<br>
+		Correct: D<br>
+	</code> 	
+</div><br>
+9-If there are several databases created off the same Oracle Home, how will Database Express be configured? (Choose the best answer.)<br>
+&nbsp;&nbsp;A- Database Express will give access to all databases created from the Oracle Home through one URL.<br>
+&nbsp;&nbsp;B- Database Express will give access to each database through different ports.<br>
+&nbsp;&nbsp;C- Database Express need only be configured in one database and can be then can be used to connect to all of them.<br>
+&nbsp;&nbsp;D- Database Express can manage only one database per Oracle Home.<br>
+<button type="button" onclick="$('#Answer9').toggleClass('hidden');">Answer</button>
+<div id="Answer9" class="hidden answer container-fluid" >
+	<code>
+		Xavi: B<br>
+		Correct: B<br>
+	</code> 	
+</div><br>
+10- The SYSAUX tablespace is mandatory. What will happen if you attempt to issue a CREATE DATABASE command that does not specify a datafile<br>
+&nbsp; for the SYSAUX tablespace? (Choose the best ANSWER.)<br>
+&nbsp;&nbsp;A- The command will fail.<br>
+&nbsp;&nbsp;B- The command will succed, but the database will be inoperable until the SYSAUX tablespace is created.<br>
+&nbsp;&nbsp;C- A default SYSAUX tablespace and datafile will be created.<br>
+&nbsp;&nbsp;D- The SYSAUX objects will be created in the SYSTEM tablespace.<br>
+<button type="button" onclick="$('#Answer10').toggleClass('hidden');">Answer</button>
+<div id="Answer10" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A<br>
+		Correct: C<br>
+	</code> 	
+</div><br>
+11- What files are generated when you choose the option to Generate Database Creation Scripts in the Database Configuration Assistant?<br>
+&bnsp;(Choose all correct answers.)<br>
+&nbsp;&nbsp;A- A shell script.<br>
+&nbsp;&nbsp;B- SQL scripts.<br>
+&nbsp;&nbsp;C- A parameter file.<br>
+&nbsp;&nbsp;D- A password file.<br>
+&nbsp;&nbsp;E- A response file.<br>
+<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+<div id="Answer11" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A,B,C,D<br>
+		Correct: A,B,C,D<br>
+	</code> 	
+</div><br>
+
+</p>
+

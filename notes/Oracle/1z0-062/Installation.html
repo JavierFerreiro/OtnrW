@@ -195,7 +195,12 @@
 			</p>
 			<p>The minimum number of groups in the O.S. that you must 
 				precreated is one: the OSDBA group (normally called dba), but the 
-				main group of the oracle user should be oinstall.
+				main group of the oracle user should be oinstall. Xavi's note: you must
+				declare 4 grous in the OUI: osdba,osbackupdba,osdgdba and oskmdba. This can 
+				be corresponded to one unique os group, for example: dba or every db group can has
+				his own group: osdba-&gt;dba, osbackupdba-&gt;backupdba... The osoper is not 
+				mandatory to be declared, and the asmgroups not be requested by the oui, not necessary 
+				in the db installation.
 			</p>
 			<p>package to install in Centos 6 (refer to the official oracle page):
 				yum install binutils compat-libcap1  compat-libstdc++  compat-libstdc++ 
