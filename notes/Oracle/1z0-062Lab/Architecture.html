@@ -1,0 +1,34 @@
+<h2>Lab of Architecture</h2>
+<h3>Officials</h3>
+<p>
+1-Simulate a situation: You have been asked to take management of a database that you have not seen before, and for wich <br>
+the documentation is woefully inadequate. Write a series of queries that will begin to document the system. Following are some <br>
+of the views that help. Try to resolve this questions:
+<ol>
+	<li>On what O.S. is the db running?</li>
+	<li>Where is the controlfile? Is it multiplexed?</li>
+	<li>How many online log file groups are there?</li>
+	<li>How many numbers are in each group, and what are they called?</li>
+	<li>How big are they?</li>
+	<li>What tablespaces exist in the database?</li>
+	<li>What datafiles are assigned to each tablespace?</li>
+	<li>What are they called and how big are they?</li>
+</ol>
+
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>cat /etc/system-release</li>
+		<li>select status,name from v$controlfile;</li>
+		<li>select group#,members from v$log;</li>
+		<li>select group#,status,member from v$logfile;</li>
+		<li>select group#,bytes/1024/1024 as MB from v$log;</li>
+		<li>select tablespace_name from dba_tablespaces;</li>
+		<li>select tbs.tablespace_name, df.file_name from dba_tablespaces tbs,dba_data_files df where tbs.tablespace_name=df.tablespace_name;<li>
+		<li>select file_name,bytes/1024/1024 as MB from dba_data_files;</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>

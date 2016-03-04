@@ -553,4 +553,26 @@
 		</p>
 		
 	</li>
+	<li>Resume Table: where find the thing to characterize the database<br>
+		<ul>
+			<li>------------------------------------------------------------------------------</li>
+			<li>Instance: v$instance</li>
+			<li>DB: v$database</li>
+			<li>Control: v$controlfile</li>
+			<li>Parameter: v$parameter</li>
+			<li>------------------------------------------------------------------------------</li>
+			<li>Log: v$logfile,v$log</li>
+			<li>Temp: v$tempfile, dba_temp_files, database_properties(default_temp_tablespace)</li>
+			<li>Data: v$datafile, dba_data_files</li>
+			<li>Undo: show parameter undo_tablespaces;, dba_data_files</li>
+			<li>Tablespace: dba_tablespaces</li>
+			<li>------------------------------------------------------------------------------</li>
+			<li>SGA: v$sga, v$sgainfo</li>
+			<li>PGA: v$pgastat</li>
+			<li>------------------------------------------------------------------------------</li>
+			<li>Process: v$process</li>
+			<li>------------------------------------------------------------------------------</li>
+			<li>Process: v$process</li>
+		</ul>		
+	</li>
 </ul>

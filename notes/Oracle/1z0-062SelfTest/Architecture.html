@@ -1,0 +1,152 @@
+<h2>Self Test Of Architecture</h2>
+<p>
+Result 10/11
+</p>
+<p>
+1-What statements regarding instance memory and session memory are correct.(Choose all the correct answers).<br>
+&nbsp;&nbsp;A- SGA memory is private memory segments; PGA memory is shared memory segments.<br>
+&nbsp;&nbsp;B- Sessions can write to the PGA, not the SGA.<br>
+&nbsp;&nbsp;C- The SGA is written to by all sessions; a PGA is written by one session.<br>
+&nbsp;&nbsp;D- The PGA is allocated at instance startup.<br>
+&nbsp;&nbsp;E- The SGA is allocated at instance startup.<br>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<code>
+		xavi: C,E<br>
+		Correct: C,E<br>
+	</code> 	
+</div>
+2- How do sessions communicate with the database? (Choose the best answer.)<br>
+&nbsp;&nbsp;A- Server process use Oracle Net to connect to the instance.<br>
+&nbsp;&nbsp;B- Background processes use Oracle Net to connect to the database.<br>
+&nbsp;&nbsp;C- User processes read from the database and write to the instance.<br>
+&nbsp;&nbsp;D- Server process execute SQL received from user processes.<br>
+<button type="button" onclick="$('#Answer2').toggleClass('hidden');">Answer</button>
+<div id="Answer2" class="hidden answer container-fluid" >
+	<code>
+		Xavi: D<br>
+		Correct: D<br>
+	</code> 	
+</div><br>
+3- What memory structures are required part of the SGA (Choose all correct answers.).<br>
+&nbsp;&nbsp;A- The database buffer cache. <br>
+&nbsp;&nbsp;B- The Java pool.<br>
+&nbsp;&nbsp;C- The large pool.<br>
+&nbsp;&nbsp;D- The log buffer.<br>
+&nbsp;&nbsp;E- The Program Global Area.<br>
+&nbsp;&nbsp;F- The shared pool.<br>
+&nbsp;&nbsp;G- The Streams pool.<br>
+<button type="button" onclick="$('#Answer3').toggleClass('hidden');">Answer</button>
+<div id="Answer3" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A,D,F<br>
+		Correct: A,D,F<br>
+	</code> 	
+</div><br>
+4- Which SGA memory structure(s) cannot be resized dynamically after instance startup?(Choose all the correct answer)<br>
+&nbsp;&nbsp;A- The database buffer cache.<br>
+&nbsp;&nbsp;B- The Java pool.<br>
+&nbsp;&nbsp;C- The large pool.<br>
+&nbsp;&nbsp;D- The log buffer.<br>
+&nbsp;&nbsp;E- The shared pool.<br>
+&nbsp;&nbsp;F- The Streams pool.<br>
+&nbsp;&nbsp;G- All SGA structures can be resized dynamically after instance startup.<br>
+<button type="button" onclick="$('#Answer4').toggleClass('hidden');">Answer</button>
+<div id="Answer4" class="hidden answer container-fluid" >
+	<code>
+		Xavi: D<br>
+		Correct: D<br>
+	</code> 	
+</div><br>
+5- When a session changes data, where does the change get written? (Choose the best answer.)<br>
+&nbsp;&nbsp;A- To the data block in the cache, and the redo log buffer.<br>
+&nbsp;&nbsp;B- To the data block on disk, and the current online redo log file.<br>
+&nbsp;&nbsp;C- The session writes to the database buffer cache, and the log writer writes to the current online redo log file.<br>
+&nbsp;&nbsp;D- Nothing is written until the change is commited.<br>
+<button type="button" onclick="$('#Answer5').toggleClass('hidden');">Answer</button>
+<div id="Answer5" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A<br>
+		Correct: A<br>
+	</code> 	
+</div><br>
+6- Which of these background processes is optional?(Choose the best answer.)<br>
+&nbsp;&nbsp;A-ARCn, the archiver process.<br>
+&nbsp;&nbsp;B-CKPT, The checkpoint process.<br>
+&nbsp;&nbsp;C-DBWm, the database writer.<br>
+&nbsp;&nbsp;D-LGWR, the log writer.<br>
+&nbsp;&nbsp;E-MMON, the manageability monitor.<br>
+<button type="button" onclick="$('#Answer6').toggleClass('hidden');">Answer</button>
+<div id="Answer6" class="hidden answer container-fluid" >
+	<code>
+		xavi: A<br>
+		Correct: A<br>
+	</code> 	
+</div><br>
+7-What happens when a user issues a COMMIT? (Choose the best answer.)<br>
+&nbsp;&nbsp;A- The CKPT process signals a checkpoint.<br>
+&nbsp;&nbsp;B- The DBWn process writes the transaction's changed buffers to the datafiles.<br>
+&nbsp;&nbsp;C- The LGWR flushes the log buffer to the online redo log.<br>
+&nbsp;&nbsp;D- The ARCn process writes the change vectors to the archive redo log.<br>
+<button type="button" onclick="$('#Answer7').toggleClass('hidden');">Answer</button>
+<div id="Answer7" class="hidden answer container-fluid" >
+	<code>
+		Xavi: C<br>
+		Correct: C<br>
+	</code> 	
+</div><br>
+8- An Oracle instance can have only one of some process, but several of others. Wich of these<br>
+processes can occur several times? (Choose all correct answers.)<br>
+&nbsp;&nbsp;A- The archive process.<br>
+&nbsp;&nbsp;B- The checkpoint process.<br>
+&nbsp;&nbsp;C- The database writer process.<br>
+&nbsp;&nbsp;D- The log writer process.<br>
+&nbsp;&nbsp;E- The session server process.<br>
+<button type="button" onclick="$('#Answer8').toggleClass('hidden');">Answer</button>
+<div id="Answer8" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A,C,D,E<br>
+		Correct: A,C,E<br>
+		Here say that we can have slave process: 
+		<a href="http://www.dba-oracle.com/t_multiple%20log_writer_lgwr_processes.htm" alt="dba-oracle multiple lgwr">
+			dba.oracle.com
+		</a>
+	</code> 	
+</div><br>
+9-One segment can be spread across many datafiles.How? (Choose the best answer.)<br>
+&nbsp;&nbsp;A- By allocating extents with blocks in multiple datafiles.<br>
+&nbsp;&nbsp;B- By spreading the segment across multiple tablespaces.<br>
+&nbsp;&nbsp;C- By assigning multiple datafiles to a tablespace.<br>
+&nbsp;&nbsp;D- By using an Oracle block size that is larger than the O.S. system block size.<br>
+<button type="button" onclick="$('#Answer9').toggleClass('hidden');">Answer</button>
+<div id="Answer9" class="hidden answer container-fluid" >
+	<code>
+		Xavi: C<br>
+		Correct: C<br>
+	</code> 	
+</div><br>
+10- Wich statement is correct regarding the online redo log? (Choose the best answer).<br>
+&nbsp;&nbsp;A- There must be at least one log file group, with at least one member.<br>
+&nbsp;&nbsp;B- There must be at least one log file group, with at least two members<br>
+&nbsp;&nbsp;C- There must be at least two log file groups, with at least one member each.<br>
+&nbsp;&nbsp;D- There must be at least two log file groups, with at least two members each.<br>
+<button type="button" onclick="$('#Answer10').toggleClass('hidden');">Answer</button>
+<div id="Answer10" class="hidden answer container-fluid" >
+	<code>
+		Xavi: C<br>
+		Correct: C<br>
+	</code> 	
+</div><br>
+11- Where is the current redo byte address, also known as the incremental checkpoint position, recorded?(Choose the best answer.)<br>
+&nbsp;&nbsp;A- In the controlfile.<br>
+&nbsp;&nbsp;B- In the current online log file group.<br>
+&nbsp;&nbsp;C- In the header of each datafile.<br>
+&nbsp;&nbsp;D- In the System Global Area.<br>
+<button type="button" onclick="$('#Answer11').toggleClass('hidden');">Answer</button>
+<div id="Answer11" class="hidden answer container-fluid" >
+	<code>
+		Xavi: A<br>
+		Correct: A<br>
+	</code> 	
+</div><br>
+
