@@ -1,0 +1,69 @@
+<h2>Lab of Managing Database Architecture</h2>
+<h3>Officials</h3>
+<p>
+1-Prepare scripts for starting the Oracle environment on both Linux and Windows. The scripts should start the database instance<br>
+and open the database and the database listener. Remember that some enviroment variables may be needed.
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			Xavi's Solution	
+			<ol>
+				<li>
+					<code>
+						vim /usr/lib/systemd/system/oracle-rdbms.service
+					</code>
+				</li>
+				<li>
+					Put inside the file<br>
+					<code>
+					[Unit]<br>
+					Description=Oracle Database and Listener<br>
+					Requires=network.target<br>
+					[Service]<br>
+					Type=forking<br>
+					Restart=no<br>
+					ExecStart=/u01/app/oracle/product/12.1.0.2/dbhome_01/bin/dbstart /u01/app/oracle/product/12.1.0.2/db_home01<br>
+					ExecStop=/u01/app/oracle/product/12.1.0.2/dbhome_01/bin/dbshut /u01/app/oracle/product/12.1.0.2/db_home01<br>
+					User=oracle<br>
+					[Install]<br>
+					WantedBy=multi-user.target<br>
+					</code>
+				</li>
+				<li>
+					<code>
+						ln -s /usr/lib/systemd/system/oracle-rdbms.service /etc/systemd/system/oracle-rdbms.service
+					</code>	
+				</li>
+				<li>
+					<code>
+						systemctl daemon-reload<br>
+						systemctl enable oracle-rdbms.service<br>
+						systemctl start oracle-rdbms.service<br>
+					</code>
+				</li>
+			</ol>
+		</li>
+		<li>
+			Author's Solution
+			<ol>
+				<li>
+					export ORACLE_SID=orcl<br>
+					export ORACLE_BASE=/u01/app/oracle<br>
+					export ORACLE_HOME=$ORACLE_BASE/product/12.1.0.2/dbhome_01<br>
+					export PATH=$ORACLE_HOME/bin:$PATH<br>
+					export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH<br>
+					lsnrctl start listener<br>
+					sqlplus &gt;&gt;!<br>
+					connect / as sysdba<br>
+					startup<br>
+					!<br>
+				</li>
+			</ol>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
