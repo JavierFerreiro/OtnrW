@@ -1,0 +1,110 @@
+<h1>Systemd</h1>
+<p>
+In this chapter we addres about the new init process, the systemd the Pid 1.
+</p>
+<h2>
+<p>
+The fundamental purpose of the an init system, and systemd is an init system,is to initialize 
+the userland programs. After the kernel boots, this execute the init process 
+ in the start_kernel() function [1].<br>
+Systemd not only control process or services, control mount points, restore points, devices...
+ All of this categories are generalized with the name of units. We focus on services.<br>
+
+[1]:kernel startup stage (wikipedia): https://en.wikipedia.org/wiki/Linux_startup_process#Early_user_space
+</p>
+</h2>
+
+<h2>Basic Commands</h2>
+<p>
+<table>
+<thead>
+	<tr><td>Command of systemctl</td><td>parameter</td><td>Description</td></tr>
+</thead>
+<tbody>
+	<tr><td>start</td><td>application[.service]</td><td>start the application</td></tr>
+	<tr><td>stop</td><td>application[.service]</td><td>stop the application</td></tr>
+	<tr><td>restart</td><td>application[.service]</td><td>restart the application</td></tr>
+	<tr><td>reload</td><td>application[.service]</td><td>If the application support it, reload the configuration of the application without restart</td></tr>
+	<tr><td>reload-or-restart</td><td>application[.service]</td><td>If the application support it, reload the configuration of the application without restart</td></tr>
+	<tr><td>enable</td><td>application[.service]</td><td>To start a service automatically at boot. This will create a symbolic link from the system's copy of the service file (usually in /lib/systemd/system or /etc/systemd/system) into the location where systemd looks for autostart files (/etc/systemd/system/some_target.target.wants</td></tr>
+	<tr><td>disable</td><td>application[.service]</td><td>remove the autostart (symlink)</td></tr>
+	<tr><td>status</td><td>application[.service]</td><td>show the status of the service</td><tr>
+	<tr><td>list-units</td><td>[--all]</td><td>show the status of the active services (with -all shows all units, active and not)</td><tr>
+	<tr><td>list-unit-files</td><td></td><td>To see every available unit file within the systemd paths, including those that systemd has not attempted to load</td><tr>
+	<tr><td>cat</td><td>application[.service]</td><td>show the unit file contents</td><tr>
+	<tr><td>list-dependencies</td><td>[--reverse] application[.service]</td><td>show the unit's dependency tree. With --reverse show what unit files depend of the application indicate</td><tr>
+	<tr><td>show </td><td>application[.service]</td><td>Show the low-level properties of a unit</td><tr>
+</tbody>
+</table>
+The status of a unit file could be: enabled, disabled, static or masked:
+<ul>
+	<li>enabled: The unit file will be loaded on some targets (indicated b the "wanted" inside the unit file")</li>
+	<li>disabled: The unit file will not be loaded.</li>
+	<li>static: The unit file has not a install section, then is "called" by a one-off action (maybe a dependency,etc.)</li>
+	<li>masked:marked with <code>systemctl mask application[.service]</code> a masked unit is a unit where the symbolic link is pointing to /dev/null. This avoid that the application will be started manually or automatically.</li>
+</ul>
+</p>
+<h2>Adjusting the System State (Runlevel) with targets</h2>
+<p>
+	Targets are special unit files that describe a system state or synchronization. Like other units, the files that define targets can be identified by their suffix, wich in this case is .target. Targets do not do much themselves, but are instead used to group other units together. Units that requires a precise state can define this condition using <code>Wants=, Requires=, After=</code> in ther definition, like, for example, use the swap.target(that indicate the swap is ready) in WantedBy=swap.target<br>
+	To obtain the default target of the machine write: <code>systemctl get-default</code> if you want to change the default target use <code>systemctl set-default multi-user.target</code>. To list all the targets type: <code> systemctl list-unit-files --type=target</code>. Unlike runlevels, multiple targets can be active at the same time.<br>
+	It's possible to isolate a target, that is, start all of the units associated with a target and stop all units that are part of the dependency tree. This is similar to changing the runlevel in other init systems.<br>
+</p>
+<h2>Shortcuts</h2>
+<p>
+<table>
+<thead>
+<tr><td>Shortcut</td><td>Explanation or complete instruction</td></tr>
+</thead>
+<tbody>
+<tr><td>systemctl rescue</td><td>systemctl isolate rescue.target</td></tr>
+<tr><td>systemctl halt</td><td>halt the system</td></tr>
+<tr><td>systemctl poweroff</td><td>poweroff the system</td></tr>
+<tr><td>systemctl reboot</td><td>reboot the system</td></tr>
+</tbody>
+</table>
+</p>
+<h2>How to made a unit file (service)</h2>
+<p>
+First we need to create a file in one of this directories:
+<ul>
+	<li>/usr/lib/systemd/user/ : if the service...</li>
+	<li>/usr/lib/systemd/system/ : if the service...</li>
+	<li>/lib/systemd/system : if the service...</li>
+	<li>/etc/systemd/system : if the service...</li>
+</ul>
+</p>
+<p>
+When you decide where to create the file, you need to fill it with content. Systemd read the file, it will not be interpreted in a classic way like sysV where a shell interpret it, systemd, a C compiled program read the unit file.<br>
+The content of the unit fle is structured in this section: [Unit], [Service] and [Install].
+<ul>
+	<li>Unit: This section contains generic information about the service (or other unit managed by systemd like mount points, targets...<br>
+		The subsections inside are: 
+		<ul>
+			<li>Description: A generic description of the unit</li>
+			<li>After: suggestll after what units described in this subsection will be started the unit describe in the file. Is only a suggest, not a dependency, not cause that start the unit file start the after unit files, but it the two will be started, then follow the order described in after.
+			</li>
+		</ul>
+	</li>
+	<li>Service: Encodes information about the service itself, not to other kind of units systemd has (like mount points, devices...) .<br>
+		The subsections inside are:
+		<ul>
+			<li>
+				ExecStart: Path to the binary to execute when the service shall be started up.
+			</li>
+			<li>
+				Type: How the services notifies the init system that it finished starting up.
+			</li>
+		</ul>
+	</li>
+	<li>
+		Install: Information about how the suggested installation should look like (which circumstances and by wich triggers the service shall be started.
+	<ul>
+		<li>
+			WantedBy: say when the services shall be started. It is only read by the systemctl enable command 
+		</li>
+	</ul>
+	</li>
+</ul>
+</p>
+
