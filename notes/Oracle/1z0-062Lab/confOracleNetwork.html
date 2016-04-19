@@ -1,0 +1,86 @@
+<h2>Configuring the Oracle Network Environment</h2>
+<h3>Officials</h3>
+<p>
+1-Use whatever tool you like (even a text editor) to create two listeners: one listening on address 127.0.0.2 port 1521 and other 
+listening  on address 127.0.0.3 port 1521. This will simulate a server with two additional network cards. Start both listeners.<br>
+Use the Net Manager to create tnsnames entries for these addresses. Save the configuration and then test entries with tnsping. Make 
+an end-to-end test by connecting with SQL*Plus through the new tnsnames connect strings.
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			Xavi's Solution	
+			<ol>
+				<li>
+						vim /u01/app/oracle/product/12.1.0.2/dbhome_01/network/admin/listener.ora<br>
+						<code>
+						ADR_BASE_LS3 = /u01/app/oracle<br>
+						ADR_BASE_LS2 = /u01/app/oracle<br>
+
+						LS3 =<br>
+						  (DESCRIPTION =<br>
+						    (ADDRESS = (PROTOCOL = TCP)(HOST = 127.0.0.3)(PORT = 1521))<br>
+						  )<br>
+
+						LS2 =<br>
+						  (DESCRIPTION =<br>
+						    (ADDRESS = (PROTOCOL = TCP)(HOST = 127.0.0.2)(PORT = 1521))<br>
+						  	)<br>
+						</code>
+				</li>
+				<li>
+					vim /u01/app/oracle/product/12.1.0.2/dbhome_01/network/admin/tnsnames.ora<br>
+					<code>
+					LS2 =<br>
+					  (DESCRIPTION =<br>
+					    (ADDRESS_LIST =<br>
+					      (ADDRESS = (PROTOCOL = TCP)(HOST = 127.0.0.2)(PORT = 1521))<br>
+					    )<br>
+					    (CONNECT_DATA =<br>
+					      (SERVICE_NAME = orcl.technode.com)<br>
+					    )<br>
+					  )<br>
+
+					LS3 =<br>
+					  (DESCRIPTION =<br>
+					    (ADDRESS_LIST =<br>
+					      (ADDRESS = (PROTOCOL = TCP)(HOST = 127.0.0.3)(PORT = 1521))<br>
+					    )<br>
+					    (CONNECT_DATA =<br>
+					      (SERVICE_NAME = orcl.technode.com)<br>
+					    )<br>
+					  )<br>
+
+					LSNR_IN_MACHINE =<br>
+					   (DESCRIPTION =<br>
+					      (ADDRESS_LIST =<br>
+					         (ADDRESS= (PROTOCOL=TCP)(HOST=127.0.0.2)(PORT=1521))<br>
+					         (ADDRESS= (PROTOCOL=TCP)(HOST=127.0.0.3)(PORT=1521))<br>
+					      )<br>
+					   ) <br>
+
+					</code>
+				</li>
+				<li>
+					Change the local_listener parameter in the instance (and the spfile):<br>
+					<code>
+						alter system set local_listener="LSNR_IN_MACHINE";<br>
+						alter system register;<br>
+					</code>	
+				</li>
+			</ol>
+		</li>
+		<li>
+			Author's Solution
+			<ol>
+				<li>
+					Similar... Check the book.
+				</li>
+			</ol>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
