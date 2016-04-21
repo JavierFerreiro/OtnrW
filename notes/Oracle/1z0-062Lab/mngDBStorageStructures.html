@@ -1,0 +1,77 @@
+<h2>Managing Database Storage Structures</h2>
+<h3>Officials</h3>
+<p>
+1-Create a tablespace with one datafile. Use a uniform extent size of 64KB. Create two tables in this tablespace, and manually <br>
+allocate a few extents to each in turn. Run a query to find the exact physical locations of each table: you will see that they are <br>
+interleaved. Add a second datafile to the tablespace, and allocate a few more extents. Rerunning the query should demonstrate that <br>
+Oracle is bringing the new file into use.
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			Xavi's Solution	
+			<ol>
+				<li>
+					<code>
+					<br>create tablespace ts1 <br>
+					datafile '/u01/app/oracle/oradata/orcl/t1_001.dbf' <br>
+					size 100M reuse <br>
+					segment space management auto <br>
+					extent management local uniform size 64k<br>
+					;<br>
+
+					create table t1(c1 varchar2(10)) tablespace ts1;<br>
+					create table t2(c1 varchar2(10)) tablespace ts1;<br>
+					alter table t1 allocate extent;<br>
+					alter table t2 allocate extent;<br>
+					alter table t1 allocate extent;<br>
+					alter table t2 allocate extent;<br>
+					alter table t1 allocate extent;<br>
+					alter table t2 allocate extent;<br>
+
+					set linesize 132;<br>
+					set pagesize 43;<br>
+					column segment_name format A10;<br>
+
+					select segment_name,extent_id, block_id,file_id,blocks,bytes <br>
+					from dba_extents <br>
+					where file_id=4 <br>
+					order by extent_id<br>
+					;<br>
+
+
+					alter tablespace ts1 add datafile '/u01/app/oracle/oradata/orcl/t1_002.dbf' size 100M reuse;<br>
+
+					alter table t1 allocate extent;<br>
+					alter table t2 allocate extent;<br>
+					alter table t1 allocate extent;<br>
+					alter table t2 allocate extent;<br>
+					alter table t1 allocate extent;<br>
+					alter table t2 allocate extent;<br>
+
+					set linesize 132;<br>
+					set pagesize 43;<br>
+					column segment_name format A10;<br>
+
+					select segment_name,extent_id, block_id,file_id,blocks,bytes <br>
+					from dba_extents <br>
+					where file_id=4 <br>
+					order by extent_id<br>
+					;<br>
+					</code>
+				</li>
+		</li>
+		<li>
+			Author's Solution
+			<ol>
+				<li>
+					Similar... Check the book.
+				</li>
+			</ol>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>

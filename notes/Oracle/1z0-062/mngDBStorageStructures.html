@@ -273,6 +273,19 @@
 				use this old method are system,undo and temporary. This segments are managed by 
 				Oracle and don't required assistance from any automatic mechanism.
 			</li>
+			<li>
+				How is combined LMT and ASSM to control the blocks.<br>
+				Every datafile has a initial header where is storaged the bitmap of the extensions, locally managed tablespace.
+				Locally because every datafile has his own bitmap. This bitmap marks the extension of the datafile assigned or 
+				not to a segment (therefore the blocks). But not say to what segment.
+				In the data dictionary is storaged where is the header block of the segment: 
+				<code>select segment_name,header_block from dba_segments where segment_name='T4';</code>
+				 Then in the header block of the segment we have the bitmaps of the ASSM where is indicate the ocupation of the 
+				 blocks. In the headers is storaged the HWM (high water mark) and the Low HWM (low high water mark). Under the Low high 
+				 water mark are the blocks that are formated and with data ( a full scan read all the blocks below low HWM). Between 
+				 low HWM and HWM are the blocks that are formated and without data and above the HWM are blocks that aren't formatted. 
+				 
+			</li>
 			<li>Oracle Managed Files (OMF)<br>
 				Use of OMF is intended to remove the necessity for the DBA to have any knowledge of the 
 				file system. The creation of database files can be fully automated. To enable OMF, set some 
