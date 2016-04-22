@@ -1,0 +1,93 @@
+<h2>Lab of Managing Space</h2>
+<h3>Officials</h3>
+<p>
+1-Create a table containing 100,000 rows, all of wich are different, and another table with the same number of identical rows.
+Analyze the tables to determine how many blocks they occupy. How many blocks do the tables occupy? Enable compression for the 
+tables. What compression ratio do you achieve? Delete all the rows from one table, and truncate the other table. How many blocks 
+do they occupy now? How would you reduce this?<br>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			Xavi's Solution<br>
+			Create table diff (c1 varchar2(10));
+			Create table ident (c1 varchar2(10));<br>
+			insert into diff (<br>
+				select dbms_random.string('p',10) from dual connect by level &lt; 100000<br>
+				)<br>
+			;<br>
+			insert into ident (select '1111111111' from dual connect by level&lt;100000);<br>
+			execute dbms_stats.gather_table_stats('XAVI','DIFF');<br>
+			execute dbms_stats.gather_table_stats('XAVI','IDENT');<br>
+			<br>
+			<br>
+			select table_name,blocks from user_tables; -- DATA BLOCKS USED (USEFUL HERE)<br>
+			<br>
+			select blocks, (blocks*block_size)/1024 as KB <br>
+			from dba_segments, (select value as block_size from v$parameter where name='db_block_size') <br>
+			where segment_name='DIFF'<br>
+			; --TOTALLY BLOCKS USED (differ from data blocks used because maybe exist blocks not used <br>
+			--but allocated like here. It's not possible to shrink the table because is compressed) <br>
+			--(NOT USEFUL FOR THIS EXAMPLE)<br>
+			<br>
+			select blocks, (blocks*block_size)/1024 as KB <br>
+			from dba_segments, (select value as block_size from v$parameter where name='db_block_size') <br>
+			where segment_name='IDENT'<br>
+			;--TOTALLY BLOCKS USED (differ from data blocks used because maybe exist blocks not used <br>
+			--but allocated like here. It's not possible to shrink the table because is compressed<br>
+			--(NOT USEFUL FOR THIS EXAMPLE)<br>
+			<br>
+			alter table diff compress basic;<br>
+			alter table ident compress basic;<br>
+			<br>
+			select table_name,blocks from user_tables; -- DATA BLOCKS USED (USEFUL HERE)<br>
+			<br>
+			-- 212/224 : 5,36% of compression<br>
+			-- 150/224 : 33,1% of compression<br>
+			<br>
+			select blocks, (blocks*block_size)/1024 as KB <br>
+			from dba_segments, (select value as block_size from v$parameter where name='db_block_size') <br>
+			where segment_name='DIFF'<br>
+			;<br>
+			<br>
+			delete from ident;<br>
+			truncate table diff;<br>
+			<br>
+			select table_name,blocks from user_tables; -- DATA BLOCKS USED (USEFUL HERE)<br>
+			<br>
+			select blocks, (blocks*block_size)/1024 as KB <br>
+			from dba_segments, (select value as block_size from v$parameter where name='db_block_size') <br>
+			where segment_name='DIFF'<br>
+			; --TOTALLY BLOCKS USED (differ from data blocks used because maybe exist blocks not used <br>
+			--but allocated like here. It's not possible to shrink the table because is compressed) <br>
+			--(NOT USEFUL FOR THIS EXAMPLE)<br>
+			<br>
+			select blocks, (blocks*block_size)/1024 as KB <br>
+			from dba_segments, (select value as block_size from v$parameter where name='db_block_size') <br>
+			where segment_name='IDENT'<br>
+			;--TOTALLY BLOCKS USED (differ from data blocks used because maybe exist blocks not used <br>
+			--but allocated like here. It's not possible to shrink the table because is compressed<br>
+			--(NOT USEFUL FOR THIS EXAMPLE)<br>
+			<br>
+			select blocks, (blocks*block_size)/1024 as KB <br>
+			from dba_segments, (select value as block_size from v$parameter where name='db_block_size') <br>
+			where segment_name='IDENT'<br>
+			;<br>
+			<br>
+			alter table diff move;<br>
+			alter table ident move;	<br>
+		</li>
+		<li>
+			Author's Solution
+			<ol>
+				<li>
+					Similar... Check the book.
+				</li>
+			</ol>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>
