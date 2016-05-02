@@ -1,0 +1,128 @@
+<h2>Lab of administering User Security</h2>
+<h3>Officials</h3>
+<p>
+1-Create the user BERND and give him the necessary permissions to log on 
+to the database with password authentication and create tables in his 
+own schema. Test this bu connecting as BERND and creating a table 
+called DATETAB, with a single column of type DATE. Insert a row into 
+DATETAB and then commit the insert.<br>
+Now create the user CHRISTA. Give her these privileges:<br>
+<code>
+CREATE SESSION<br>
+SELECT ON BERN.DATETAB <br>
+ALL ON BERND.DATETAB<br>
+</code>
+Connect AS CHRISTA, and check that she can read BERND.DATETAB. 
+Revoke her select privilege, and confirm that she can no longer select from bernd.datetab, although she can(perhaps oddly) 
+ insert rows into it. Why is this, when she was also granted ALL on 
+BERND.DATETAB? Run queries against DBA_TAB_PRIVS at all stages to understand what is happening.<br>
+Create the user DORIS and grant her privileges as follows: <br>
+<code>
+SELECT ON BERND.DATETAB to DORIS<br>
+SELECT ON BERND.DATETAB to PUBLIC<br>
+SELECT ANY TABLE to DORIS<br>
+DBA to DORIS<br>
+</code>
+Confirm that DORIS can now read BERND.DATETAB. What privileges must revoked before DORIS will no longer be able to see BERND.DATETAB? Check the permissions at all stages by querying DBA_TAB_PRIVS, DBA_SYS_PRIVS, and DBA_ROLE_PRIVS.<br>
+Tidy up by dropping the users. Remember to use CASCADE where appropiate.<br>
+
+ <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			Xavi's Solution<br>
+			create tablespace ts_us<br>
+			datafile '/u01/app/oracle/oradata/orcl/ts_us_001.dbf' size 100M reuse<br>
+			autoextend off<br>
+			extent management local<br>
+			segment space management auto<br>
+			;<br>
+<br>
+			CREATE USER bernd <br>
+			identified by bernd <br>
+			default tablespace ts_us<br>
+			temporary tablespace temp<br>
+			quota unlimited on ts_us<br>
+			;<br>
+<br>
+			grant connect to bernd;<br>
+			grant create table to bernd; <br>
+<br>
+			connect bernd/bernd;<br>
+			create table datetab (c1 date);<br>
+			insert into datetab values (sysdate);<br>
+			commit;<br>
+<br>
+			connect sys as sysdba;<br>
+			create user christa <br>
+			identified by christa<br>
+			default tablespace ts_us<br>
+			temporary tablespace temp<br>
+			quota unlimited on ts_us<br>
+			;<br>
+			grant create session to christa;<br>
+			grant select on bernd.datetab to christa;<br>
+			grant all on bernd.datetab to christa;<br>
+<br>
+			connect christa/christa;<br>
+			alter session set nls_date_format='dd/mm/yyyy HH:MI:SS';<br>
+			select * from bernd.datetab;<br>
+<br>
+			connect sys as sysdba;<br>
+			revoke select on bernd.datetab from christa;<br>
+			connect christa/christa;<br>
+			select * from bernd.datetab;<br>
+			--I don't know why but I continue to do select normally.<br>
+			--select grantor || '-&gt;' || grantee ||'@'|| table_name, privilege from dba_tab_privs where table_name='DATETAB' and owner='BERND'<br>
+			--Maybe for this: BERND-&gt;CHRISTA@DATETAB | READ<br>
+			--discovered!!!: grant all give some permission, one of this is read. Read is similar at select but don't permit <br>
+			--select ... for update or lock table ... in exclusive mode.<br>
+			insert into bernd.datetab values (sysdate);<br>
+<br>
+			connect sys as sysdba;<br>
+			create user doris <br>
+			identified by doris<br>
+			default tablespace ts_us <br>
+			temporary tablespace temp<br>
+			quota unlimited on ts_us<br>
+			;<br>
+			grant select on bernd.datetab to doris;<br>
+			grant select on bernd.datetab to public;<br>
+			grant select any table to doris;<br>
+			grant dba to doris;<br>
+<br>
+			connect doris/doris;<br>
+			select * from bernd.datetab;<br>
+<br>
+			select table_name,privilege from dba_tab_privs where grantee='DORIS';<br><br>
+			select privilege from dba_sys_privs where grantee='DORIS';<br><br>
+			select granted_role from dba_role_privs where grantee='DORIS';<br><br>
+			select table_name,privilege from dba_tab_privs where grantee='DBA' and table_name='DATETAB';<br>
+			select privilege from dba_sys_privs where grantee='DBA' and privilege like '%SELECT ANY%';<br>
+<br>
+		  revoke this: SELECT ON BERND.DATETAB to DORIS --Continue to work<br>
+		  revoke this: SELECT ANY TABLE to DORIS; --Continue to work<br>
+		  revoke this: DBA to DORIS; --Continue to work<br>
+		  -- At this point doris can't connect to the system (needs connect permission) but the <br>
+		  -- sessions prestablished continue to work and resolve the select.<br>
+		  revoke this: SELECT ON BERND.DATETAB to PUBLIC<br>
+		  --Doris can't make the select<br>
+		  <br>	
+			drop user bernd cascade;<br>
+			drop user christa;<br>
+			drop user doris; <br>
+		</li>
+		<li>
+			Author's Solution
+			<ol>
+				<li>
+					Similar... Check the book.
+				</li>
+			</ol>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+</p>

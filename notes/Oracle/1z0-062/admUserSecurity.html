@@ -297,7 +297,8 @@
 				will be revoked the permission.<br>
 				The ANY privileges give permissions against all relevant objects in the database.i.e.: 
 				<code> grant select any table to scott;</code> will let scott query every table in 
-				every schema on DB.
+				every schema on DB.<br>
+
 			</li>
 			<li>Object Privileges<br>
 				Gives the ability to perform select, insert, update and delete commands against tables 
@@ -332,7 +333,7 @@
 				Using with grant option let a user pass their object privilege on to a third party. Oracle 
 				retains a record of who granted object privileges to whom; this allows a revoke of an 
 				object to cascade to all those in the chain.
-				
+				<img src="img/privilegesOracle.png" alt="Summarize grants and revokes">
 			</li>
 		</ul>
 	</li>
@@ -455,7 +456,9 @@
 			<li>Creating and assigning profiles<br>
 				The simplest way to enable more sophisticated password management is to run:
 				 <code>$ORACLE_HOME/rdbms/admin/utlpwdmg.sql</code>
-				 To create a profile use create profile command
+				 To create a profile use create profile command. Any limit not specified will be picked up from  the current 
+				 version of the DEFAULT profile: <code> CREATE PROFILE two wrong limit failed_login_attempts 2 password_lock_time 10/1440</code>
+			
 			</li>
 		</ul>
 	</li>
