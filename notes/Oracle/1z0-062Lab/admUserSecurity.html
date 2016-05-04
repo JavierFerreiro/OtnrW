@@ -125,4 +125,92 @@ Tidy up by dropping the users. Remember to use CASCADE where appropiate.<br>
 </p>
 <h3>Xavi's propossed</h3>
 <p>
+<ul>
+	--Profiles<br>
+	create user test1<br>
+	Check the default(s) profile(s)<br>
+	create 2 new profiles, one control the lifetime of the password (prf_lif)(30 days) and other control the maximum attempts to fail the password(4)(prf_max_at)<br>
+	<br>
+	create tablespace ts_us <br>
+	datafile '/u01/app/oracle/oradata/orcl/ts_us_001.dbf' size 100M reuse <br>
+	autoextend off extent management <br>
+	local segment space management auto<br>
+	;<br>
+	<br>
+	create user test1 <br>
+	identified by test1 <br>
+	default tablespace ts_us temporary tablespace temp <br>
+	quota unlimited on ts_us<br>
+	;<br>
+	select username, profile from dba_users where username='TEST1';<br>
+	<br>
+	<br>
+	grant connect to test1;<br>
+	grant create table to test1;<br>
+	connect test1/test1<br>
+	create table t1(c1 date);<br>
+	<br>
+	create profile prf_lif limit password_life_time 30;<br>
+	create profile prf_att limit failed_login_attempts 4;<br>
+	<br>
+	<br>
+	Assign this 2 profiles (prf_ses, prf_max_at) to test1 and make default for the user<br>
+	alter user test1 profile prf_lif;<br>
+	select username, profile from dba_users where username='TEST1';<br>
+	alter user test1 profile prf_att;<br>
+	select username, profile from dba_users where username='TEST1';<br>
+	--Like in this example, a user can have only one profile at time.<br>
+	<br>
+	Change prf_ses to be mandatory put a password for use.<br>
+	<br>
+	--Roles<br>
+	--Create a role with: connect, create table: rl_initial<br>
+	<br>
+	create role rl_initial;<br>
+	grant connect to rl_initial;<br>
+	grant create table to rl_initial;<br>
+	<br>
+	--Create a role with: select any non default: rl_selectAny<br>
+	<br>
+	create role rl_selectAny;<br>
+	grant select any table to rl_selectAny;<br>
+	<br>
+	--Create a role with: create any: rl_createAny with a procedure to identify and non default<br>
+	create role rl_createAny identified by rl_createAny;<br>
+	--you could create a role identified by a procedure like create role rl_createAnu identified by schema.proc.<br>
+	--and even a role identified externally: create <role_name>  identified externally;<br>
+	grant create any table to rl_createAny;<br>
+	<br>
+	--Grant roles to test1<br>
+	grant rl_initial to test1;<br>
+	grant rl_selectAny to test1;<br>
+	grant rl_createAny to test1;<br>
+	<br>
+	select * from dba_roles where role='RL_CREATEANY';<br>
+	--Ok needs password<br>
+	select granted_role,default_role from dba_role_privs where grantee='TEST1';<br>
+	--Ok non default per test1 role rl_createany but not correct for rl_selectAny that we want be non default (without password)<br>
+	<br>
+	--Create a 4th role to test that we can have 2 roles in default.<br>
+	create role stupidRole;<br>
+	grant alter any table to stupidRole;<br>
+	grant stupidRole to test1;<br>
+	select granted_role,default_role from dba_role_privs where grantee='TEST1';<br>
+	<br>
+	--And make stupidRole and rl_initial default, the others no.<br>
+	alter user test1 default role stupidRole,rl_initial;<br>
+	<br>
+	--Test itl <br>
+	connect test1/test1<br>
+	select * from session_roles;<br>
+	set role rl_initial,rl_createAny identified by rl_createAny,stupidRole;<br>
+	<br>
+	<br>
+	connect test1/test1;<br>
+	select * session_roles;<br>
+	set role rl_initial,connect,stupidrole;<br>
+	select * session_roles;<br>
+	--Everything ok<br>
+	set role rl_createAny;<br>
+</ul>
 </p>
