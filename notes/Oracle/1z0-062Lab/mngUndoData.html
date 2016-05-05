@@ -1,0 +1,68 @@
+<h2>Lab of administering User Security</h2>
+<h3>Officials</h3>
+<p>
+Simulate a problem with undo. You will need to be connected as user SYSTEM or 
+some other to whom you have granted the DBA role. The figures used on this 
+exercises will be valid if the database block size is 8KB.<br>
+Create an undo tablespace with a single datafile of only 256KB. Do not set the 
+file to autoextend. Set the database to use this small undo segment. Confirm 
+that is online by querying the views DBA_ROLLBACK_SEGS and V$ROLLSTAT. Why 
+do you think that only one undo segment was created?<br>
+Create an empty table based on the ALL_OBJECTS view with this statement: <br>
+<code>create table undotest as select * from all_objects where 1=2;</code><br>
+Populate this table with the contents of the ALL_OBJECTS view: <br>
+<code>insert into undotest select * from all_objects;</code><br>
+The statement will fail with an error "ORA-30036": unable to extend segment 
+by 8 un undo tablespace". Query the new table, and you will find that it is 
+still empty. Why is this?<br>
+Adjust the undo tablespace's datafile to autoextend, and attempt to insert 
+the contents of the ALL_OBJECTS view into the new table. This time, the 
+insertion will succeed. Find out how many blocks of undo are needed to 
+support the transaction so far by querying V$TRANSACTION as well as how big 
+the new datafile is by querying V$DATAFILE.<br>
+Delete every row in the new table and then repeat the queries against 
+V$TRANSACTION and V$DATAFILE. You will see that the deletion generated many 
+more blocks of undo and required a much larger extension of the undo datafile 
+than the insertion. Why is this?<br>
+Tidy up by switching back to the original undo tablespace and then dropping 
+the test table and tablespace. 
+</p>
+ <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+		connect system/oracle;<br>
+		show parameter db_block_size; --If equal 8K OK.<br>
+		--Create the undo tablespace and put online.<br>
+		create undo tablespace uts_001 datafile '/u01/app/oracle/oradata/orcl/uts_001_001.dbf' size 256K reuse autoextend off;<br>
+		show parameter undo_tablespace; --Write the undo tablespace to recover after exercises (in this example UNDOTBS1)<br>
+		alter system set undo_tablespace;<br>
+		--Confirm the undo tablespace is online<br> 
+		select segment_name,tablespace_name,segment_id from dba_rollback_segs where status='ONLINE'; --Only 2 tablespaces showed<br>
+		one for a rollback_segment of SYSTEM and one in the new undo tablespace. The System undo segment in the system tablespace <br>
+		is normal, it's created in the database creation before exists the undo tablespace, created with the old rollback segments.<br><br>
+		select usn,extents,xacts from v$rollstat where status='ONLINE';<br>
+		--The new tablespaces is online togheter with the system undo (mandatory).<br>
+		--It only create one undo segment because is little the undo tablespace.<br>
+		--Creating table and populate it.<br>
+		create table undotest as select * from all_objects where 1=2;<br>
+		insert into undotest select * from all_objects;<br>
+		--Because the transaction it's too big to storage all the changes in a small undotablespaces.<br>
+		--Adjusting the tablespaces<br>
+		alter undo tablespace uts_001 autoextend on;<br>
+		insert into undotest select * from all_objects;<br>
+		select xidusn,UBABLK from v$transaction;<br>
+		select blocks,bytes/1024 as KB from dba_data_files where file_name='/u01/app/oracle/oradata/orcl/uts_001_001.dbf';<br>
+		--Generate more undo because when delete the system need to keep the old values in the undo segments, in the insert whe haven't <br>
+		--previous values (in the undo entry of the undo segment writes something like null or "" or whatever)<br>
+		alter system set undo_tablespace<br>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+jar
+</ul>
+</p>
