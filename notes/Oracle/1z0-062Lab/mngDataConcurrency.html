@@ -1,0 +1,36 @@
+<h2>Lab of Managing Data Concurrency</h2>
+<h3>Officials</h3>
+<p>
+Create a table, and from several sessions, attempt some DML against it. 
+Be sure to cause contention by attempting to hit the same rows. From another 
+session, connected as SYSDBA, run the script utllockt.sql, wich resides in 
+the ORACLE_HOME/rdbms/admin directory. It will show the blocked and blocking 
+sessions in a tree-like display. Open the script in an editor. It is well 
+documented and instructive to study.<br>
+</p>
+ <button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+		--Session1
+		create table deadlock (id number,value varchar2(10));
+		insert into deadlock values (1,'aa');
+		insert into deadlock values (2,'bb');
+	   commit;
+		update deadlock set value='cc' where id=1;
+      --Session2
+		update deadlock set value='dd' where id=2;
+      --Session 1
+		update deadlock set value='ee' where id=2; --Not necessary
+		--Session 3
+		@?/rdbms/admin7utllockt.sql
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+jar
+</ul>
+</p>

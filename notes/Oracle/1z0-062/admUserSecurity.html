@@ -298,6 +298,7 @@
 				The ANY privileges give permissions against all relevant objects in the database.i.e.: 
 				<code> grant select any table to scott;</code> will let scott query every table in 
 				every schema on DB.<br>
+				To look up the system privileges (who granted what): dba_sys_privs<br>
 
 			</li>
 			<li>Object Privileges<br>
@@ -337,7 +338,14 @@
 				user 1 and user3 mantain the privilege.<br>
 				Using with grant option let a user pass their object privilege on to a third party. Oracle 
 				retains a record of who granted object privileges to whom; this allows a revoke of an 
-				object to cascade to all those in the chain.
+				object to cascade to all those in the chain.<br>
+				To look up the object privileges (who granted what): dba_tab_privs<br>
+				To look up the object privileges that a user grant to other: 
+				<code>
+					connect user1/user1;<br>
+					select * from user_tab_privs_made;<br>
+				</code>
+
 				<img src="img/privilegesOracle.png" alt="Summarize grants and revokes">
 			</li>
 		</ul>
