@@ -1,0 +1,40 @@
+<h2>Lab of Database Maintenance</h2>
+<h3>Officials</h3>
+<p>
+Demonstrate that the Alert system is functioning by testing the alert for blocking sessions. Create a table, and from four separete 
+sessions attempt to delete the same row. Three of the sessions will hang. In a fifth session, query the DBA_OUTSTANDING_ALERTS view. What 
+is the alert raised? It is not raised immediatley. Why not?
+</p>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+		create table t1(c1 varchar2(10));<br>
+		insert into t1 values ('First');<br>
+		commit;<br>
+		--Now open 3 more sessions and try from all four:<br>
+		delete from t1 where c1='First';<br>			
+		--From new session (the 5th):<br>
+		select * from dba_outstanding_alerts;<br>
+		--It will no rise no alert beccause not are defined alerts for this reason:<br>
+  		 select metrics_name<br>
+  		 , warning_operator,warning_value,critical_operator, critical_value, observation_period, consecutive_occurrences<br>
+ 		 from dba_thresholds<br>
+		<br>
+		 METRICS_NAME<br>
+		----------------------------------------------------------------<br>
+		Tablespace Space Usage<br>
+		Tablespace Space Usage<br>
+		Tablespace Space Usage<br>
+		Tablespace Space Usage<br>
+		<br>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+jar
+</ul>
+</p>

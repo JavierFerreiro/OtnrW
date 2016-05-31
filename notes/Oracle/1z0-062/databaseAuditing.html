@@ -40,13 +40,13 @@
 				</ul>
 				Examples:
 				<code>
-					execute dbms_fga.add_policy(object_schema=>'scott',object_name=>'emp',policy_name=>'emp_d10_pol',audit_condition=>'deptno=10',statement_types=>'selec,insert,update,delete');<br>
-					execute dbms_fga.add_policy(object_schema=>'scott',object_name=>'emp',policy_name=>'emp_sal_pol',audit_column=>'sal');<br>
-					execute dbms_fga.add_policy(object_schema=>'scott',object_name=>'emp',policy_name='emp_sal_pol',audit_column=>'sal');<br>
-					execute dbms_FGA.add_policy(object_schema=>'scott',object_name=>'emp',policy_name=>'emp_del_pol',handler_schema=>'sec',handler_module=>'empdel',statement_types=>'delete');<br>
+					execute dbms_fga.add_policy(object_schema=&gt;'scott',object_name=&gt;'emp',policy_name=&gt;'emp_d10_pol',audit_condition=&gt;'deptno=10',statement_types=&gt;'selec,insert,update,delete');<br>
+					execute dbms_fga.add_policy(object_schema=&gt;'scott',object_name=&gt;'emp',policy_name=&gt;'emp_sal_pol',audit_column=&gt;'sal');<br>
+					execute dbms_fga.add_policy(object_schema=&gt;'scott',object_name=&gt;'emp',policy_name='emp_sal_pol',audit_column=&gt;'sal');<br>
+					execute dbms_FGA.add_policy(object_schema=&gt;'scott',object_name=&gt;'emp',policy_name=&gt;'emp_del_pol',handler_schema=&gt;'sec',handler_module=&gt;'empdel',statement_types=&gt;'delete');<br>
 				</code>
 				Some useful defaults to understand add_policy: STATEMENT_TYPE='SELECT', AUDIT_CONDITION=null (any row). The third statement generates the audit and run a procedure: sec.empdel whenever a row is deleted. The procedure must conform a defined interface: accept 3 varchar2 arguments(object schema,object name,policy name).<br>
-				The audit records are visible in the data dictionary view DBA_FGA_AUDIT_TRAIL (underlaying: SYS.FGA_LOG$=>SYSTEM tablespace).
+				The audit records are visible in the data dictionary view DBA_FGA_AUDIT_TRAIL (underlaying: SYS.FGA_LOG$=&gt;SYSTEM tablespace).
 			</li>
 			<li>Value-Base auditing<br>
 				The declarative techniques for audit (standard auditing, FGA, and unified auditing) do not capture the data themselves. They capture the action: who, what, when and with wich privilege. This means the statement executed, not the values that were actually seen or updated. If necessary to see the values, one must resort to value-base auditing wich is implemented with triggers.<br>
@@ -107,7 +107,7 @@
 				<ul>
 					<li>audit_sys_operations: Records all SQL executed as an administrative user to the operationg system audit trail. Default false.
 					</li>
-					<li>audit_file_dest: the location of audit records if auditing is to the O.S.:Unix default->$ORACLE_BASE/admin$ORACLE_SID/adump.
+					<li>audit_file_dest: the location of audit records if auditing is to the O.S.:Unix default-&gt;$ORACLE_BASE/admin$ORACLE_SID/adump.
 					</li>
 					<li>audit_syslog_level: Enables writing to the syslog daemon.Default: null
 					</li>
@@ -231,6 +231,14 @@
 							<li>privilege-&gt; audit select any table;</li>
 							<li>statement-&gt; audit select table</li>
 							<li>object-&gt; audit select on scott.salary;</li>
+							<li>
+								Syntax of audit: audit [sql_statement,schema_object,NETWORK] (by [SESSION,ACCESS]) (WHENEVER [not] SUCCESSFUL);<br>
+								sql_statement: [statement,system_privilege] (BY [user,proxy])<br>
+								schema_object: object_option <br>
+								It's not possible to mix audit of sql_statement with scheme_object, then you can audit a select on concrete table, you 
+								can audit select in general, select of a user (all the selects) or access to a scheme_object (all kind of access), but not 
+								a sql_statement in a schema_object.	
+							</li>
 						</ul>	
 					</td>
 					<td>

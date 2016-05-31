@@ -1,0 +1,42 @@
+<h2>Lab of Database Managing Performance</h2>
+<h3>Officials</h3>
+<p>
+Adjust your instance to disable AMM, and define a SGA of 350MB and a PGA of 
+350MB. As user system, create a couple large tables and attempt to join them, 
+using a high degree of parallelism:
+<code>
+create table x as select * from all_objects;<br>
+create table y as select * from all_objects;<br>
+select /* parallel (64) */ count(*) from x natural join y;<br>
+</code>
+The query will (probably) fail with an ORA-4031 error, stating that 
+insufficient memory is available. Remove the fixed values for SGA and 
+PGA and then enable enable AMM with a target of 700MB. Re-run the query and 
+see that it succeds (it should).
+
+</p>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			alter system set memory_target=0 scope=both;<br>
+		</li>
+		<li>
+			connect system/oracle <br>
+		 	alter system set sga_target=350M;<br>
+			alter system set pga_aggregate_target=350M;<br>
+		</li>
+		<li>
+			create table x as select * from all_objects;<br>
+			create table y as select * from all_objects;<br>
+			select /*+ parallel (64) */ count(*) from x natural join y;<br>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+
+</ul>
+</p>
