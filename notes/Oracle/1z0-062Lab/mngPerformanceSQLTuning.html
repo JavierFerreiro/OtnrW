@@ -1,0 +1,105 @@
+<h2>Lab of Database Managing Performance SQL Tuning</h2>
+<h3>Officials</h3>
+<p>
+Use the tables in the demonstration schema SCOTT to investigate the effect of 
+misssing statistics and use of the advisors. If SCOTT does not exist in your 
+database, create the schema by running the script UTLSAMPL.SQL from the 
+ORACLE_HOME/rdbms/admini directory. Note that the script will drop the SCOOT 
+schema if exists.<br>
+Delete any object statistics in the schema:<br>
+<code>
+   execute dbms_stats.delete_schema_stats('scott');
+</code><br>
+Here are some possible queries against wich to runu the advisors:<br>
+<code>
+   select ename from emp where deptno in  (select deptno from dept where dname='SALES');<br>
+   select max(sal) from emp;<br>
+   select sum(sal) from emp natural join dept where dname='SALES';	
+</code>
+
+</p>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			create directory tune_scripts as '/u01/app/oracle/tune_scripts/orcl';<br><br>
+			set serveroutput on<br>
+			begin <br>
+			   dbms_advisor.quick_tune(dbms_advisor.sqlaccess_advisor, <br>
+						'task1',<br>
+						'select ename from scott.emp where deptno in  (select deptno from scott.dept where dname=''SALES'')')<br>
+						;<br>
+			end;<br>
+			/<br>
+			begin <br>
+			   dbms_advisor.quick_tune(dbms_advisor.sqlaccess_advisor, <br>
+						'task2',<br>
+						'select max(sal) from scott.emp')<br>
+						;<br>
+			end;<br>
+			/<br>
+			begin <br>
+			   dbms_advisor.quick_tune(dbms_advisor.sqlaccess_advisor, <br>
+						'task3',<br>
+						'select sum(sal) from scott.emp natural join scott.dept where dname=''SALES''')<br>
+						;<br>
+			end;<br>
+			/<br>
+<br>
+			begin <br>
+			   dbms_advisor.create_file(<br>
+			   	dbms_advisor.get_task_script('task1'),<br>
+				'TUNE_SCRIPTS',<br>
+				'tune_fts_1.sql'<br>
+				) ;<br>
+			end;<br>
+			/<br>
+			begin <br>
+			   dbms_advisor.create_file(<br>
+			   	dbms_advisor.get_task_script('task2'),<br>
+				'TUNE_SCRIPTS',<br>
+				'tune_fts_2.sql'<br>
+				) ;<br>
+			end;<br>
+			/<br>
+			begin <br>
+			   dbms_advisor.create_file(<br>
+			   	dbms_advisor.get_task_script('task3'),<br>
+				'TUNE_SCRIPTS',<br>
+				'tune_fts_3.sql'<br>
+				) ;<br>
+			end;<br>
+			/<br>
+<br>
+			begin<br>
+				dbms_advisor.delete_task('task1');<br>
+			end;<br>
+			/<br>
+			begin<br>
+				dbms_advisor.delete_task('task2');<br>
+			end;<br>
+			/<br>
+			begin<br>
+				dbms_advisor.delete_task('task3');<br>
+			end;<br>
+			/<br>
+			--no results<br>
+			--Recover the stats and repeat the steps to obtain the advices<br>
+			begin<br>
+				dbms_stats.gather_schema_stats(ownname=>'SCOTT',cascade=>dbms_stats.auto_cascade,<br>
+					estimate_percent=>dbms_stats.auto_sample_size,degree=>dbms_stats.auto_degree,<br>
+					granularity=>'auto',method_opt=>'for all columns size auto', options=>'gather'<br>
+					);<br>
+			end;<br>
+			/<br>
+
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+
+</ul>
+</p>
