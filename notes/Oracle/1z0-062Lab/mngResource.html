@@ -1,0 +1,80 @@
+<h2>Lab of Database Managing Resource</h2>
+<h3>Officials</h3>
+<p>
+Attempt to configure the Resource Manager in the manner described in the 
+telesales example used in this chapter, wich limits the CPU, active 
+sessions and parallelism. The procedure calls have been provided. Create 
+users and assign them to groups. Enable the plan and generate a workload 
+in current session attached to a different groups. Monitor the effect.
+</p>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			--create users and tablespaces for test
+			create tablespace ts_rm_001 datafile '/u01/app/oracle/oradata/orcl/ts1_rm_001.dbf' size 100M reuse 
+				segment space management auto 
+				extent management local	
+			;
+			create temporary tablespace tts_rm_001 tempfile '/u01/app/oracle/oradata/orcl/tts_rm_001.dbf' size 100M reuse;
+			create user telesales identified by telesales default tablespace ts_rm_001 temporary tablespace tts_rm_001;
+			grant connect to telesales; 
+			grant create table to telesales;  
+			create user dss identified by dss default tablespace ts_rm_001 temporary tablespace tts_rm_001;
+			grant connect to dss;
+			grant create table to dss;
+		</li>
+		<li>
+			--Create consumer groups and pending area
+			begin
+			   dbms_resource_manager.create_pending_area;
+				dbms_resource_manager.create_consumer_group('OLTP');
+				dbms_resource_manager.create_consumer_group('DSS');
+				dbms_resource_manager.submit_pending_area;
+			end;
+		</li>
+		<li>
+			--Create plan for resource manager
+			begin
+			   dbms_resource_manager.create_simple_plan(simple_plan=>'workingHours',
+																	consumer_group1=>'OLTP',group1_percent=>80,
+																	consumer_group2=>'DSS',group2_percent=>20
+																	);
+			end;
+			/
+		</li>
+		<li>
+			--Assign users to the consumers groups
+			begin	
+				dbms_resource_manager_privs.grant_switch_consumer_group('telesales','OLTP',false);
+				dbms_resource_manager_privs.grant_switch_consumer_group('dss','DSS',false);
+				dbms_resource_manager.set_initial_consumer_group('telesales','OLTP');
+				dbms_resource_manager.set_initial_consumer_group('dss','DSS');
+			end;
+			/
+		</li>
+		<li>
+			--Activete the plan
+			alter system set resource_manager_plan='workingHours' scope=memory;
+		</li>
+		<li>
+			--Testing the resource manageger plan
+			--Restrict the DB to use only one core
+			 alter system set cpu_count=1 scope=memory;
+			--connect a total of 3 sessions: sys, telesales, dss.	
+			--In system session:
+			select username, resource_consumer_group from v$session where username is not null;
+			--Repeat this select meanwhile continue the exercises.
+			select name, active_sessions, consumed_cpu_time from v$rsrc_consumer_group;
+			--In the sessions of telesales and dss:
+			select count(*) from all_objects,all_objects;
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+
+</ul>
+</p>

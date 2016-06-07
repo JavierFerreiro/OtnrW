@@ -1,0 +1,76 @@
+<h2>Lab of Automating Task Using Scheduler</h2>
+<h3>Officials</h3>
+<p>
+Create a table with one column of data type timestamp and a procedure that 
+will insert the current time into it: 
+<code>
+	create table times(runtime timestamp);<br>
+	create or replace procedure gettime as 
+		begin 
+			insert into times values(systimestamp);
+		end;
+	/
+</code><br>
+Create a program that will invoke the procedure, a schedule that will run 
+every minute, and a job that will run the program according to the schedule. 
+Confirm that the job runs.
+</p>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			--Create the schedule
+			begin
+				dbms_scheduler.create_schedule(schedule_name=>'everyMinut',
+														repeat_interval=>'freq=MINUTELY');
+			end;
+			/
+		</li>
+		<li>
+			--Create the program
+			begin
+				dbms_scheduler.create_program(program_name=>'wallClock',
+														program_type=>'plsql_block',
+														program_action=>'insert into times values(systimestamp);',
+														enabled=>true
+														);
+			end;
+			/
+		</li>
+		<li>
+			begin
+				dbms_scheduler.create_job(	job_name=>'Lab',
+													program_name=>'wallClock',
+													schedule_name=>'everyMinut',
+													enabled=>true,
+													auto_drop=>false
+												);
+			end;
+			/
+		</li>
+		<li>
+			--To clean
+			begin
+				dbms_scheduler.drop_job(job_name=>'Lab');
+			end;
+			/
+			begin
+				dbms_scheduler.drop_program(program_name=>'wallClock');
+			end;
+			/
+			begin
+				dbms_scheduler.drop_schedule(schedule_name=>'everyMinut');
+			end;
+			/
+			--To check possible errors
+			select * from dba_scheduler_job_run_details order by log_date desc;
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+
+</ul>
+</p>
