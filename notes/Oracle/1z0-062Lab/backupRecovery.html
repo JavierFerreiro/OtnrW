@@ -1,0 +1,54 @@
+<h2>Lab of Backup Recovery</h2>
+<h3>Officials</h3>
+<p>
+Check whether your database is configured for recoverability. These are some points to look at:
+<ul>
+	<li>Online redo log files should be multiplexed</li>
+	<li>The controlfile should be multiplexed.</li>
+	<li>The database should be in archivelog mode.</li>
+	<li>Archiver processes should be running.</li>
+	<li>Archive logs should be multiplexed.</li>
+	<li>The fast recovery area should be enabled.</li>
+</li>
+</p>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			<code>
+				select group#,member from v$logfile order by group#;<br>
+				--or better
+				select group#,members from v$log;
+			</code>
+		</li>
+		<li>
+			<code>select status,name from v$controlfile;</code>
+		</li>
+		<li>
+			<code>select log_mode from v$database;</code>
+		</li>
+		<li>
+			<code>
+				select pname,sosid from v$process where pname like '%ARC%';<br>
+				select archiver from v$instance;
+			</code>
+		</li>
+		<li>
+			<code> 
+				select dest_name,destination,status from v$archive_dest where status='ACTIVE';	
+				--No active destinations
+				--No multiplexing archived logs.
+			</code>
+		</li>
+		<li>
+			<code>show parameter recovery_file_dest;</code>
+		</li>
+
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+</ul>
+</p>
