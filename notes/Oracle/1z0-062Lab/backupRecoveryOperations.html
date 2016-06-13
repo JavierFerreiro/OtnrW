@@ -1,0 +1,80 @@
+<h2>Lab of Backup Recovery</h2>
+<h3>Officials</h3>
+<p>
+Prepare for this extended exercise by taking a full backup of the database 
+with RMAN. Be absolutely certain you do have a backup. Also confirm that you have at least two copies of the controlfile, and that your online redo logfiles are multiplexed.<br>
+
+Abort the database instance and then simulate a major failure by deleting a 
+datafile, a controlfile copy, and a redo logfile member.<br>
+
+Attemp to start the database. To begin with, the instance will not be able to 
+mount the database. In nomount mode, the DRA will be able to generate a 
+script to copy a surviving controlfile to the missing datafile has been 
+restored and recovered. The missing online redo logfile member can be replaced by clearing the logfile group after the database has been opened.
+</p>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+		rman target /<br>
+		backup as backupset incremental level 0 database ;<br>
+		list backup of database;<br>
+		</li>
+		<li>
+		sqlplus / as sysdba<br>
+		shutdown abort;<br>	
+		exit;<br>
+		$rm /u01/app/oracle/oradata/orcl/ts1_rm_001.dbf<br>
+		$rm /u01/app/oracle/oradata/orcl/control01.ctl<br>
+		$rm /u01/app/oracle/oradata/orcl/redo01.log<br>
+		</li>
+		<li>
+			sqlplus / as sysdba;<br>
+			startup;<br>
+		</li>
+		<li>
+			exit;<br>
+			$rman target /<br>
+			list failure;<br>
+			advise failure;<br>
+			-- Example of the advise:<br>
+			$ cat /u01/app/oracle/diag/rdbms/orcl/orcl/hm/reco_2896217428.hm<br>
+   		# restore control file using multiplexed copy<br>
+   		restore controlfile from '/u01/app/oracle/fast_recovery_area/orcl/control02.ctl';<br>
+   		sql 'alter database mount';<br>
+		</li>
+		<li>
+			--First problem solved... continue<br>
+			exit;<br>
+			sqlplus / as sysdba<br>
+			alter database open;<br>
+			--New errors<br>
+			exit;<br>
+			rman target /<br>
+			list failure;<br>
+			advise failure;<br>
+			--Example of the advise:<br>
+			$ cat /u01/app/oracle/diag/rdbms/orcl/orcl/hm/reco_3206094528.hm<br>
+   		# restore and recover datafile<br>
+   		restore ( datafile 7 );<br>
+   		recover datafile 7;<br>
+   		sql 'alter database datafile 7 online';<br>
+   		# drop/recreate redo log group member<br>
+   		sql "begin sys.dbms_ir.execsqlscript(filename =&gt; ''/u01/app/oracle/diag/rdbms/orcl/orcl/hm/reco_1247314235.hm'' ); end;";<br>
+			--Il file  secondo<br>
+			$ cat /u01/app/oracle/diag/rdbms/orcl/orcl/hm/reco_1247314235.hm<br>
+			begin<br>
+			/*Drop the Log Member*/<br>
+			execute immediate 'ALTER DATABASE DROP LOGFILE MEMBER ''/u01/app/oracle/oradata/orcl/redo01.log''';<br>
+			/*Add the Log Member (This will create a new file)*/<br>
+			execute immediate 'ALTER DATABASE ADD LOGFILE MEMBER ''/u01/app/oracle/oradata/orcl/redo01.log'' REUSE TO GROUP 1';<br>
+			end;<br>
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+</ul>
+</p>
