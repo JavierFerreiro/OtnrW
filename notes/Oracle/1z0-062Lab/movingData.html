@@ -1,0 +1,38 @@
+<h2>Lab of Moving Data</h2>
+<h3>Officials</h3>
+<p>
+Create a copy of a demostration schema (SCOTT or HR) in a new schema named DEV. Do the work as user SYSTEM.<br>
+The first step will be to perform a Data Pump export of the entire schema. You can use the default directory DATA_PUMP_DIR (query the data dictionary view DBA_DIRECTORIES to find to where this is mapped) or crate your own. While the export is in progress, from a sql*plus session run this query:<br>
+<code>
+	select program from v$process order by program;
+</code><br>
+You will see two Data Pump processes listed, DM00 and DW00. These will persist for the duration of the Data Pump job. Once the job has completed, study the log file that will have been generated in the nominated directory.<br>
+To import the schema, use the REMAP_SCHEMA parameter to force the creation of the DEV schema into wich the objects will be imported.<br>
+Confirm that the schema has been imported into a newly created schema by connection to the new schema (in the example, called DEV). The password will be the same as that for HR(wich is HR, by default). You will find that the HR tables exist.
+</p>
+<button type="button" onclick="$('#Answer1').toggleClass('hidden');">Answer</button>
+<div id="Answer1" class="hidden answer container-fluid" >
+	<ol>
+		<li>
+			--Check if the users exist:
+			select username from dba_users where username like '%HR%' or username like '%SCOTT%';<br>
+			--Check if the directory exist:
+			select * from dba_directories where directory_name like '%DATA_PUMP%';<br>
+		</li>
+		<li>
+			expdp system/system schemas=HR directory=DATA_PUMP_DIR dumpfile=hr.dmp
+			--Meanwhile in another session:
+			select program,pname from v$process order by program;
+			--I added the pname that is more correct.
+		</li>
+		<li>
+			impdp system/system directory=DATA_PUMP_DIR dumpfile=hr.dmp remap_schema=hr:dev
+		</li>
+	</ol>
+</div><br>
+</p>
+<h3>Xavi's propossed</h3>
+<p>
+<ul>
+</ul>
+</p>
